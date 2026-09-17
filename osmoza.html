@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Osmóza v rostlinné buňce – simulace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,600;7..72,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF3EE; --panel:#FFFFFF; --ink:#1E2B2A; --muted:#5B6B68; --line:#C9D6CF;
+  --wall:#B8904A; --cyto:#D5E8BC; --vac:#8E4A9E; --vac-soft:#D9B8E3;
+  --water:#3E8FC2; --sugar:#E0A21B; --solution:#E3EFF5;
+  --hypo:#2F7FB5; --iso:#4B8B3B; --hyper:#B5452F;
+  --accent:#4B8B3B; --focus:#2F7FB5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141C1B; --panel:#1C2625; --ink:#E4ECE8; --muted:#9DAEA9; --line:#33433F;
+    --wall:#C9A25F; --cyto:#3C5530; --vac:#B77AC7; --vac-soft:#5B3866;
+    --water:#6DB6E6; --sugar:#F0B93C; --solution:#1E3440;
+    --hypo:#6DB6E6; --iso:#8CC77A; --hyper:#E8806A; --accent:#8CC77A; --focus:#6DB6E6;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141C1B; --panel:#1C2625; --ink:#E4ECE8; --muted:#9DAEA9; --line:#33433F;
+  --wall:#C9A25F; --cyto:#3C5530; --vac:#B77AC7; --vac-soft:#5B3866;
+  --water:#6DB6E6; --sugar:#F0B93C; --solution:#1E3440;
+  --hypo:#6DB6E6; --iso:#8CC77A; --hyper:#E8806A; --accent:#8CC77A; --focus:#6DB6E6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;font-size:1rem;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+h1{font-family:"Literata",Georgia,serif;font-weight:700;font-size:clamp(1.6rem,3.2vw,2.3rem);line-height:1.15;margin:0 0 .35rem}
+.lead{color:var(--muted);max-width:68ch;margin:0 0 1.25rem}
+h2{font-family:"Literata",Georgia,serif;font-size:1.15rem;margin:0 0 .6rem}
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:1.25rem;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.stage{background:var(--solution);border:2px solid var(--line);border-radius:18px;overflow:hidden;position:relative}
+canvas{display:block;width:100%;height:auto;aspect-ratio:4/3}
+.legend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;padding:.6rem .9rem;background:var(--panel);border-top:1px solid var(--line);font-size:.88rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:.35rem}
+.sw{width:12px;height:12px;border-radius:50%;display:inline-block}
+.side{display:flex;flex-direction:column;gap:1rem}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem 1.1rem}
+label.big{display:flex;justify-content:space-between;align-items:baseline;font-weight:700}
+.cval{font-family:"Literata",Georgia,serif;font-size:1.9rem;color:var(--ink)}
+.cval small{font-size:.95rem;color:var(--muted);font-family:"Atkinson Hyperlegible",sans-serif}
+input[type=range]{width:100%;accent-color:var(--accent);margin:.5rem 0 .25rem}
+.presets{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem}
+button{font:inherit;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:.35rem .7rem;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+:root[data-theme="dark"] button.primary{color:#10180f}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.primary{color:#10180f}}
+button:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.status{display:grid;grid-template-columns:auto 1fr;gap:.35rem .9rem;align-items:center}
+.status dt{color:var(--muted)}
+.status dd{margin:0;font-weight:700}
+.tag{display:inline-block;padding:.1rem .55rem;border-radius:999px;color:#fff}
+.meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.explain{margin:.75rem 0 0;color:var(--ink);min-height:4.5em}
+.graphbox{margin-top:1.25rem}
+.graphhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.5rem}
+.graphhead .ctrls{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+.chk{display:inline-flex;align-items:center;gap:.35rem;font-size:.92rem;color:var(--muted)}
+svg text{font-family:"Atkinson Hyperlegible",sans-serif}
+.graphwrap{overflow-x:auto}
+#graph{display:block;max-height:380px;min-width:560px;margin:0 auto}
+details{margin-top:.9rem;color:var(--muted)}
+details summary{cursor:pointer;color:var(--ink)}
+.note{font-size:.88rem;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.meter i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Osmóza v rostlinné buňce</h1>
+  <p class="lead">Měň koncentraci sacharózy ve vnějším roztoku a sleduj, kudy teče voda, co se děje s protoplastem a jak se mění hmotnost pletiva. Hodnoty odpovídají laboratorní práci s bramborovými vzorky.</p>
+
+  <div class="grid">
+    <div>
+      <div class="stage">
+        <canvas id="cv" width="800" height="600" aria-label="Animace rostlinné buňky v roztoku sacharózy" role="img"></canvas>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--water)"></i>molekula vody</span>
+          <span><i class="sw" style="background:var(--sugar);border-radius:2px"></i>sacharóza</span>
+          <span><i class="sw" style="background:var(--wall);border-radius:2px"></i>buněčná stěna</span>
+          <span><i class="sw" style="background:var(--vac)"></i>vakuola</span>
+          <span><i class="sw" style="background:var(--cyto)"></i>cytoplazma</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="box">
+        <label class="big" for="conc">Vnější roztok sacharózy <span class="cval" id="cOut">0,00 <small>mol/l</small></span></label>
+        <input id="conc" type="range" min="0" max="0.8" step="0.01" value="0">
+        <div class="presets" aria-label="Koncentrace z laboratorní práce">
+          <button data-c="0">voda</button><button data-c="0.1">0,1</button><button data-c="0.2">0,2</button>
+          <button data-c="0.3">0,3</button><button data-c="0.5">0,5</button><button data-c="0.8">0,8</button>
+        </div>
+      </div>
+
+      <div class="box" aria-live="polite">
+        <h2>Co se děje</h2>
+        <dl class="status">
+          <dt>Roztok je vůči buňce</dt><dd><span class="tag" id="tonicity">hypotonický</span></dd>
+          <dt>Čistý tok vody</dt><dd id="flow">do buňky</dd>
+          <dt>Stav buňky</dt><dd id="state">turgescentní</dd>
+          <dt>Turgor</dt><dd><div class="meter" aria-hidden="true"><i id="turgor"></i></div></dd>
+          <dt>Změna hmotnosti</dt><dd id="mass">+12 %</dd>
+        </dl>
+        <p class="explain" id="explain"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="box graphbox">
+    <div class="graphhead">
+      <h2 style="margin:0">Změna hmotnosti v závislosti na koncentraci</h2>
+      <div class="ctrls">
+        <label class="chk"><input type="checkbox" id="showCurve" checked> ukázat modelovou křivku</label>
+        <label class="chk"><input type="checkbox" id="showIso"> ukázat izotonický bod</label>
+        <button class="primary" id="measure">Změřit vzorek</button>
+        <button id="clear">Vymazat měření</button>
+      </div>
+    </div>
+    <div class="graphwrap"><svg id="graph" viewBox="0 0 760 330" width="100%" role="img" aria-label="Graf procentuální změny hmotnosti"></svg></div>
+    <p class="note">„Změřit vzorek“ přidá do grafu výsledek jednoho pokusu při aktuální koncentraci, včetně náhodné chyby měření. Skryj křivku a nech studenty odhadnout izotonický bod jen z naměřených bodů.</p>
+    <details>
+      <summary>Nastavení pro učitele</summary>
+      <p><label for="ci">Koncentrace buněčné šťávy (izotonický bod): <b id="ciOut">0,23</b> mol/l</label><br>
+      <input id="ci" type="range" min="0.15" max="0.35" step="0.01" value="0.23" style="max-width:320px"></p>
+      <p class="note">Vztahy jsou zjednodušený model sestavený podle typických výsledků s bramborami, nejde o přesný výpočet vodního potenciálu.</p>
+    </details>
+  </div>
+</div>
+
+<script>
+(function(){
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const W = 800, H = 600;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let dpr = 1;
+  function resize(){ dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = W*dpr; cv.height = H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+  resize(); window.addEventListener('resize', resize);
+
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  let col = {};
+  function readColors(){ ['--wall','--cyto','--vac','--vac-soft','--water','--sugar','--solution','--ink','--muted','--hypo','--iso','--hyper','--line','--panel','--accent'].forEach(k=>col[k]=css(k)); }
+  readColors();
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{readColors(); drawGraph();});
+
+  let c = 0, ci = 0.23;
+  const fmt = (x,d=2) => x.toFixed(d).replace('.', ',');
+
+  // model: % change of mass
+  function delta(cc){ const d = ci - cc; return d >= 0 ? 52*d : -47*(-d)/(1 + (-d)); }
+
+  // cell geometry
+  const CX = 400, CY = 290, WW = 300, WH = 380; // wall inner size
+  let cur = { prot: 1, wall: 1 }; // animated scales
+  function target(){
+    const m = delta(c);
+    return { prot: m >= 0 ? 1 : 1 + m/100*1.6, wall: m >= 0 ? 1 + m/100*0.35 : 1 };
+  }
+
+  // particles
+  const rnd = (a,b) => a + Math.random()*(b-a);
+  let outside = [], inside = [], sugarOut = [], sugarIn = [];
+  function protRect(){
+    const s = cur.prot, w = cur.wall;
+    const pw = (WW*w - 4)*s, ph = (WH*w - 4)*s;
+    return { x: CX - pw/2, y: CY - ph/2, w: pw, h: ph, r: 18 + (1-s)*140 };
+  }
+  function wallRect(){ const w = cur.wall; return { x: CX - WW*w/2, y: CY - WH*w/2, w: WW*w, h: WH*w }; }
+  function inRect(p, r, pad=0){ return p.x > r.x+pad && p.x < r.x+r.w-pad && p.y > r.y+pad && p.y < r.y+r.h-pad; }
+  function initParticles(){
+    outside = []; inside = [];
+    for (let i=0;i<150;i++){ let p; do { p = {x:rnd(10,W-10), y:rnd(10,H-10)}; } while (inRect(p, wallRect(), -18)); p.vx=rnd(-1,1); p.vy=rnd(-1,1); p.cross=0; outside.push(p); }
+    for (let i=0;i<60;i++){ const r = protRect(); inside.push({x:rnd(r.x+30,r.x+r.w-30), y:rnd(r.y+30,r.y+r.h-30), vx:rnd(-1,1), vy:rnd(-1,1), cross:0}); }
+    syncSugar();
+  }
+  function syncSugar(){
+    const nOut = Math.round(c/0.8*90), nIn = Math.round(ci/0.8*90*0.55);
+    while (sugarOut.length < nOut){ let p; do { p = {x:rnd(10,W-10), y:rnd(10,H-10)}; } while (inRect(p, protRect(), -10)); p.vx=rnd(-.5,.5); p.vy=rnd(-.5,.5); p.a=rnd(0,6); sugarOut.push(p); }
+    sugarOut.length = nOut;
+    while (sugarIn.length < nIn){ const r = protRect(); sugarIn.push({x:rnd(r.x+40,r.x+r.w-40), y:rnd(r.y+40,r.y+r.h-40), vx:rnd(-.5,.5), vy:rnd(-.5,.5), a:rnd(0,6)}); }
+    sugarIn.length = nIn;
+  }
+
+  // water crossing: net flux proportional to delta
+  let crossAcc = 0;
+  function step(){
+    const t = target(), k = reduce ? 1 : 0.03;
+    cur.prot += (t.prot - cur.prot)*k; cur.wall += (t.wall - cur.wall)*k;
+    const wr = wallRect(), pr = protRect();
+    const moving = Math.abs(t.prot-cur.prot) + Math.abs(t.wall-cur.wall);
+    const m = delta(c);
+
+    // exchanges (equal random both ways + net bias while moving or continuous small exchange)
+    crossAcc += 0.05 + moving*40;
+    while (crossAcc >= 1){
+      crossAcc -= 1;
+      const bias = Math.sign(m) * Math.min(0.9, moving*60);
+      const inward = Math.random() < 0.5 + bias/2;
+      if (inward && outside.length > 60){
+        const i = Math.floor(Math.random()*outside.length); const p = outside.splice(i,1)[0];
+        const q = {x:p.x, y:p.y};
+        const tx = rnd(pr.x+30, pr.x+pr.w-30), ty = rnd(pr.y+30, pr.y+pr.h-30);
+        inside.push({x:q.x,y:q.y,tx,ty,cross:60,vx:0,vy:0,hl:1});
+      } else if (!inward && inside.length > 20){
+        const i = Math.floor(Math.random()*inside.length); const p = inside.splice(i,1)[0];
+        const side = Math.floor(Math.random()*4), g = 40;
+        const tx = side===2 ? wr.x-g : side===3 ? wr.x+wr.w+g : rnd(wr.x, wr.x+wr.w);
+        const ty = side===0 ? wr.y-g : side===1 ? wr.y+wr.h+g : rnd(wr.y, wr.y+wr.h);
+        outside.push({x:p.x,y:p.y,tx,ty,cross:60,vx:0,vy:0,hl:1});
+      }
+    }
+
+    const move = (p, box, insideBox) => {
+      if (p.cross > 0){ p.x += (p.tx-p.x)/p.cross; p.y += (p.ty-p.y)/p.cross; p.cross--; if(p.cross===0){p.vx=rnd(-1,1);p.vy=rnd(-1,1);} return; }
+      p.vx += rnd(-.15,.15); p.vy += rnd(-.15,.15); p.vx*=.97; p.vy*=.97;
+      p.x += p.vx*1.4; p.y += p.vy*1.4;
+      if (insideBox){
+        const pad = 10;
+        if (p.x < box.x+pad){p.x=box.x+pad;p.vx=Math.abs(p.vx);} if (p.x > box.x+box.w-pad){p.x=box.x+box.w-pad;p.vx=-Math.abs(p.vx);}
+        if (p.y < box.y+pad){p.y=box.y+pad;p.vy=Math.abs(p.vy);} if (p.y > box.y+box.h-pad){p.y=box.y+box.h-pad;p.vy=-Math.abs(p.vy);}
+      } else {
+        if (p.x<6){p.x=6;p.vx=Math.abs(p.vx);} if(p.x>W-6){p.x=W-6;p.vx=-Math.abs(p.vx);}
+        if (p.y<6){p.y=6;p.vy=Math.abs(p.vy);} if(p.y>H-6){p.y=H-6;p.vy=-Math.abs(p.vy);}
+        const r = protRect(), pad = -8;
+        if (inRect(p, r, pad)){
+          const dl = p.x-r.x, dr = r.x+r.w-p.x, dt = p.y-r.y, db = r.y+r.h-p.y, mn = Math.min(dl,dr,dt,db);
+          if (mn===dl){p.x=r.x-9;p.vx=-Math.abs(p.vx);} else if(mn===dr){p.x=r.x+r.w+9;p.vx=Math.abs(p.vx);}
+          else if(mn===dt){p.y=r.y-9;p.vy=-Math.abs(p.vy);} else {p.y=r.y+r.h+9;p.vy=Math.abs(p.vy);}
+        }
+      }
+      if (p.hl) p.hl = Math.max(0, p.hl - 0.01);
+    };
+    outside.forEach(p=>move(p,null,false));
+    // in plasmolysis, water between wall and protoplast belongs to outside solution; inside water stays in protoplast
+    inside.forEach(p=>move(p,pr,true));
+    sugarOut.forEach(p=>{ move(p,null,false); p.a+=.01; });
+    sugarIn.forEach(p=>{ move(p,pr,true); p.a+=.01; });
+  }
+
+  function rr(x,y,w,h,r){ r=Math.min(r,w/2,h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+  function hex(x,y,s,a){ ctx.beginPath(); for(let i=0;i<6;i++){const t=a+i*Math.PI/3; ctx[i?'lineTo':'moveTo'](x+s*Math.cos(t), y+s*Math.sin(t));} ctx.closePath(); }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = col['--solution']; ctx.fillRect(0,0,W,H);
+    const wr = wallRect(), pr = protRect();
+    // space between wall and protoplast is filled with outer solution (already background)
+    // wall
+    ctx.lineWidth = 14; ctx.strokeStyle = col['--wall']; rr(wr.x-7, wr.y-7, wr.w+14, wr.h+14, 22); ctx.stroke();
+    // protoplast
+    ctx.fillStyle = col['--cyto']; rr(pr.x, pr.y, pr.w, pr.h, pr.r); ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = col['--ink']; ctx.globalAlpha = .55; ctx.stroke(); ctx.globalAlpha = 1;
+    // vacuole
+    const vi = 20 + (1-cur.prot)*10;
+    ctx.fillStyle = col['--vac-soft']; rr(pr.x+vi, pr.y+vi, pr.w-2*vi, pr.h-2*vi-30, Math.max(12, pr.r-vi)); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = col['--vac']; ctx.stroke();
+    // nucleus
+    ctx.fillStyle = col['--vac']; ctx.globalAlpha=.35; ctx.beginPath(); ctx.ellipse(pr.x+pr.w-38, pr.y+pr.h-26, 16, 12, 0, 0, 7); ctx.fill(); ctx.globalAlpha=1;
+    // chloroplast-free (potato: amyloplasts) small grains
+    ctx.fillStyle = col['--muted']; ctx.globalAlpha=.35;
+    [[.18,.92],[.35,.95],[.55,.93]].forEach(([fx,fy])=>{ctx.beginPath();ctx.ellipse(pr.x+pr.w*fx, pr.y+pr.h*fy-12, 7,5,0,0,7);ctx.fill();});
+    ctx.globalAlpha=1;
+
+    // sugar
+    ctx.fillStyle = col['--sugar'];
+    sugarOut.forEach(p=>{hex(p.x,p.y,6,p.a);ctx.fill();});
+    sugarIn.forEach(p=>{hex(p.x,p.y,6,p.a);ctx.fill();});
+    // water
+    const wc = col['--water'];
+    [...outside, ...inside].forEach(p=>{
+      ctx.fillStyle = wc; ctx.beginPath(); ctx.arc(p.x,p.y, p.cross>0?4.5:3.2, 0, 7); ctx.fill();
+      if (p.cross>0){ ctx.strokeStyle = wc; ctx.globalAlpha=.35; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x-(p.tx-p.x)*.15, p.y-(p.ty-p.y)*.15); ctx.stroke(); ctx.globalAlpha=1; }
+    });
+
+    // net flow arrows
+    const m = delta(c), mag = Math.min(1, Math.abs(m)/12);
+    if (Math.abs(ci-c) > 0.015){
+      const inward = m > 0;
+      ctx.strokeStyle = inward ? col['--hypo'] : col['--hyper']; ctx.fillStyle = ctx.strokeStyle;
+      ctx.lineWidth = 3 + mag*5;
+      const arrows = [[pr.x-60, CY, pr.x-8, CY],[pr.x+pr.w+60, CY, pr.x+pr.w+8, CY],[CX, pr.y-55, CX, pr.y-8]];
+      arrows.forEach(([x1,y1,x2,y2])=>{
+        if(!inward){ [x1,x2]=[x2,x1]; [y1,y2]=[y2,y1]; }
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+        const a = Math.atan2(y2-y1,x2-x1), s = 10+mag*6;
+        ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-s*Math.cos(a-.5), y2-s*Math.sin(a-.5)); ctx.lineTo(x2-s*Math.cos(a+.5), y2-s*Math.sin(a+.5)); ctx.closePath(); ctx.fill();
+      });
+    }
+    // labels
+    ctx.font = '700 21px "Atkinson Hyperlegible", sans-serif'; ctx.fillStyle = col['--ink'];
+    ctx.textAlign='left';
+    ctx.fillText('vnější roztok: ' + fmt(c) + ' mol/l', 16, 30);
+    ctx.fillText('buněčná šťáva: ' + fmt(ci) + ' mol/l', 16, 56);
+    if (cur.prot < 0.94){
+      ctx.fillStyle = col['--hyper'];
+      ctx.textAlign='center';
+      ctx.fillText('protoplast se odtrhává od stěny', CX, wr.y+wr.h+62);
+    }
+  }
+
+  function loop(){ step(); draw(); requestAnimationFrame(loop); }
+
+  // UI
+  const $ = id => document.getElementById(id);
+  function updateUI(){
+    const m = delta(c), d = ci - c;
+    $('cOut').innerHTML = fmt(c) + ' <small>mol/l</small>';
+    const iso = Math.abs(d) <= 0.015;
+    const t = $('tonicity');
+    if (iso){ t.textContent='izotonický'; t.style.background='var(--iso)'; }
+    else if (d>0){ t.textContent='hypotonický'; t.style.background='var(--hypo)'; }
+    else { t.textContent='hypertonický'; t.style.background='var(--hyper)'; }
+    $('flow').textContent = iso ? 'žádný (voda proudí oběma směry stejně)' : d>0 ? 'do buňky' : 'z buňky ven';
+    let state;
+    if (iso) state = 'hraniční stav, turgor minimální';
+    else if (d>0) state = 'turgescentní (napjatá)';
+    else if (m > -4) state = 'počínající plazmolýza';
+    else state = 'plazmolýza';
+    $('state').textContent = state;
+    $('turgor').style.width = (d>0 ? Math.min(100, 15 + d/0.23*85) : iso ? 12 : 0) + '%';
+    $('mass').textContent = (m>0?'+':m<0?'−':'') + fmt(Math.abs(m),1) + ' %';
+    $('explain').textContent = iso
+      ? 'Koncentrace vně i uvnitř buňky je stejná. Voda přechází membránou oběma směry stejně rychle, hmotnost pletiva se nemění. Tuto koncentraci hledáte v grafu jako průsečík s osou x.'
+      : d>0
+      ? 'Vnější roztok má nižší koncentraci než buněčná šťáva. Voda vstupuje osmózou do vakuoly, protoplast se tlačí na buněčnou stěnu a roste turgor. Stěna zabrání dalšímu zvětšování, proto buňka nepraskne. Pletivo ztuhne a ztěžkne.'
+      : 'Vnější roztok má vyšší koncentraci než buněčná šťáva. Voda z vakuoly odchází, protoplast se zmenšuje a odtrhává od stěny – nastává plazmolýza. Prostor mezi stěnou a protoplastem vyplní vnější roztok, protože stěna je pro něj propustná. Pletivo změkne a zlehčí. Po převedení do vody proběhne deplazmolýza.';
+  }
+  function setC(v){ c = +v; $('conc').value = c; syncSugar(); updateUI(); drawGraph(); }
+  $('conc').addEventListener('input', e=>setC(e.target.value));
+  document.querySelectorAll('.presets button').forEach(b=>b.addEventListener('click', ()=>setC(b.dataset.c)));
+  $('ci').addEventListener('input', e=>{ ci = +e.target.value; $('ciOut').textContent = fmt(ci); syncSugar(); updateUI(); drawGraph(); });
+
+  // graph
+  let points = [];
+  const G = { x0:70, x1:730, y0:20, y1:285, cmax:0.8, ymin:-22, ymax:22 };
+  const gx = v => G.x0 + v/G.cmax*(G.x1-G.x0);
+  const gy = v => G.y0 + (G.ymax - v)/(G.ymax-G.ymin)*(G.y1-G.y0);
+  function drawGraph(){
+    const s = $('graph'); const ink = col['--ink'], mu = col['--muted'], ln = col['--line'];
+    let h = '';
+    for (let v=-20; v<=20; v+=5){ h += `<line x1="${G.x0}" x2="${G.x1}" y1="${gy(v)}" y2="${gy(v)}" stroke="${ln}" stroke-width="${v===0?2:1}"/>`;
+      h += `<text x="${G.x0-10}" y="${gy(v)+4}" text-anchor="end" font-size="12" fill="${mu}">${v>0?'+':''}${v}</text>`; }
+    for (let x=0; x<=0.8001; x+=0.1){ h += `<line x1="${gx(x)}" x2="${gx(x)}" y1="${G.y0}" y2="${G.y1}" stroke="${ln}" stroke-width="1" opacity=".6"/>`;
+      h += `<text x="${gx(x)}" y="${G.y1+18}" text-anchor="middle" font-size="12" fill="${mu}">${fmt(x,1)}</text>`; }
+    h += `<text x="${(G.x0+G.x1)/2}" y="${G.y1+40}" text-anchor="middle" font-size="13" fill="${ink}">koncentrace sacharózy (mol/l)</text>`;
+    h += `<text transform="translate(18 ${(G.y0+G.y1)/2}) rotate(-90)" text-anchor="middle" font-size="13" fill="${ink}">změna hmotnosti (%)</text>`;
+    if ($('showCurve').checked){
+      let d = ''; for (let i=0;i<=160;i++){ const x = i/160*0.8; d += (i?'L':'M') + gx(x).toFixed(1) + ' ' + gy(delta(x)).toFixed(1); }
+      h += `<path d="${d}" fill="none" stroke="${col['--accent']}" stroke-width="3"/>`;
+    }
+    if ($('showIso').checked){
+      h += `<line x1="${gx(ci)}" x2="${gx(ci)}" y1="${G.y0}" y2="${G.y1}" stroke="${col['--iso']}" stroke-dasharray="5 4" stroke-width="2"/>`;
+      h += `<circle cx="${gx(ci)}" cy="${gy(0)}" r="6" fill="${col['--iso']}"/>`;
+      h += `<text x="${gx(ci)+8}" y="${G.y0+14}" font-size="13" fill="${col['--iso']}" font-weight="700">izotonický bod ≈ ${fmt(ci)} mol/l</text>`;
+    }
+    points.forEach(p=>{ h += `<rect x="${gx(p.c)-5}" y="${gy(p.v)-5}" width="10" height="10" fill="${col['--hyper']}" transform="rotate(45 ${gx(p.c)} ${gy(p.v)})"/>`; });
+    h += `<line x1="${gx(c)}" x2="${gx(c)}" y1="${G.y0}" y2="${G.y1}" stroke="${ink}" stroke-width="1" opacity=".35"/>`;
+    if ($('showCurve').checked) h += `<circle cx="${gx(c)}" cy="${gy(delta(c))}" r="7" fill="${col['--panel']}" stroke="${ink}" stroke-width="2.5"/>`;
+    s.innerHTML = h;
+  }
+  $('showCurve').addEventListener('change', drawGraph);
+  $('showIso').addEventListener('change', drawGraph);
+  $('measure').addEventListener('click', ()=>{
+    const noise = (Math.random()+Math.random()-1)*1.6;
+    points.push({c, v: delta(c)+noise}); drawGraph();
+  });
+  $('clear').addEventListener('click', ()=>{ points=[]; drawGraph(); });
+
+  initParticles(); updateUI(); drawGraph(); loop();
+})();
+</script>
+</body>
+</html>
