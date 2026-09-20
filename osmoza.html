@@ -97,10 +97,10 @@ details summary{cursor:pointer;color:var(--ink)}
     <div class="side">
       <div class="box">
         <label class="big" for="conc">Vnější roztok sacharózy <span class="cval" id="cOut">0,00 <small>mol/l</small></span></label>
-        <input id="conc" type="range" min="0" max="0.8" step="0.01" value="0">
+        <input id="conc" type="range" min="0" max="1.2" step="0.01" value="0">
         <div class="presets" aria-label="Koncentrace z laboratorní práce">
           <button data-c="0">voda</button><button data-c="0.1">0,1</button><button data-c="0.2">0,2</button>
-          <button data-c="0.3">0,3</button><button data-c="0.5">0,5</button><button data-c="0.8">0,8</button>
+          <button data-c="0.3">0,3</button><button data-c="0.5">0,5</button><button data-c="0.8">0,8</button><button data-c="1">1,0</button>
         </div>
       </div>
 
@@ -185,7 +185,7 @@ details summary{cursor:pointer;color:var(--ink)}
     syncSugar();
   }
   function syncSugar(){
-    const nOut = Math.round(c/0.8*90), nIn = Math.round(ci/0.8*90*0.55);
+    const nOut = Math.round(c/1.2*130), nIn = Math.round(ci/1.2*130*0.55);
     while (sugarOut.length < nOut){ let p; do { p = {x:rnd(10,W-10), y:rnd(10,H-10)}; } while (inRect(p, protRect(), -10)); p.vx=rnd(-.5,.5); p.vy=rnd(-.5,.5); p.a=rnd(0,6); sugarOut.push(p); }
     sugarOut.length = nOut;
     while (sugarIn.length < nIn){ const r = protRect(); sugarIn.push({x:rnd(r.x+40,r.x+r.w-40), y:rnd(r.y+40,r.y+r.h-40), vx:rnd(-.5,.5), vy:rnd(-.5,.5), a:rnd(0,6)}); }
@@ -343,20 +343,20 @@ details summary{cursor:pointer;color:var(--ink)}
 
   // graph
   let points = [];
-  const G = { x0:70, x1:730, y0:20, y1:285, cmax:0.8, ymin:-22, ymax:22 };
+  const G = { x0:70, x1:730, y0:20, y1:285, cmax:1.2, ymin:-27, ymax:22 };
   const gx = v => G.x0 + v/G.cmax*(G.x1-G.x0);
   const gy = v => G.y0 + (G.ymax - v)/(G.ymax-G.ymin)*(G.y1-G.y0);
   function drawGraph(){
     const s = $('graph'); const ink = col['--ink'], mu = col['--muted'], ln = col['--line'];
     let h = '';
-    for (let v=-20; v<=20; v+=5){ h += `<line x1="${G.x0}" x2="${G.x1}" y1="${gy(v)}" y2="${gy(v)}" stroke="${ln}" stroke-width="${v===0?2:1}"/>`;
+    for (let v=-25; v<=20; v+=5){ h += `<line x1="${G.x0}" x2="${G.x1}" y1="${gy(v)}" y2="${gy(v)}" stroke="${ln}" stroke-width="${v===0?2:1}"/>`;
       h += `<text x="${G.x0-10}" y="${gy(v)+4}" text-anchor="end" font-size="12" fill="${mu}">${v>0?'+':''}${v}</text>`; }
-    for (let x=0; x<=0.8001; x+=0.1){ h += `<line x1="${gx(x)}" x2="${gx(x)}" y1="${G.y0}" y2="${G.y1}" stroke="${ln}" stroke-width="1" opacity=".6"/>`;
+    for (let x=0; x<=1.2001; x+=0.2){ h += `<line x1="${gx(x)}" x2="${gx(x)}" y1="${G.y0}" y2="${G.y1}" stroke="${ln}" stroke-width="1" opacity=".6"/>`;
       h += `<text x="${gx(x)}" y="${G.y1+18}" text-anchor="middle" font-size="12" fill="${mu}">${fmt(x,1)}</text>`; }
     h += `<text x="${(G.x0+G.x1)/2}" y="${G.y1+40}" text-anchor="middle" font-size="13" fill="${ink}">koncentrace sacharózy (mol/l)</text>`;
     h += `<text transform="translate(18 ${(G.y0+G.y1)/2}) rotate(-90)" text-anchor="middle" font-size="13" fill="${ink}">změna hmotnosti (%)</text>`;
     if ($('showCurve').checked){
-      let d = ''; for (let i=0;i<=160;i++){ const x = i/160*0.8; d += (i?'L':'M') + gx(x).toFixed(1) + ' ' + gy(delta(x)).toFixed(1); }
+      let d = ''; for (let i=0;i<=160;i++){ const x = i/160*G.cmax; d += (i?'L':'M') + gx(x).toFixed(1) + ' ' + gy(delta(x)).toFixed(1); }
       h += `<path d="${d}" fill="none" stroke="${col['--accent']}" stroke-width="3"/>`;
     }
     if ($('showIso').checked){
