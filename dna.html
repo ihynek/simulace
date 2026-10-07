@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Izolace DNA z banánu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F3F0E8; --panel:#FFFFFF; --ink:#24201A; --muted:#6B6355; --line:#D8D1C2;
+  --wall:#9C7B3F; --membrana:#C9643E; --jadro:#6C4D9E; --dna:#2E6FA8; --dna-svetla:#9CC4E4;
+  --sapo:#2E8B86; --sul:#C6A030; --alkohol:#E6EEF5; --filtrat:#D9C98A;
+  --ok:#3F7A3B; --spatne:#B5452F; --accent:#2E6FA8;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1A1813; --panel:#241F19; --ink:#EDE7DA; --muted:#A79C89; --line:#3D362B;
+    --wall:#C9A25F; --membrana:#E08A62; --jadro:#A98BD6; --dna:#6FAEDC; --dna-svetla:#3C5F7D;
+    --sapo:#56BDB6; --sul:#E0BE56; --alkohol:#223240; --filtrat:#6E6134;
+    --ok:#7FB87A; --spatne:#E8806A; --accent:#6FAEDC;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1A1813; --panel:#241F19; --ink:#EDE7DA; --muted:#A79C89; --line:#3D362B;
+  --wall:#C9A25F; --membrana:#E08A62; --jadro:#A98BD6; --dna:#6FAEDC; --dna-svetla:#3C5F7D;
+  --sapo:#56BDB6; --sul:#E0BE56; --alkohol:#223240; --filtrat:#6E6134;
+  --ok:#7FB87A; --spatne:#E8806A; --accent:#6FAEDC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1140px;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+h1{font-family:"Fraunces",Georgia,serif;font-weight:700;font-size:clamp(1.7rem,3.4vw,2.4rem);line-height:1.1;margin:0 0 .3rem}
+.lead{color:var(--muted);max-width:66ch;margin:0 0 1.4rem}
+h2{font-family:"Fraunces",Georgia,serif;font-size:1.1rem;margin:0 0 .5rem}
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:1.1rem;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:1fr}}
+.stage{background:var(--panel);border:2px solid var(--line);border-radius:16px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;aspect-ratio:5/4}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.95rem 1.05rem}
+.side{display:flex;flex-direction:column;gap:.9rem}
+ol.kroky{list-style:none;margin:0;padding:0;counter-reset:k}
+ol.kroky li{counter-increment:k;margin:0 0 .3rem}
+ol.kroky button{width:100%;text-align:left;display:flex;gap:.6rem;align-items:baseline;
+  font:inherit;background:transparent;border:1px solid transparent;border-radius:9px;
+  padding:.4rem .55rem;cursor:pointer;color:var(--ink)}
+ol.kroky button::before{content:counter(k);font-weight:700;color:var(--muted);min-width:1.1em}
+ol.kroky button:hover{border-color:var(--line)}
+ol.kroky li.akt button{background:var(--accent);border-color:var(--accent);color:#fff}
+ol.kroky li.akt button::before{color:#fff}
+:root[data-theme="dark"] ol.kroky li.akt button,
+:root[data-theme="dark"] ol.kroky li.akt button::before{color:#14202b}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) ol.kroky li.akt button,
+  :root:not([data-theme="light"]) ol.kroky li.akt button::before{color:#14202b}
+}
+.vysv{margin:.6rem 0 0;min-height:7.5em}
+.vysv b{color:var(--accent)}
+.prep{display:flex;flex-direction:column;gap:.45rem;margin-top:.2rem}
+.prep label{display:flex;gap:.5rem;align-items:flex-start;cursor:pointer;font-size:.95rem}
+.prep input{margin-top:.25rem;accent-color:var(--accent);flex:none}
+.prep span small{display:block;color:var(--muted);font-size:.84rem;line-height:1.35}
+.vysledek{margin-top:.7rem;padding:.6rem .75rem;border-radius:9px;border:1px solid var(--line);
+  background:color-mix(in srgb, var(--accent) 7%, transparent);font-size:.95rem}
+.vysledek b{display:block;margin-bottom:.15rem}
+.navig{display:flex;gap:.5rem;margin-top:.7rem}
+button.nav{font:inherit;border:1px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:9px;padding:.4rem .9rem;cursor:pointer}
+button.nav:hover{border-color:var(--accent)}
+button.nav[disabled]{opacity:.4;cursor:default}
+button.nav.prim{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+:root[data-theme="dark"] button.nav.prim{color:#14202b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.nav.prim{color:#14202b}}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.legenda{display:flex;flex-wrap:wrap;gap:.35rem .9rem;padding:.55rem .9rem;border-top:1px solid var(--line);
+  font-size:.85rem;color:var(--muted);background:var(--panel)}
+.legenda span{display:inline-flex;align-items:center;gap:.33rem}
+.sw{width:11px;height:11px;border-radius:3px;display:inline-block}
+.note{font-size:.86rem;color:var(--muted);margin:.5rem 0 0}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Izolace DNA z banánu</h1>
+  <p class="lead">Co se v jednotlivých krocích pokusu děje s buňkou a proč. Vlevo běží model, vpravo si můžeš vypnout saponát, sůl nebo chlazení alkoholu a sledovat, jak to dopadne.</p>
+
+  <div class="grid">
+    <div>
+      <div class="stage">
+        <canvas id="cv" width="760" height="608" role="img" aria-label="Model izolace DNA z rostlinné buňky"></canvas>
+        <div class="legenda">
+          <span><i class="sw" style="background:var(--wall)"></i>buněčná stěna</span>
+          <span><i class="sw" style="background:var(--membrana)"></i>membrána</span>
+          <span><i class="sw" style="background:var(--jadro)"></i>jádro</span>
+          <span><i class="sw" style="background:var(--dna)"></i>DNA</span>
+          <span><i class="sw" style="background:var(--sapo)"></i>saponát</span>
+          <span><i class="sw" style="background:var(--sul);border-radius:50%"></i>ionty soli</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="box">
+        <h2>Kroky pokusu</h2>
+        <ol class="kroky" id="kroky"></ol>
+        <div class="navig">
+          <button class="nav" id="zpet">← zpět</button>
+          <button class="nav prim" id="dal">další →</button>
+        </div>
+      </div>
+
+      <div class="box" aria-live="polite">
+        <h2 id="nazevKroku">Rostlinná buňka</h2>
+        <p class="vysv" id="vysvetleni"></p>
+      </div>
+
+      <div class="box">
+        <h2>Co kdyby…</h2>
+        <div class="prep">
+          <label><input type="checkbox" id="saponat" checked><span>saponát v roztoku<small>rozpouští lipidové membrány</small></span></label>
+          <label><input type="checkbox" id="sul" checked><span>sůl v roztoku<small>stíní záporný náboj DNA</small></span></label>
+          <label><input type="checkbox" id="chlad" checked><span>vychlazený alkohol<small>v chladu se DNA sráží ochotněji</small></span></label>
+        </div>
+        <div class="vysledek" id="vysledek"></div>
+      </div>
+    </div>
+  </div>
+  <p class="note">Model je zjednodušený – ukazuje princip, ne skutečné velikosti a počty molekul. Jedna molekula DNA je okem neviditelná, v pokusu vidíme až shluk obrovského množství molekul.</p>
+</div>
+
+<script>
+(function(){
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var W=760,H=608, t=0, krok=0;
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function resize(){var d=Math.min(devicePixelRatio||1,2);cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+  resize(); addEventListener('resize',resize);
+
+  var C={};
+  function barvy(){['--wall','--membrana','--jadro','--dna','--dna-svetla','--sapo','--sul','--alkohol','--filtrat','--ink','--muted','--line','--panel','--ok','--spatne','--accent']
+    .forEach(function(k){C[k]=getComputedStyle(document.documentElement).getPropertyValue(k).trim();});}
+  barvy(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change',barvy);
+
+  var KROKY=[
+    {n:'Rostlinná buňka',
+     v:'Výchozí stav. DNA je stočená v <b>jádře</b>, menší množství i v mitochondriích a chloroplastech. Kolem jádra je jaderný obal, kolem cytoplazmy plazmatická membrána a vně všeho pevná <b>buněčná stěna</b> z celulózy. Dokud jsou tyhle tři obaly celé, DNA se z buňky nedostane.'},
+    {n:'Mechanické rozmačkání',
+     v:'Vidličkou nebo mixérem <b>trháme buněčné stěny</b>. Saponát si s celulózou neporadí, proto musí přijít mechanická síla. Zároveň se zvětší plocha, na kterou pak může lyzační roztok působit. Banán je vhodný i proto, že pěstované odrůdy jsou <b>triploidní</b> – mají každý chromozom ve třech kopiích, takže v buňce je DNA víc.'},
+    {n:'Lýza saponátem',
+     v:'Membrány jsou tvořené <b>lipidovou dvojvrstvou</b>. Saponát je rozpouští stejně, jako při mytí nádobí rozpouští tuk – jeho molekuly se vmezeří mezi lipidy a obal se rozpadne. Rozpadá se plazmatická membrána i jaderný obal, takže se DNA uvolní do roztoku. Teplá voda (asi 60 °C) děj urychluje a navíc ničí <b>nukleázy</b>, enzymy, které by DNA rozstříhaly.'},
+    {n:'Filtrace',
+     v:'Přes filtr neprojdou <b>zbytky buněčných stěn, vlákna a škrob</b>. Ve filtrátu zůstane DNA spolu s dalšími rozpuštěnými látkami – bílkovinami, RNA a polysacharidy. Filtrát je zakalený a nažloutlý; DNA v něm zatím vidět není, protože je rozpuštěná.'},
+    {n:'Srážení alkoholem',
+     v:'DNA je ve vodě rozpustná, v alkoholu ne. Studený alkohol nalitý po stěně vytvoří <b>vrstvu nad filtrátem</b> a přesně na rozhraní obou kapalin se DNA vysráží. Sodné ionty ze soli přitom stíní záporný náboj fosfátové kostry, takže se vlákna k sobě mohou přiblížit a <b>shluknout</b>. Sraženinu nese nahoru unikající vzduch.'},
+    {n:'Namotání na špejli',
+     v:'Vlákna se dají opatrně namotat na špejli. <b>Není to čistá DNA</b> – je v ní i RNA, bílkoviny a polysacharidy. A pozor: jednotlivou molekulu DNA okem nevidíme ani náhodou. Vidíme až shluk mnoha miliard molekul, podobně jako nevidíme jedno vlákno pavučiny, ale celou pavučinu ano.'}
+  ];
+
+  function S(){return {sapo:document.getElementById('saponat').checked,
+                      sul:document.getElementById('sul').checked,
+                      chlad:document.getElementById('chlad').checked};}
+
+  function vytezek(){var s=S(); if(!s.sapo) return 0; var v=1; if(!s.sul) v*=.35; if(!s.chlad) v*=.5; return v;}
+
+  // ---------- kreslení ----------
+  function rr(x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+  function klubko(cx,cy,r,faze,barva,tloustka){
+    ctx.strokeStyle=barva; ctx.lineWidth=tloustka||3; ctx.lineCap='round';
+    ctx.beginPath();
+    for(var i=0;i<=190;i++){
+      var a=i/190*Math.PI*9+faze;
+      var rr2=r*(0.42+0.5*Math.sin(i/190*Math.PI*3.1+faze*0.7));
+      var x=cx+Math.cos(a)*rr2, y=cy+Math.sin(a)*rr2*0.72;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    }
+    ctx.stroke();
+  }
+
+  function vlakno(x1,y1,x2,y2,amp,faze,barva,tl){
+    ctx.strokeStyle=barva; ctx.lineWidth=tl||2.4; ctx.lineCap='round'; ctx.beginPath();
+    var n=34;
+    for(var i=0;i<=n;i++){
+      var p=i/n, x=x1+(x2-x1)*p, y=y1+(y2-y1)*p;
+      var o=Math.sin(p*Math.PI*4+faze)*amp*Math.sin(p*Math.PI);
+      i?ctx.lineTo(x+o,y):ctx.moveTo(x+o,y);
+    }
+    ctx.stroke();
+  }
+
+  function sulIont(x,y,r){ctx.fillStyle=C['--sul'];ctx.beginPath();ctx.arc(x,y,r||4,0,7);ctx.fill();}
+
+  function popis(txt,x,y,align){ctx.fillStyle=C['--muted'];ctx.font='600 14px "Atkinson Hyperlegible",sans-serif';
+    ctx.textAlign=align||'center';ctx.fillText(txt,x,y);ctx.textAlign='left';}
+
+  function nadpisPlatna(txt){ctx.fillStyle=C['--ink'];ctx.font='700 19px "Atkinson Hyperlegible",sans-serif';
+    ctx.textAlign='left';ctx.fillText(txt,22,34);}
+
+  function bunka(cx,cy,sc,rozbita,bezMembran){
+    var w=250*sc,h=190*sc;
+    // stěna
+    ctx.lineWidth=11*sc; ctx.strokeStyle=C['--wall'];
+    if(rozbita){
+      ctx.save();
+      var kusy=[[0,.30],[.38,.60],[.72,.95]];
+      kusy.forEach(function(k){
+        ctx.beginPath();
+        var a0=k[0]*Math.PI*2, a1=k[1]*Math.PI*2;
+        ctx.ellipse(cx,cy,w/2,h/2,0,a0,a1); ctx.stroke();
+      });
+      ctx.restore();
+    } else { ctx.beginPath(); ctx.ellipse(cx,cy,w/2,h/2,0,0,7); ctx.stroke(); }
+    // cytoplazma
+    ctx.fillStyle='rgba(140,170,120,.16)'; ctx.beginPath();
+    ctx.ellipse(cx,cy,w/2-9*sc,h/2-9*sc,0,0,7); ctx.fill();
+    // plazmatická membrána
+    if(!bezMembran){
+      ctx.lineWidth=3.2*sc; ctx.strokeStyle=C['--membrana'];
+      ctx.setLineDash(rozbita?[9*sc,7*sc]:[]);
+      ctx.beginPath(); ctx.ellipse(cx,cy,w/2-9*sc,h/2-9*sc,0,0,7); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    // jádro
+    if(!bezMembran){
+      ctx.fillStyle='rgba(108,77,158,.17)';
+      ctx.beginPath(); ctx.ellipse(cx,cy,58*sc,48*sc,0,0,7); ctx.fill();
+      ctx.lineWidth=3*sc; ctx.strokeStyle=C['--jadro'];
+      ctx.setLineDash(rozbita?[8*sc,6*sc]:[]);
+      ctx.beginPath(); ctx.ellipse(cx,cy,58*sc,48*sc,0,0,7); ctx.stroke(); ctx.setLineDash([]);
+      klubko(cx,cy,42*sc,t*0.012,C['--dna'],3*sc);
+    }
+  }
+
+  function vodic(x1,y1,x2,y2){
+    ctx.strokeStyle=C['--line']; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+
+  function scenaBunka(){
+    nadpisPlatna('1 · Rostlinná buňka');
+    var cy=H/2+16;
+    bunka(W/2,cy,1.5,false,false);
+    popis('buněčná stěna (celulóza)',W/2,cy-168);
+    vodic(W/2,cy-160,W/2,cy-142);
+
+    ctx.fillStyle=C['--muted']; ctx.font='600 14px "Atkinson Hyperlegible",sans-serif';
+    ctx.textAlign='right'; ctx.fillText('plazmatická membrána',186,cy-34); ctx.textAlign='left';
+    vodic(192,cy-39,215,cy-58);
+
+    ctx.fillStyle=C['--muted'];
+    ctx.fillText('jádro s DNA',578,cy+46);
+    vodic(572,cy+41,478,cy+26);
+
+    ctx.textAlign='center';
+    ctx.fillStyle=C['--muted'];
+    ctx.fillText('DNA se z buňky nedostane, dokud jsou všechny tři obaly celé',W/2,H-26);
+    ctx.textAlign='left';
+  }
+
+  function scenaMacka(){
+    nadpisPlatna('2 · Mechanické rozmačkání');
+    var p=Math.min(1,(t%260)/150);
+    // vidlička shora
+    var vy=90+p*120;
+    ctx.strokeStyle=C['--muted']; ctx.lineWidth=7;
+    ctx.beginPath(); ctx.moveTo(W/2,20); ctx.lineTo(W/2,vy); ctx.stroke();
+    for(var i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(W/2+i*26,vy);ctx.lineTo(W/2+i*26,vy+46);ctx.stroke();}
+    var rozbito=p>0.75;
+    bunka(W/2,H/2+50,1.35,rozbito,false);
+    popis(rozbito?'stěna praskla, obsah se uvolňuje':'stěna je zatím celá',W/2,H-42);
+  }
+
+  function scenaLyza(){
+    nadpisPlatna('3 · Lýza saponátem');
+    var s=S();
+    var p=Math.min(1,(t%300)/180);
+    bunka(W/2,H/2+20,1.35,true,s.sapo&&p>.55);
+    // molekuly saponátu
+    if(s.sapo){
+      for(var i=0;i<26;i++){
+        var a=i/26*Math.PI*2+t*0.004, r=150+Math.sin(t*0.02+i)*16-p*55;
+        var x=W/2+Math.cos(a)*r, y=H/2+20+Math.sin(a)*r*0.72;
+        ctx.fillStyle=C['--sapo']; ctx.beginPath(); ctx.arc(x,y,5.5,0,7); ctx.fill();
+        ctx.strokeStyle=C['--sapo']; ctx.lineWidth=2; ctx.beginPath();
+        ctx.moveTo(x,y); ctx.lineTo(x+Math.cos(a)*11,y+Math.sin(a)*11); ctx.stroke();
+      }
+    }
+    if(s.sapo&&p>.55){
+      for(var j=0;j<5;j++){
+        var fz=t*0.02+j;
+        vlakno(W/2-150+j*18,H/2+20+Math.sin(fz)*44,W/2+150-j*14,H/2+20+Math.cos(fz)*40,13,fz,C['--dna'],2.6);
+      }
+      popis('membrány se rozpadly, DNA je volná v roztoku',W/2,H-36);
+    } else if(!s.sapo){
+      popis('bez saponátu membrány vydrží – DNA zůstává uvnitř',W/2,H-36);
+    } else {
+      popis('saponát se vmezeřuje mezi lipidy membrány',W/2,H-36);
+    }
+  }
+
+  function scenaFiltrace(){
+    nadpisPlatna('4 · Filtrace');
+    var s=S();
+    // nálevka
+    ctx.strokeStyle=C['--line']; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(W/2-150,130); ctx.lineTo(W/2-22,330);
+    ctx.lineTo(W/2-22,392); ctx.moveTo(W/2+150,130); ctx.lineTo(W/2+22,330); ctx.lineTo(W/2+22,392); ctx.stroke();
+    // filtrační papír
+    ctx.fillStyle='rgba(150,150,150,.20)';
+    ctx.beginPath(); ctx.moveTo(W/2-150,140); ctx.lineTo(W/2+150,140); ctx.lineTo(W/2+30,330); ctx.lineTo(W/2-30,330); ctx.closePath(); ctx.fill();
+    // zbytky nahoře
+    for(var i=0;i<16;i++){
+      var x=W/2-120+((i*73)%240), y=165+((i*37)%105);
+      ctx.fillStyle=C['--wall']; ctx.globalAlpha=.75;
+      ctx.beginPath(); ctx.ellipse(x,y,10,5,(i*1.1),0,7); ctx.fill(); ctx.globalAlpha=1;
+    }
+    popis('zbytky stěn, vlákna a škrob neprojdou',W/2,124);
+    // kádinka
+    ctx.strokeStyle=C['--line']; ctx.lineWidth=5;
+    rr(W/2-120,400,240,160,10); ctx.stroke();
+    ctx.fillStyle=C['--filtrat']; ctx.globalAlpha=.55;
+    rr(W/2-115,452,230,105,8); ctx.fill(); ctx.globalAlpha=1;
+    // kapka
+    var ky=392+((t*2.2)%58);
+    ctx.fillStyle=C['--filtrat']; ctx.beginPath(); ctx.arc(W/2,ky,6,0,7); ctx.fill();
+    // DNA ve filtrátu
+    if(S().sapo){
+      for(var j=0;j<4;j++){
+        var fz=t*0.016+j*1.7;
+        vlakno(W/2-95+j*12,478+Math.sin(fz)*18,W/2+95-j*10,500+Math.cos(fz)*16,8,fz,C['--dna'],2);
+      }
+      popis('filtrát obsahuje rozpuštěnou DNA',W/2,H-24);
+    } else {
+      popis('ve filtrátu skoro žádná DNA není',W/2,H-24);
+    }
+  }
+
+  function zkumavka(cx,top,w,h){
+    ctx.strokeStyle=C['--line']; ctx.lineWidth=5;
+    ctx.beginPath();
+    ctx.moveTo(cx-w/2,top); ctx.lineTo(cx-w/2,top+h-w/2);
+    ctx.arc(cx,top+h-w/2,w/2,Math.PI,0,true);
+    ctx.lineTo(cx+w/2,top); ctx.stroke();
+  }
+
+  function scenaSrazeni(){
+    nadpisPlatna('5 · Srážení alkoholem');
+    var s=S(), v=vytezek();
+    var cx=W/2, top=90, w=215, h=440, rozhrani=top+235;
+    zkumavka(cx,top,w,h);
+    ctx.save();
+    ctx.beginPath(); ctx.moveTo(cx-w/2+3,top); ctx.lineTo(cx-w/2+3,top+h-w/2);
+    ctx.arc(cx,top+h-w/2,w/2-3,Math.PI,0,true); ctx.lineTo(cx+w/2-3,top); ctx.closePath(); ctx.clip();
+    // filtrát
+    ctx.fillStyle=C['--filtrat']; ctx.globalAlpha=.5;
+    ctx.fillRect(cx-w/2,rozhrani,w,h); ctx.globalAlpha=1;
+    // alkohol
+    ctx.fillStyle=C['--alkohol']; ctx.globalAlpha=.85;
+    ctx.fillRect(cx-w/2,top,w,rozhrani-top); ctx.globalAlpha=1;
+    // rozhraní
+    ctx.strokeStyle=C['--line']; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(cx-w/2,rozhrani); ctx.lineTo(cx+w/2,rozhrani); ctx.stroke();
+    // ionty soli ve filtrátu
+    if(s.sul) for(var i=0;i<14;i++) sulIont(cx-85+((i*53)%170), rozhrani+25+((i*41)%150), 3.4);
+    // sraženina
+    if(v>0){
+      var n=Math.round(3+v*9);
+      for(var j=0;j<n;j++){
+        var fz=t*0.013+j*0.9;
+        var yy=rozhrani-6-j*(v>0.5?8:5)-Math.abs(Math.sin(fz))*5;
+        var sirka=(42+v*58)*(0.55+0.45*Math.sin(j*0.8+1));
+        vlakno(cx-sirka,yy,cx+sirka,yy+Math.sin(fz)*6,7*v+2,fz,v>0.5?C['--dna']:C['--dna-svetla'],2.2);
+      }
+    }
+    ctx.restore();
+    popis('alkohol',cx+w/2+58,top+70,'center');
+    popis('filtrát',cx+w/2+58,rozhrani+60,'center');
+    ctx.fillStyle=C['--muted']; ctx.font='600 13px "Atkinson Hyperlegible",sans-serif';
+    ctx.textAlign='right'; ctx.fillText('rozhraní →',cx-w/2-10,rozhrani+5); ctx.textAlign='left';
+    var txt = v===0 ? 'bez saponátu se nesrazí nic' :
+              v>0.8 ? 'na rozhraní se tvoří bílá vlákna – to je DNA' :
+                      'sraženiny je málo a je jemná';
+    popis(txt,W/2,H-22);
+  }
+
+  function scenaSpejle(){
+    nadpisPlatna('6 · Namotání na špejli');
+    var v=vytezek();
+    ctx.strokeStyle=C['--wall']; ctx.lineWidth=9; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(W/2-10,70); ctx.lineTo(W/2+34,330); ctx.stroke();
+    if(v>0){
+      var n=Math.round(4+v*10);
+      for(var i=0;i<n;i++){
+        var fz=t*0.01+i*0.7, y=215+i*8-n*4;
+        klubko(W/2+14+Math.sin(fz)*3, y, (26+v*30)*(0.6+0.4*Math.sin(i)), fz, v>0.5?C['--dna']:C['--dna-svetla'], 2.4);
+      }
+      popis(v>0.8?'bílá vláknitá hmota – shluk mnoha miliard molekul':'tenká vrstva, na namotání je toho málo',W/2,H-60);
+      popis('není to čistá DNA: je v ní i RNA, bílkoviny a polysacharidy',W/2,H-30);
+    } else {
+      popis('není co namotat',W/2,H-40);
+    }
+  }
+
+  var SCENY=[scenaBunka,scenaMacka,scenaLyza,scenaFiltrace,scenaSrazeni,scenaSpejle];
+
+  function kresli(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle=C['--panel']; ctx.fillRect(0,0,W,H);
+    SCENY[krok]();
+  }
+  function smycka(){ t+=reduce?0:1; kresli(); requestAnimationFrame(smycka); }
+
+  // ---------- UI ----------
+  var ol=document.getElementById('kroky');
+  KROKY.forEach(function(k,i){
+    var li=document.createElement('li'); var b=document.createElement('button');
+    b.textContent=k.n; b.addEventListener('click',function(){nastav(i);});
+    li.appendChild(b); ol.appendChild(li);
+  });
+  function nastav(i){
+    krok=Math.max(0,Math.min(KROKY.length-1,i)); t=0;
+    [].forEach.call(ol.children,function(li,j){li.classList.toggle('akt',j===krok);});
+    document.getElementById('nazevKroku').textContent=(krok+1)+' · '+KROKY[krok].n;
+    document.getElementById('vysvetleni').innerHTML=KROKY[krok].v;
+    document.getElementById('zpet').disabled=krok===0;
+    document.getElementById('dal').disabled=krok===KROKY.length-1;
+  }
+  document.getElementById('zpet').addEventListener('click',function(){nastav(krok-1);});
+  document.getElementById('dal').addEventListener('click',function(){nastav(krok+1);});
+
+  function shrnuti(){
+    var s=S(), v=vytezek(), el=document.getElementById('vysledek'), zpravy=[];
+    if(!s.sapo) zpravy.push('Bez saponátu zůstanou membrány celé, DNA se z buněk vůbec neuvolní a na rozhraní se neobjeví nic.');
+    if(!s.sul) zpravy.push('Bez soli není čím odstínit záporný náboj fosfátové kostry. Vlákna se odpuzují, špatně se shlukují a sraženiny je výrazně méně.');
+    if(!s.chlad) zpravy.push('V teplém alkoholu je DNA o něco rozpustnější, sráží se pomaleji a výtěžek je menší.');
+    el.innerHTML='<b>Očekávaný výsledek: '+(v===0?'žádná sraženina':v>0.8?'dobrý výtěžek':v>0.3?'slabý výtěžek':'velmi málo')+'</b>'+
+      (zpravy.length?zpravy.join(' '):'Všechny tři podmínky jsou splněné – na rozhraní vznikne jasně viditelná bílá sraženina.');
+  }
+  ['saponat','sul','chlad'].forEach(function(id){
+    document.getElementById(id).addEventListener('change',shrnuti);
+  });
+
+  nastav(0); shrnuti(); smycka();
+})();
+</script>
+</body>
+</html>
