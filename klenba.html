@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nožní klenba a plantogram</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Spectral:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#1A2430; --muted:#5C6978; --line:#CBD5E0;
+  --otisk:#1B4F86; --otisk-fill:#9FBCD8; --tecna:#243242; --kolmice:#C2410C;
+  --norm:#3C7A3A; --mirne:#A07209; --stredne:#C2410C; --silne:#A5342A; --vysoka:#5B4A9E;
+  --akcent:#1B4F86;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+    --otisk:#6FA8DC; --otisk-fill:#2E4A66; --tecna:#C3CEDA; --kolmice:#E8794A;
+    --norm:#7FBC7B; --mirne:#D9AE3E; --stredne:#E8794A; --silne:#E8736A; --vysoka:#A294DC;
+    --akcent:#6FA8DC;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+  --otisk:#6FA8DC; --otisk-fill:#2E4A66; --tecna:#C3CEDA; --kolmice:#E8794A;
+  --norm:#7FBC7B; --mirne:#D9AE3E; --stredne:#E8794A; --silne:#E8736A; --vysoka:#A294DC;
+  --akcent:#6FA8DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+h1{font-family:"Spectral",Georgia,serif;font-weight:700;font-size:clamp(1.65rem,3.3vw,2.3rem);line-height:1.12;margin:0 0 .3rem}
+.lead{color:var(--muted);max-width:66ch;margin:0 0 1.3rem}
+h2{font-family:"Spectral",Georgia,serif;font-size:1.08rem;margin:0 0 .55rem}
+.grid{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1fr);gap:1.1rem;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.stage{background:var(--panel);border:2px solid var(--line);border-radius:16px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;aspect-ratio:3/4}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.95rem 1.05rem}
+.side{display:flex;flex-direction:column;gap:.85rem}
+label.hl{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;gap:.6rem}
+label.hl span{font-weight:400;color:var(--muted);font-size:.9rem;text-align:right}
+input[type=range]{width:100%;accent-color:var(--akcent);margin:.45rem 0 .1rem}
+.stupnice{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.volby{display:flex;gap:.45rem;margin-top:.15rem;flex-wrap:wrap}
+.volby button{flex:1 1 auto;font:inherit;border:1px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:9px;padding:.42rem .7rem;cursor:pointer}
+.volby button[aria-pressed="true"]{background:var(--akcent);border-color:var(--akcent);color:#fff;font-weight:700}
+:root[data-theme="dark"] .volby button[aria-pressed="true"]{color:#101820}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .volby button[aria-pressed="true"]{color:#101820}}
+button:focus-visible,input:focus-visible{outline:3px solid var(--akcent);outline-offset:2px}
+.chk{display:inline-flex;align-items:center;gap:.4rem;font-size:.92rem;color:var(--muted);margin-top:.5rem;cursor:pointer}
+.chk input{accent-color:var(--akcent)}
+dl.udaje{display:grid;grid-template-columns:auto 1fr;gap:.28rem .9rem;margin:0}
+dl.udaje dt{color:var(--muted)}
+dl.udaje dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+.index{font-family:"Spectral",Georgia,serif;font-size:2.1rem;line-height:1.05}
+.znacka{display:inline-block;padding:.12rem .6rem;border-radius:999px;color:#fff;font-weight:700;font-size:.95rem}
+:root[data-theme="dark"] .znacka{color:#101820}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .znacka{color:#101820}}
+.pas{position:relative;height:30px;border-radius:7px;overflow:hidden;display:flex;margin:.55rem 0 .3rem;border:1px solid var(--line)}
+.pas i{display:block;height:100%}
+.pas .sip{position:absolute;top:-4px;width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;
+  border-top:10px solid var(--ink);transform:translateX(-7px);transition:left .25s}
+.pasPopis{display:flex;font-size:.76rem;color:var(--muted)}
+.pasPopis span{text-align:center}
+.srov{display:flex;gap:.5rem;margin-top:.6rem}
+.srov div{flex:1;border:1px solid var(--line);border-radius:9px;padding:.42rem .55rem;text-align:center}
+.srov div.akt{border-color:var(--akcent);background:color-mix(in srgb,var(--akcent) 9%,transparent)}
+.srov b{display:block;font-size:1.25rem;font-variant-numeric:tabular-nums}
+.srov small{color:var(--muted);font-size:.78rem}
+.vysv{margin:.6rem 0 0;min-height:5.5em}
+.note{font-size:.85rem;color:var(--muted);margin:.9rem 0 0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Nožní klenba a plantogram</h1>
+  <p class="lead">Posuvníkem měň tvar podélné klenby a sleduj, jak se změní otisk chodidla. Tečna a obě kolmice se rýsují samy, index se dopočítá stejně jako v laboratorní práci.</p>
+
+  <div class="grid">
+    <div class="stage">
+      <canvas id="cv" width="560" height="746" role="img" aria-label="Model otisku chodidla s tečnou a kolmicemi"></canvas>
+    </div>
+
+    <div class="side">
+      <div class="box">
+        <label class="hl" for="klenba">Tvar podélné klenby <span id="klenbaPopis"></span></label>
+        <input id="klenba" type="range" min="0" max="100" step="1" value="50">
+        <div class="stupnice"><span>vysoká klenba</span><span>plochá noha</span></div>
+
+        <h2 style="margin-top:.9rem">Zatížení</h2>
+        <div class="volby" role="group" aria-label="Zatížení">
+          <button id="obe" aria-pressed="true">stoj na obou nohách</button>
+          <button id="jedna" aria-pressed="false">stoj na jedné noze</button>
+        </div>
+        <label class="chk"><input type="checkbox" id="konstrukce" checked> ukázat tečnu a kolmice</label>
+      </div>
+
+      <div class="box" aria-live="polite">
+        <h2>Vyhodnocení otisku</h2>
+        <dl class="udaje">
+          <dt>A – nejužší místo</dt><dd id="vA">—</dd>
+          <dt>B – nejširší místo</dt><dd id="vB">—</dd>
+          <dt>index = (A / B) × 100</dt><dd class="index" id="vI">—</dd>
+          <dt>hodnocení</dt><dd><span class="znacka" id="vK">—</span></dd>
+        </dl>
+
+        <div class="pas" id="pas" aria-hidden="true">
+          <i style="background:var(--norm);flex:45"></i>
+          <i style="background:var(--mirne);flex:5"></i>
+          <i style="background:var(--stredne);flex:10"></i>
+          <i style="background:var(--silne);flex:40"></i>
+          <div class="sip" id="sip" style="left:0"></div>
+        </div>
+        <div class="pasPopis">
+          <span style="flex:45">0–45 %<br>normální</span>
+          <span style="flex:5">45–50<br>mírně</span>
+          <span style="flex:10">50–60<br>středně</span>
+          <span style="flex:40">60–100 %<br>silně plochá</span>
+        </div>
+
+        <div class="srov">
+          <div id="srovObe"><small>stoj na obou</small><b>—</b></div>
+          <div id="srovJedna"><small>stoj na jedné</small><b>—</b></div>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2 id="nazevVysv">Co se děje</h2>
+        <p class="vysv" id="vysvetleni"></p>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Model je zjednodušený. Ukazuje princip měření a vliv zatížení, ne skutečný tvar konkrétní nohy. Plantogram je orientační školní metoda, ne diagnóza.</p>
+</div>
+
+<script>
+(function(){
+  var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+  var W=560, H=746;
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function resize(){var d=Math.min(devicePixelRatio||1,2);cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0);}
+  resize();
+  addEventListener('resize', function(){ resize(); obnov(); });   // po změně velikosti plátno zbělá, musí se překreslit
+
+  var C={};
+  function barvy(){['--otisk','--otisk-fill','--tecna','--kolmice','--ink','--muted','--line','--panel',
+                   '--norm','--mirne','--stredne','--silne','--vysoka']
+    .forEach(function(k){C[k]=getComputedStyle(document.documentElement).getPropertyValue(k).trim();});}
+  barvy(); matchMedia('(prefers-color-scheme: dark)').addEventListener('change',barvy);
+
+  // ---- model chodidla v jednotkách, přepočet na plátno ----
+  var MX=0.72, MY=0.72, OX=75, OY=-39;       // měřítko a posun modelu do plátna
+  function px(p){ return [p[0]*MX+OX, p[1]*MY+OY]; }
+
+  var LAT=[[420,950],[424,880],[428,740],[436,600],[448,450],[458,310],[452,248],[424,208]];
+  var MED_BASE=[[118,215],[105,258],[113,302],[146,362],[196,432],
+                [248,502],[292,566],[303,616],[297,666],[262,726],
+                [214,792],[179,862],[164,922],[180,976]];
+  var PATA=[[232,1014],[302,1022],[364,1000]];
+  var SPICKA=[[360,190],[280,186],[192,194]];
+  var PRSTY=[[136,150,38,31],[216,127,27,23],[273,122,24,20],[326,127,21,18],[375,140,19,16]];
+  var VAHY=[0,0,0,0,.25,.70,1,1,.95,.55,.15,0,0,0];   // které body středu nohy se hýbou
+
+  var MM_NA_JEDNOTKU=95/357;                            // B ≈ 95 mm v základním nastavení
+
+  function medial(k){
+    return MED_BASE.map(function(p,i){ return [p[0]-k*VAHY[i], p[1]]; });
+  }
+
+  function catmull(body,kroku){
+    kroku=kroku||18;
+    var p=[body[body.length-1]].concat(body,[body[0]],[body[1]]), out=[];
+    for(var i=1;i<p.length-2;i++){
+      var p0=p[i-1],p1=p[i],p2=p[i+1],p3=p[i+2];
+      for(var s=0;s<kroku;s++){
+        var t=s/kroku,t2=t*t,t3=t2*t;
+        out.push([0.5*((2*p1[0])+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
+                  0.5*((2*p1[1])+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)]);
+      }
+    }
+    return out;
+  }
+
+  // tečna je dána pevnou vnější hranou
+  var P1=[458,310], P2=[420,950];
+  var dx=P2[0]-P1[0], dy=P2[1]-P1[1], dl=Math.hypot(dx,dy);
+  var SM=[dx/dl,dy/dl], KO=[-SM[1],SM[0]];
+  if(KO[0]>0){ KO=[-KO[0],-KO[1]]; }
+
+  // hranice chodidla jako funkce y (lineární interpolace přes body obrysu)
+  function hranice(body,y){
+    for(var i=0;i<body.length-1;i++){
+      var a=body[i], b=body[i+1];
+      if((y>=a[1]&&y<=b[1])||(y<=a[1]&&y>=b[1])){
+        var t=(y-a[1])/((b[1]-a[1])||1e-9);
+        return a[0]+(b[0]-a[0])*t;
+      }
+    }
+    return null;
+  }
+
+  function sirkaV(yc, med){
+    var t=(yc-P1[1])/SM[1], z=[P1[0]+SM[0]*t, P1[1]+SM[1]*t];
+    var vstup=null, vystup=null;
+    for(var s=0;s<460;s+=1.5){
+      var x=z[0]+KO[0]*s, y=z[1]+KO[1]*s;
+      var l=hranice(LAT,y), m=hranice(med,y);
+      var uvnitr=(l!==null&&m!==null&&x<=l&&x>=m);
+      if(uvnitr&&vstup===null) vstup=[x,y];
+      if(vstup&&!uvnitr){ vystup=[x,y]; break; }
+    }
+    if(!vstup) return {w:0,a:z,b:z};
+    if(!vystup) vystup=[z[0]+KO[0]*460, z[1]+KO[1]*460];
+    return {w:Math.hypot(vystup[0]-vstup[0],vystup[1]-vstup[1]), a:vstup, b:vystup, zac:z};
+  }
+
+  function mereni(k){
+    var med=medial(k), nejB=null, nejA=null;
+    for(var y=250;y<=400;y+=4){ var r=sirkaV(y,med); if(!nejB||r.w>nejB.w){ nejB=r; nejB.y=y; } }
+    for(var y2=500;y2<=760;y2+=4){ var r2=sirkaV(y2,med); if(!nejA||r2.w<nejA.w){ nejA=r2; nejA.y=y2; } }
+    // přerušený otisk: kde je vnitřní hrana vpravo od vnější
+    var mezeraOd=null, mezeraDo=null;
+    for(var y3=430;y3<=800;y3+=2){
+      var l=hranice(LAT,y3), m=hranice(med,y3);
+      if(l!==null&&m!==null&&m>=l){ if(mezeraOd===null) mezeraOd=y3; mezeraDo=y3; }
+    }
+    var prerus = mezeraOd!==null && (mezeraDo-mezeraOd)>6;
+    return {med:med, A:nejA, B:nejB, prerus:prerus,
+            mezera:prerus?(mezeraDo-mezeraOd)*MM_NA_JEDNOTKU/10:0};
+  }
+
+  function kategorie(idx){
+    if(idx<=45) return {t:'normálně klenutá noha', c:C['--norm']};
+    if(idx<=50) return {t:'mírně plochá noha', c:C['--mirne']};
+    if(idx<=60) return {t:'středně plochá noha', c:C['--stredne']};
+    return {t:'silně plochá noha', c:C['--silne']};
+  }
+
+  // ---- stav ----
+  var cilK=0, aktK=0, naJedne=false;
+  function kZPosuvniku(v, jedna){ return -150 + v*3.13 + (jedna?26:0); }
+
+  function kresli(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle=C['--panel']; ctx.fillRect(0,0,W,H);
+    var m=mereni(aktK);
+
+    // obrys podrážky
+    var obrys=catmull(m.med.concat(PATA, LAT, SPICKA));
+    ctx.beginPath();
+    obrys.forEach(function(p,i){ var q=px(p); i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]); });
+    ctx.closePath();
+    ctx.fillStyle=C['--otisk-fill']; ctx.fill();
+    ctx.strokeStyle=C['--otisk']; ctx.lineWidth=2.6; ctx.stroke();
+
+    // prsty
+    PRSTY.forEach(function(t){
+      var c=px([t[0],t[1]]);
+      ctx.beginPath(); ctx.ellipse(c[0],c[1],t[2]*MX,t[3]*MY,0,0,7);
+      ctx.fillStyle=C['--otisk-fill']; ctx.fill();
+      ctx.strokeStyle=C['--otisk']; ctx.lineWidth=2.4; ctx.stroke();
+    });
+
+    if(document.getElementById('konstrukce').checked){
+      // tečna
+      var t0=px([P1[0]-SM[0]*120, P1[1]-SM[1]*120]);
+      var t1=px([P2[0]+SM[0]*120, P2[1]+SM[1]*120]);
+      ctx.strokeStyle=C['--tecna']; ctx.lineWidth=2.4;
+      ctx.beginPath(); ctx.moveTo(t0[0],t0[1]); ctx.lineTo(t1[0],t1[1]); ctx.stroke();
+
+      // kolmice
+      [[m.B,'B'],[m.A,'A']].forEach(function(par){
+        var r=par[0]; if(!r||r.w<=0) return;
+        var a=px(r.a), b=px(r.b);
+        ctx.strokeStyle=C['--kolmice']; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+        [a,b].forEach(function(e){ ctx.beginPath(); ctx.arc(e[0],e[1],3.6,0,7); ctx.fillStyle=C['--kolmice']; ctx.fill(); });
+        ctx.fillStyle=C['--kolmice']; ctx.font='700 17px "Atkinson Hyperlegible",sans-serif';
+        ctx.textAlign='center'; ctx.fillText(par[1],(a[0]+b[0])/2,(a[1]+b[1])/2-11); ctx.textAlign='left';
+      });
+    }
+
+    if(m.prerus){
+      ctx.fillStyle=C['--vysoka']; ctx.font='700 15px "Atkinson Hyperlegible",sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('otisk je přerušený – index se nepočítá', W/2, H-18);
+      ctx.textAlign='left';
+    }
+    return m;
+  }
+
+  function fmt(x,d){ return x.toFixed(d===undefined?1:d).replace('.',','); }
+
+  function obnov(){
+    var m=kresli();
+    var A=m.A?m.A.w*MM_NA_JEDNOTKU:0, B=m.B?m.B.w*MM_NA_JEDNOTKU:0;
+    var idx=(B>0&&!m.prerus)?A/B*100:null;
+
+    document.getElementById('vA').textContent=m.prerus?'—':fmt(A,0)+' mm';
+    document.getElementById('vB').textContent=fmt(B,0)+' mm';
+    var zn=document.getElementById('vK');
+    if(m.prerus){
+      document.getElementById('vI').textContent='—';
+      zn.textContent='vysoká klenba'; zn.style.background=C['--vysoka'];
+      document.getElementById('sip').style.left='0%';
+    } else {
+      document.getElementById('vI').textContent=fmt(idx)+' %';
+      var k=kategorie(idx);
+      zn.textContent=k.t; zn.style.background=k.c;
+      document.getElementById('sip').style.left=Math.max(0,Math.min(100,idx))+'%';
+    }
+
+    // srovnání obou zatížení při stejném tvaru klenby
+    var v=+document.getElementById('klenba').value;
+    [['srovObe',false],['srovJedna',true]].forEach(function(par){
+      var mm=mereni(kZPosuvniku(v,par[1]));
+      var el=document.getElementById(par[0]);
+      var b=el.querySelector('b');
+      if(mm.prerus){ b.textContent='—'; }
+      else {
+        var a2=mm.A.w*MM_NA_JEDNOTKU, b2=mm.B.w*MM_NA_JEDNOTKU;
+        b.textContent=fmt(a2/b2*100)+' %';
+      }
+      el.classList.toggle('akt', par[1]===naJedne);
+    });
+
+    // popisky
+    var popis=document.getElementById('klenbaPopis');
+    popis.textContent = m.prerus ? 'vysoká klenba' : kategorie(idx).t;
+
+    var vys=document.getElementById('vysvetleni'), naz=document.getElementById('nazevVysv');
+    if(m.prerus){
+      naz.textContent='Vysoká klenba';
+      vys.textContent='Střed chodidla se podložky nedotýká vůbec, otisk přednoží a paty jsou oddělené. Index by vyšel 0 % a podle tabulky by noha chybně spadla mezi normálně klenuté. Proto se místo indexu měří šířka nepotištěné mezery: zde přibližně '+fmt(m.mezera)+' cm.';
+    } else if(idx<=45){
+      naz.textContent='Normálně klenutá noha';
+      vys.textContent='Podélná klenba nadzvedává vnitřní stranu chodidla, takže se střed nohy dotýká podložky jen úzkým pruhem. Klenba tak může tlumit nárazy a umožňuje pružný odraz.';
+    } else if(idx<=50){
+      naz.textContent='Mírně plochá noha';
+      vys.textContent='Klenba začíná klesat a úzký pruh ve středu chodidla se rozšiřuje. Rozdíl oproti normální noze je zatím malý a často se dá ovlivnit posilováním svalů nohy a chůzí naboso.';
+    } else if(idx<=60){
+      naz.textContent='Středně plochá noha';
+      vys.textContent='Střed chodidla už se dotýká podložky výraznou plochou. Noha hůř tlumí nárazy, které se víc přenášejí do kolen, kyčlí a páteře.';
+    } else {
+      naz.textContent='Silně plochá noha';
+      vys.textContent='Klenba je setřelá a otisk je ve středu skoro stejně široký jako v přednoží. Kdyby index dosáhl 100 %, znamenalo by to, že se chodidlo dotýká podložky celou plochou.';
+    }
+    if(naJedne && !m.prerus){
+      vys.textContent+=' Protože stojíš jen na jedné noze, nese celou tělesnou váhu místo poloviny a klenba se pod větším zatížením víc oplošťuje.';
+    }
+  }
+
+  function tik(){
+    var rozdil=cilK-aktK;
+    aktK += reduce ? rozdil : rozdil*0.18;
+    if(Math.abs(rozdil)>0.05){ obnov(); requestAnimationFrame(tik); }
+    else { aktK=cilK; obnov(); }
+  }
+  function nastav(){
+    cilK=kZPosuvniku(+document.getElementById('klenba').value, naJedne);
+    requestAnimationFrame(tik);
+  }
+
+  document.getElementById('klenba').addEventListener('input',nastav);
+  document.getElementById('konstrukce').addEventListener('change',obnov);
+  document.getElementById('obe').addEventListener('click',function(){
+    naJedne=false; this.setAttribute('aria-pressed','true');
+    document.getElementById('jedna').setAttribute('aria-pressed','false'); nastav();
+  });
+  document.getElementById('jedna').addEventListener('click',function(){
+    naJedne=true; this.setAttribute('aria-pressed','true');
+    document.getElementById('obe').setAttribute('aria-pressed','false'); nastav();
+  });
+
+  aktK=cilK=kZPosuvniku(50,false);
+  obnov();
+})();
+</script>
+</body>
+</html>
