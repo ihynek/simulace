@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Svalový stah</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:opsz,wght@7..72,600;7..72,700&display=swap" rel="stylesheet">
+<style>
+/* Rozvržení: velká scéna (ploténka → retikulum → sarkomera) vlevo, ovládání a celý sval vpravo; na mobilu pod sebou */
+:root{
+  --bg:#F1EEF0; --panel:#FFFFFF; --ink:#26191D; --muted:#6A5A60; --line:#D9CDD2;
+  --tkan:#F6E4E6; --zlinie:#5B2333; --aktin:#2F7A8C; --myozin:#B5702A; --hlava:#D08A3E;
+  --ca:#3E9A4B; --atp:#E2B21C; --ach:#7B4FA8; --nerv:#C99A3A; --mem:#9B3B4E; --sr:#E5B9C3;
+  --akcent:#A3263A; --focus:#2F7A8C; --ok:#3E7F3A; --warn:#B76B0E; --bad:#A3263A;
+  --display:"Literata",Georgia,serif; --body:"Atkinson Hyperlegible",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#171214; --panel:#211A1D; --ink:#F0E6E9; --muted:#AE9CA2; --line:#3B2F34;
+    --tkan:#2B1E22; --zlinie:#E8A3B4; --aktin:#6CC3D6; --myozin:#E0A15C; --hlava:#F0B675;
+    --ca:#7BD08A; --atp:#F2CE4E; --ach:#B993E0; --nerv:#E3BC63; --mem:#E07A8E; --sr:#5A3640;
+    --akcent:#E86A80; --focus:#6CC3D6; --ok:#86C77F; --warn:#E9A64A; --bad:#EE7C8E; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#171214; --panel:#211A1D; --ink:#F0E6E9; --muted:#AE9CA2; --line:#3B2F34;
+  --tkan:#2B1E22; --zlinie:#E8A3B4; --aktin:#6CC3D6; --myozin:#E0A15C; --hlava:#F0B675;
+  --ca:#7BD08A; --atp:#F2CE4E; --ach:#B993E0; --nerv:#E3BC63; --mem:#E07A8E; --sr:#5A3640;
+  --akcent:#E86A80; --focus:#6CC3D6; --ok:#86C77F; --warn:#E9A64A; --bad:#EE7C8E; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:1rem;line-height:1.5}
+.wrap{max-width:1220px;margin:0 auto;padding-block:1.5rem 3rem;padding-inline:max(16px,1.25rem)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,3.2vw,2.3rem);line-height:1.15;margin:0 0 .35rem;text-wrap:balance}
+.lead{color:var(--muted);max-width:70ch;margin:0 0 1.25rem}
+h2{font-family:var(--display);font-size:1.12rem;margin:0 0 .6rem;text-wrap:balance}
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);grid-template-areas:'stage side' 'below side';gap:1.25rem;align-items:start}
+.stagecol{grid-area:stage;min-width:0}.side{grid-area:side}.below{grid-area:below}
+@media (max-width:960px){.grid{grid-template-columns:1fr;grid-template-areas:'stage' 'side' 'below'}}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;aspect-ratio:3/2;max-width:100%;background:var(--tkan)}
+.legend{display:flex;flex-wrap:wrap;gap:.35rem 1rem;padding:.6rem .9rem;border-top:1px solid var(--line);font-size:.86rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:.35rem}
+.sw{width:12px;height:12px;border-radius:50%;display:inline-block}
+.sw.bar{border-radius:2px;width:18px;height:6px}
+.side{display:flex;flex-direction:column;gap:1rem;min-width:0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem 1.1rem}
+.btns{display:flex;flex-wrap:wrap;gap:.45rem}
+button{font:inherit;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:.4rem .75rem;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--akcent)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--akcent);border-color:var(--akcent);color:var(--panel);font-weight:700}
+button:focus-visible,input:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.opts{display:grid;gap:.45rem;margin-top:.8rem}
+.chk{display:flex;align-items:flex-start;gap:.5rem;font-size:.95rem}
+.chk input{margin-top:.25rem;accent-color:var(--akcent)}
+.chk small{display:block;color:var(--muted);font-size:.82rem}
+.speed{display:flex;align-items:center;gap:.6rem;margin-top:.7rem;font-size:.92rem;color:var(--muted)}
+.speed input{flex:1;accent-color:var(--akcent)}
+.status{display:grid;grid-template-columns:auto 1fr;gap:.35rem .9rem;align-items:center;margin:0}
+.status dt{color:var(--muted);font-size:.92rem}
+.status dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:.1rem .6rem;border-radius:999px;color:var(--panel);font-size:.88rem;background:var(--muted)}
+.meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ca);width:0}
+ol.steps{margin:0;padding-left:1.35rem;display:grid;gap:.3rem;font-size:.93rem}
+ol.steps li{color:var(--muted);padding:.15rem .35rem;border-radius:6px}
+ol.steps li.on{color:var(--ink);background:var(--tkan);font-weight:700}
+ol.steps li.done{color:var(--ink)}
+.explain{margin:.8rem 0 0;min-height:4.5em}
+.armbox svg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto}
+.note{font-size:.86rem;color:var(--muted);margin:.6rem 0 0}
+.below{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}
+.below p{margin:.3rem 0 0;font-size:.93rem}
+footer{margin-top:1.5rem;font-size:.85rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Svalový stah</h1>
+  <p class="lead">Vyšli signál z motorického nervu a sleduj, jak se na nervosvalové ploténce uvolní acetylcholin, ze sarkoplazmatického retikula vyteče vápník a hlavy myozinu přitahují aktinová vlákna. Vyzkoušej také, co udělá sval bez ATP nebo při nedostatku hořčíku.</p>
+
+  <div class="grid">
+    <div class="stagecol">
+      <div class="stage">
+        <canvas id="cv" width="900" height="600" role="img" aria-label="Animace nervosvalové ploténky, sarkoplazmatického retikula a sarkomery s aktinem a myozinem"></canvas>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--ach)"></i>acetylcholin</span>
+          <span><i class="sw" style="background:var(--ca)"></i>Ca²⁺</span>
+          <span><i class="sw" style="background:var(--atp)"></i>štěpení ATP</span>
+          <span><i class="sw bar" style="background:var(--aktin)"></i>aktin</span>
+          <span><i class="sw bar" style="background:var(--myozin)"></i>myozin s hlavami</span>
+          <span><i class="sw bar" style="background:var(--zlinie)"></i>Z-linie</span>
+        </div>
+      </div>
+    </div>
+      <div class="below">
+        <div class="box">
+          <h2>Co se mění při stahu</h2>
+          <p>Aktin ani myozin se nezkracují. Aktinová vlákna se zasouvají mezi myozinová, Z-linie se k sobě přibližují a sarkomera se zkracuje. I-proužky se zužují, A-proužek má stále stejnou šířku.</p>
+        </div>
+        <div class="box">
+          <h2>Ionty a energie</h2>
+          <p><b>ATP</b> pohání pohyb hlavy myozinu i její odpojení a vápenatou pumpu. <b>Mg²⁺</b> je potřebný pro vazbu ATP a pro pumpu, která vrací Ca²⁺ do retikula. Při jeho nedostatku vznikají svalové křeče.</p>
+        </div>
+      </div>
+
+    <div class="side">
+      <div class="box">
+        <h2>Ovládání</h2>
+        <div class="btns">
+          <button class="primary" id="btnSig" type="button">Vyslat signál</button>
+          <button id="btnNext" type="button" hidden>Další krok</button>
+          <button id="btnPause" type="button">Pauza</button>
+          <button id="btnReset" type="button">Znovu</button>
+        </div>
+        <div class="opts">
+          <label class="chk"><input type="checkbox" id="optStep"> <span>Krok za krokem<small>animace se zastaví po každém kroku</small></span></label>
+          <label class="chk"><input type="checkbox" id="optHold"> <span>Opakované signály<small>nerv vysílá dál, sval zůstává stažený</small></span></label>
+          <label class="chk"><input type="checkbox" id="optAtp" checked> <span>ATP je k dispozici</span></label>
+          <label class="chk"><input type="checkbox" id="optMg"> <span>Nedostatek Mg²⁺</span></label>
+        </div>
+        <div class="speed"><label for="optSpeed">Rychlost</label><input type="range" id="optSpeed" min="0.25" max="1.5" step="0.05" value="0.8"></div>
+      </div>
+
+      <div class="box">
+        <h2>Stav</h2>
+        <dl class="status">
+          <dt>Fáze</dt><dd><span class="pill" id="sPhase">Klid</span></dd>
+          <dt>Ca²⁺ v cytoplazmě</dt><dd><div class="meter"><i id="sCa"></i></div></dd>
+          <dt>Délka sarkomery</dt><dd id="sLen">2,50 µm</dd>
+          <dt>I-proužek</dt><dd id="sI">0,45 µm</dd>
+          <dt>A-proužek</dt><dd id="sA">1,60 µm</dd>
+          <dt>Připojené hlavy</dt><dd id="sHeads">0 %</dd>
+        </dl>
+        <p class="explain" id="explain">Sval je v klidu. Vápenaté ionty jsou uložené v sarkoplazmatickém retikulu a vazebná místa na aktinu jsou zakrytá.</p>
+      </div>
+
+      <div class="box">
+        <h2>Průběh stahu</h2>
+        <ol class="steps" id="steps">
+          <li>Signál z motorického nervu – na nervosvalové ploténce se uvolní acetylcholin.</li>
+          <li>Acetylcholin se naváže na receptor svalového vlákna.</li>
+          <li>Ze sarkoplazmatického retikula se uvolní Ca²⁺.</li>
+          <li>Uvolní se vazebná místa na aktinu a navážou se hlavy myozinu.</li>
+          <li>Štěpení ATP: hlava myozinu se ohne a přisune aktin. Sarkomera se zkracuje.</li>
+          <li>Relaxace: Ca²⁺ se pumpou vrací do retikula, hlavy se odpojí.</li>
+        </ol>
+      </div>
+
+      <div class="box armbox">
+        <h2>Celý sval</h2>
+        <svg id="arm" viewBox="0 0 340 230" aria-label="Paže: stah dvojhlavého svalu pažního ohýbá předloktí">
+          <g id="armG"></g>
+        </svg>
+        <p class="note">Když se zkrátí tisíce sarkomer za sebou, zkrátí se celý dvojhlavý sval pažní a ohne předloktí. Trojhlavý sval je jeho antagonista.</p>
+      </div>
+    </div>
+  </div>
+  <footer>Podle učebnice Biologie v souvislostech, kap. 141 Svalová soustava. Schéma je zjednodušené, rozměry sarkomery jsou orientační.</footer>
+</div>
+
+<script>
+(() => {
+const cv = document.getElementById('cv'), cx = cv.getContext('2d');
+const W = 900, H = 600;
+const $ = id => document.getElementById(id);
+let C = {};
+function readColors(){ const s = getComputedStyle(document.documentElement);
+  ['tkan','zlinie','aktin','myozin','hlava','ca','atp','ach','nerv','mem','sr','ink','muted','line','panel','ok','warn','bad','akcent'].forEach(k => C[k] = s.getPropertyValue('--'+k).trim()); }
+readColors();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors);
+new MutationObserver(readColors).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+function fitCanvas(){ const dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = W*dpr; cv.height = H*dpr; cx.setTransform(dpr,0,0,dpr,0,0); }
+fitCanvas();
+
+/* ---------- geometrie: 240 px = 1 µm ---------- */
+const PX = 240, CXc = 450, YC = 405;
+const A = 1.6*PX, ACT = 1.0*PX, LREST = 2.5*PX, LMIN = 2.0*PX;
+const thickY = [YC-75, YC, YC+75];
+const thinY = [YC-112, YC-37, YC+37, YC+112];
+
+/* ---------- stav ---------- */
+let L = LREST, Ca = 0, phase = 'klid', pt = 0, paused = false, waiting = false, sparks = [], holdT = 0;
+const opt = { step:false, hold:false, atp:true, mg:false, speed:.8 };
+const heads = [];
+thickY.forEach((y,r) => {
+  for (const side of [-1,1]) for (let dx = 36; dx <= 186; dx += 18) for (const up of [-1,1]) {
+    heads.push({ x: CXc + side*dx, y, up, dir: -side, st:0, t:Math.random(), ph:Math.random() });
+  }
+});
+const caDots = Array.from({length:46}, (_,i) => ({ i, hx: 290 + Math.random()*560, hy: 172 + Math.random()*18,
+  tx: (Math.random()*2-1), ty: 262 + Math.random()*270, t:0 }));
+const achDots = Array.from({length:14}, (_,i) => ({ sx: 80 + Math.random()*80, sy: 112 + Math.random()*12, tx: 62 + i*8.5 + Math.random()*4 }));
+
+const DUR = { axon:.9, ach:1.1, ca:1.0, vazba:.9, stah:2.6 };
+const ORDER = ['axon','ach','ca','vazba','stah','relax'];
+const STEPIDX = { klid:-1, axon:0, ach:1, ca:2, vazba:3, stah:4, relax:5 };
+
+function setPhase(p){ phase = p; pt = 0; waiting = false; holdT = 0; }
+function signal(){ setPhase('axon'); }
+function reset(){ L = LREST; Ca = 0; sparks = []; heads.forEach(h => { h.st = 0; h.t = Math.random(); }); caDots.forEach(d => d.t = 0); setPhase('klid'); }
+
+/* ---------- simulace ---------- */
+function update(dt){
+  const sp = opt.speed; dt *= sp;
+  pt += dt;
+  const floor = opt.mg ? .5 : 0;
+  // fáze
+  if (!waiting){
+    if (['axon','ach','ca','vazba'].includes(phase) && pt >= DUR[phase]){
+      if (opt.step) waiting = true; else setPhase(ORDER[ORDER.indexOf(phase)+1]);
+    } else if (phase === 'stah'){
+      if (opt.hold) holdT = 0; else holdT += dt;
+      if (holdT >= DUR.stah && !opt.step) setPhase('relax');
+      if (opt.step && pt >= 1.2) waiting = true;
+    } else if (phase === 'relax'){
+      const anyAtt = heads.some(h => h.st === 1 || h.st === 2);
+      if (Ca <= floor + .02 && !anyAtt && LREST - L < 1 && !opt.mg) setPhase('klid');
+    }
+  } else if (phase === 'stah' && opt.hold) { /* čeká na krok */ }
+  // vápník
+  if (phase === 'ca') Ca = Math.min(1, Ca + 1.6*dt);
+  if ((phase === 'vazba' || phase === 'stah') ) Ca = Math.min(1, Ca + 1.6*dt);
+  if (phase === 'relax' && opt.atp) Ca = Math.max(floor, Ca - (opt.mg ? .12 : .9)*dt);
+  // hlavy myozinu
+  const sites = Ca > .3;
+  const zl = CXc - L/2, zr = CXc + L/2;
+  let stroking = 0;
+  for (const h of heads){
+    const tipX = h.x + h.dir*(-10);
+    const covered = h.dir > 0 ? (tipX >= zl && tipX <= zl + ACT) : (tipX <= zr && tipX >= zr - ACT);
+    if (h.st === 0){ h.t = 0;
+      if (sites && covered && Math.random() < 3.2*dt) { h.st = 1; h.t = 0; }
+    } else if (h.st === 1){
+      h.t += dt/.35; stroking++;
+      if (h.t >= 1){ h.t = 1; h.st = 2; h.wait = 0; }
+    } else if (h.st === 2){
+      if (opt.atp){ h.wait += dt; if (h.wait > .06 + Math.random()*.25){ h.st = 3; h.t = 0; sparks.push({x:h.x + h.dir*10, y:h.y + h.up*26, a:1}); } }
+    } else if (h.st === 3){
+      h.t += dt/.25; if (h.t >= 1){ h.st = 0; h.t = 0; }
+    }
+  }
+  if (stroking > 0 && L > LMIN){ L = Math.max(LMIN, L - Math.min(1, stroking/(heads.length*.18))*110*dt); }
+  const att = heads.filter(h => h.st === 1 || h.st === 2).length;
+  if (att === 0 && Ca <= .3 && L < LREST){ L = Math.min(LREST, L + (LREST - L)*2.2*dt + .3*dt); }
+  // Ca tečky
+  const nOut = Ca * caDots.length;
+  caDots.forEach(d => { const tgt = d.i < nOut ? 1 : 0; d.t += Math.sign(tgt - d.t) * Math.min(Math.abs(tgt - d.t), 1.8*dt); });
+  sparks.forEach(s => s.a -= 1.6*dt); sparks = sparks.filter(s => s.a > 0);
+}
+
+/* ---------- kreslení ---------- */
+function rr(x,y,w,h,r){ cx.beginPath(); cx.roundRect ? cx.roundRect(x,y,w,h,r) : cx.rect(x,y,w,h); }
+function label(t,x,y,o={}){ cx.font = `${o.b?'700 ':''}${o.s||17}px "Atkinson Hyperlegible", system-ui, sans-serif`; cx.fillStyle = o.c || C.muted; cx.textAlign = o.a || 'left'; cx.textBaseline = 'middle'; cx.fillText(t,x,y); }
+const ease = t => t<.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+
+function draw(){
+  cx.clearRect(0,0,W,H);
+  cx.fillStyle = C.tkan; cx.fillRect(0,0,W,H);
+  drawTop(); drawSarcomere();
+}
+
+function drawTop(){
+  // axon a zakončení neuronu
+  cx.fillStyle = C.nerv; cx.globalAlpha = .9;
+  rr(108,0,24,70,8); cx.fill();
+  cx.beginPath(); cx.ellipse(120,98,86,34,0,0,Math.PI*2); cx.fill(); cx.globalAlpha = 1;
+  // vzruch v axonu
+  if (phase === 'axon'){ const y = Math.min(1, pt/DUR.axon)*95; cx.fillStyle = C.atp; cx.shadowColor = C.atp; cx.shadowBlur = 16; cx.beginPath(); cx.arc(120, y, 9, 0, Math.PI*2); cx.fill(); cx.shadowBlur = 0; }
+  // váčky
+  const fuse = phase === 'ach' ? Math.min(1, pt/.4) : 0;
+  [[78,92],[100,108],[124,90],[146,106],[166,94],[92,76],[150,78]].forEach(([x,y],i) => {
+    cx.strokeStyle = C.panel; cx.lineWidth = 2; cx.fillStyle = 'transparent';
+    cx.beginPath(); cx.arc(x, y + (i<5 ? fuse*12 : 0), 9, 0, Math.PI*2); cx.stroke();
+    if (!(phase === 'ach' && i < 5 && pt > .4)) { cx.fillStyle = C.ach; for (let k=0;k<3;k++){ cx.beginPath(); cx.arc(x-4+k*4, y + (i<5 ? fuse*12 : 0) + (k%2?2:-2), 2.2, 0, Math.PI*2); cx.fill(); } }
+  });
+  // acetylcholin ve štěrbině
+  if (phase === 'ach' && pt > .4){ const p = Math.min(1, (pt-.4)/.6);
+    cx.fillStyle = C.ach; achDots.forEach(d => { cx.globalAlpha = p < 1 ? 1 : Math.max(0, 1 - (pt - 1)/.2); cx.beginPath(); cx.arc(d.sx + (d.tx - d.sx)*p, d.sy + (143 - d.sy)*ease(p), 3, 0, Math.PI*2); cx.fill(); }); cx.globalAlpha = 1; }
+  // sarkolema s receptory
+  const wave = phase === 'ca' ? Math.min(1, pt/.45) : (['vazba','stah'].includes(phase) ? 1 : 0);
+  cx.lineWidth = 4; cx.strokeStyle = C.mem;
+  cx.beginPath(); cx.moveTo(14,148); cx.lineTo(886,148); cx.stroke();
+  if (phase === 'ca' && wave < 1){ const wx = 180 + wave*700; const g = cx.createLinearGradient(wx-120,0,wx,0); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,C.atp); cx.strokeStyle = g; cx.lineWidth = 6; cx.beginPath(); cx.moveTo(Math.max(180,wx-120),148); cx.lineTo(wx,148); cx.stroke(); }
+  const recOn = (phase === 'ach' && pt > .95) || (phase === 'ca' && pt < .5);
+  for (let x = 62; x <= 180; x += 17){ cx.strokeStyle = recOn ? C.ach : C.mem; cx.lineWidth = 3; cx.beginPath(); cx.arc(x, 146, 5, Math.PI, 0, false); cx.stroke(); }
+  // sarkoplazmatické retikulum
+  rr(270,160,600,40,20); cx.fillStyle = C.sr; cx.fill(); cx.lineWidth = 2; cx.strokeStyle = C.mem; cx.stroke();
+  // popisky
+  label('motorický neuron', 222, 30, {c:C.ink});
+  label('váčky s acetylcholinem', 222, 56);
+  label('nervosvalová ploténka', 222, 118, {c:C.ink});
+  label('sarkolema (membrána svalového vlákna)', 500, 133, {s:15});
+  label('sarkoplazmatické retikulum', 300, 220, {s:15, c:C.ink});
+  // Ca tečky
+  const zl = CXc - L/2, zr = CXc + L/2;
+  cx.fillStyle = C.ca;
+  caDots.forEach(d => { const p = ease(d.t); const tx = CXc + d.tx*(L/2 - 14);
+    const x = d.hx + (tx - d.hx)*p, y = d.hy + (d.ty - d.hy)*p; cx.beginPath(); cx.arc(x, y, 3.6, 0, Math.PI*2); cx.fill(); });
+}
+
+function drawSarcomere(){
+  const zl = CXc - L/2, zr = CXc + L/2;
+  const sites = Ca > .3;
+  // bracket sarkomera
+  cx.strokeStyle = C.ink; cx.lineWidth = 1.5;
+  cx.beginPath(); cx.moveTo(zl,250); cx.lineTo(zl,242); cx.lineTo(zr,242); cx.lineTo(zr,250); cx.stroke();
+  cx.fillStyle = C.tkan; cx.fillRect(CXc-48,232,96,20); label('sarkomera', CXc, 242, {a:'center', c:C.ink, b:true});
+  // aktin
+  for (const y of thinY){
+    for (const [z, d] of [[zl,1],[zr,-1]]){
+      const x2 = z + d*ACT;
+      cx.strokeStyle = C.aktin; cx.lineWidth = 5; cx.lineCap = 'round';
+      cx.beginPath(); cx.moveTo(z, y); cx.lineTo(x2, y); cx.stroke();
+      cx.fillStyle = C.aktin;
+      for (let x = z + d*8; d>0 ? x < x2 : x > x2; x += d*12){ cx.beginPath(); cx.arc(x, y + ((Math.round((x - z)/12))%2 ? 2.4 : -2.4), 3.2, 0, Math.PI*2); cx.fill(); }
+      if (sites){ cx.fillStyle = C.ca; for (let x = z + d*20; d>0 ? x < x2 : x > x2; x += d*24){ cx.beginPath(); cx.arc(x, y, 2, 0, Math.PI*2); cx.fill(); } }
+    }
+  }
+  // myozin
+  for (const y of thickY){ cx.strokeStyle = C.myozin; cx.lineWidth = 9; cx.lineCap = 'round'; cx.beginPath(); cx.moveTo(CXc - A/2 + 6, y); cx.lineTo(CXc + A/2 - 6, y); cx.stroke(); }
+  // hlavy
+  for (const h of heads){
+    let off, reach;
+    if (h.st === 0){ off = -10; reach = 21; }
+    else if (h.st === 1){ off = -10 + 20*ease(h.t); reach = 31; }
+    else if (h.st === 2){ off = 10; reach = 31; }
+    else { off = 10 - 20*ease(h.t); reach = 21; }
+    const tx = h.x + h.dir*off, ty = h.y + h.up*reach;
+    cx.strokeStyle = C.hlava; cx.lineWidth = 3; cx.beginPath(); cx.moveTo(h.x, h.y + h.up*4); cx.lineTo(tx, ty - h.up*4); cx.stroke();
+    cx.fillStyle = (h.st === 1 || h.st === 2) ? C.myozin : C.hlava;
+    cx.beginPath(); cx.ellipse(tx, ty - h.up*2, 5.5, 4, 0, 0, Math.PI*2); cx.fill();
+    if (h.st === 2 && !opt.atp){ cx.strokeStyle = C.bad; cx.lineWidth = 1.5; cx.stroke(); }
+  }
+  // ATP jiskry
+  sparks.forEach(s => { cx.globalAlpha = Math.max(0, s.a); cx.fillStyle = C.atp; cx.beginPath(); cx.arc(s.x, s.y, 4 + (1 - s.a)*4, 0, Math.PI*2); cx.fill(); });
+  cx.globalAlpha = 1;
+  // Z-linie
+  for (const z of [zl, zr]){ cx.strokeStyle = C.zlinie; cx.lineWidth = 4; cx.lineJoin = 'round'; cx.beginPath();
+    for (let i = 0; i <= 12; i++){ const y = YC - 138 + i*23; const x = z + (i%2 ? 6 : -6); i ? cx.lineTo(x,y) : cx.moveTo(x,y); } cx.stroke(); }
+  // proužky
+  const by = 556;
+  const bracket = (x1,x2,t) => { cx.strokeStyle = C.ink; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(x1+2,by-7); cx.lineTo(x1+2,by); cx.lineTo(x2-2,by); cx.lineTo(x2-2,by-7); cx.stroke(); if (x2-x1 > 26) label(t,(x1+x2)/2,by+14,{a:'center',c:C.ink,b:true}); };
+  bracket(zl, CXc - A/2, 'I'); bracket(CXc - A/2, CXc + A/2, 'A-proužek (myozin)'); bracket(CXc + A/2, zr, 'I');
+  label('Z-linie', zl, 586, {a:'center', s:15}); label('Z-linie', zr, 586, {a:'center', s:15});
+  label('aktin', zl + 12, YC - 127, {s:15, c:C.aktin, b:true});
+}
+
+/* ---------- panel ---------- */
+const fmt = v => v.toFixed(2).replace('.', ',') + ' µm';
+const steps = [...document.querySelectorAll('#steps li')];
+let lastUi = '';
+function ui(){
+  const att = heads.filter(h => h.st === 1 || h.st === 2).length;
+  const rigor = !opt.atp && att > 0;
+  const kre = opt.mg && Ca > .35 && (phase === 'relax' || phase === 'klid');
+  let name = { klid:'Klid', axon:'Signál v nervu', ach:'Acetylcholin', ca:'Uvolnění Ca²⁺', vazba:'Vazba myozinu', stah:'Stah', relax:'Relaxace' }[phase];
+  let col = { klid:C.muted, axon:C.nerv, ach:C.ach, ca:C.ca, vazba:C.aktin, stah:C.akcent, relax:C.ok }[phase];
+  if (rigor){ name = 'Ztuhlost'; col = C.bad; }
+  if (kre){ name = 'Křeč'; col = C.warn; }
+  const sp = $('sPhase'); sp.textContent = name; sp.style.background = col;
+  $('sCa').style.width = (Ca*100).toFixed(0) + '%';
+  const Lum = L/PX; $('sLen').textContent = fmt(Lum); $('sI').textContent = fmt((Lum - 1.6)/2); $('sA').textContent = fmt(1.6);
+  $('sHeads').textContent = Math.round(att/heads.length*100) + ' %';
+  const si = STEPIDX[phase];
+  steps.forEach((li,i) => { li.className = i === si ? 'on' : (si > i ? 'done' : ''); });
+  let ex;
+  if (rigor) ex = 'Chybí ATP. Hlavy myozinu zůstávají navázané na aktin a nemohou se odpojit. Vápenatá pumpa také nepracuje, takže sval zůstane ztuhlý. Proto je mrtvola tuhá.';
+  else if (kre) ex = 'Při nedostatku Mg²⁺ pracuje vápenatá pumpa špatně. Ca²⁺ zůstává v cytoplazmě, hlavy myozinu se pořád navazují a sval se nemůže uvolnit. Vzniká křeč.';
+  else ex = {
+    klid: 'Sval je v klidu. Vápenaté ionty jsou uložené v sarkoplazmatickém retikulu a vazebná místa na aktinu jsou zakrytá.',
+    axon: 'Motorickým nervem běží signál k zahájení svalového stahu.',
+    ach: 'Ve synaptickém zakončení neuronu se z váčků vylije acetylcholin. Přechází štěrbinou a naváže se na receptory svalového vlákna na nervosvalové ploténce.',
+    ca: 'Signál se šíří po membráně svalového vlákna. Ze sarkoplazmatického retikula se mezi myofibrily vylévají vápenaté kationty.',
+    vazba: 'Vápník uvolnil vazebná místa na aktinu (zelené tečky). Hlavy myozinu se na ně navazují.',
+    stah: 'Myozin štěpí ATP, jeho hlava se ohne a přisune aktinové vlákno. Pak se odpojí a naváže dál. Z-linie se přibližují a sarkomera se zkracuje.',
+    relax: 'Nerv přestal vysílat. Vápenatá pumpa vrací Ca²⁺ do retikula, vazebná místa se zakryjí, hlavy se odpojí a sarkomera se vrací do klidové délky.'
+  }[phase];
+  if (waiting) ex += ' Pokračuj tlačítkem Další krok.';
+  if (ex !== lastUi){ $('explain').textContent = ex; lastUi = ex; }
+  $('btnNext').hidden = !opt.step;
+  $('btnNext').disabled = !waiting;
+  drawArm();
+}
+
+/* ---------- paže ---------- */
+const armG = $('armG'); const NS = 'http://www.w3.org/2000/svg';
+function drawArm(){
+  const c = Math.max(0, Math.min(1, (LREST - L)/(LREST - LMIN)));
+  const sx = 30, sy = 60, ex = 120, ey = 150, fl = 125;
+  const th = (30 - c*110) * Math.PI/180;
+  const fx = ex + Math.cos(th)*fl, fy = ey + Math.sin(th)*fl;
+  const mx = (sx+ex)/2, my = (sy+ey)/2, nx = .707, ny = -.707;
+  const bx = mx + nx*(13 + c*4), by = my + ny*(13 + c*4), tx = mx - nx*12, ty = my - ny*12;
+  armG.innerHTML = `
+    <line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="${C.line}" stroke-width="34" stroke-linecap="round"/>
+    <line x1="${ex}" y1="${ey}" x2="${fx}" y2="${fy}" stroke="${C.line}" stroke-width="24" stroke-linecap="round"/>
+    <ellipse cx="${tx}" cy="${ty}" rx="50" ry="${10 - c*3}" transform="rotate(45 ${tx} ${ty})" fill="${C.myozin}" opacity=".75"/>
+    <ellipse cx="${bx}" cy="${by}" rx="${50 - c*10}" ry="${10 + c*9}" transform="rotate(45 ${bx} ${by})" fill="${C.akcent}" opacity=".85"/>
+    <line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="${C.muted}" stroke-width="5" stroke-linecap="round"/>
+    <line x1="${ex}" y1="${ey}" x2="${fx}" y2="${fy}" stroke="${C.muted}" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="${ex}" cy="${ey}" r="6" fill="${C.ink}"/>
+    <circle cx="${fx}" cy="${fy}" r="12" fill="${C.line}"/>
+    <text x="200" y="28" font-size="13" fill="${C.akcent}" font-weight="700">dvojhlavý sval pažní</text>
+    <text x="200" y="45" font-size="13" fill="${C.muted}">${c > .05 ? 'kontrakce' : 'klid'}</text>
+    <text x="8" y="196" font-size="13" fill="${C.myozin}" font-weight="700">trojhlavý sval pažní</text>
+    <text x="8" y="213" font-size="13" fill="${C.muted}">${c > .05 ? 'relaxace' : 'klid'}</text>`;
+}
+
+/* ---------- smyčka ---------- */
+let last = performance.now();
+function frame(now){
+  const dt = Math.min(.05, (now - last)/1000); last = now;
+  if (!paused) update(dt);
+  draw(); ui();
+  requestAnimationFrame(frame);
+}
+
+$('btnSig').addEventListener('click', () => { paused = false; $('btnPause').textContent = 'Pauza'; signal(); });
+$('btnNext').addEventListener('click', () => { if (!waiting) return; const i = ORDER.indexOf(phase); setPhase(ORDER[Math.min(ORDER.length-1, i+1)]); });
+$('btnPause').addEventListener('click', e => { paused = !paused; e.target.textContent = paused ? 'Pokračovat' : 'Pauza'; });
+$('btnReset').addEventListener('click', () => { opt.atp = true; opt.mg = false; $('optAtp').checked = true; $('optMg').checked = false; reset(); });
+$('optStep').addEventListener('change', e => { opt.step = e.target.checked; if (!opt.step && waiting){ waiting = false; } });
+$('optHold').addEventListener('change', e => { opt.hold = e.target.checked; });
+$('optAtp').addEventListener('change', e => { opt.atp = e.target.checked; });
+$('optMg').addEventListener('change', e => { opt.mg = e.target.checked; if (!opt.mg && phase === 'relax') { /* pumpa se rozjede */ } });
+$('optSpeed').addEventListener('input', e => { opt.speed = +e.target.value; });
+if (matchMedia('(prefers-reduced-motion: reduce)').matches){ opt.speed = .5; $('optSpeed').value = .5; }
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
