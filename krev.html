@@ -72,8 +72,9 @@ svg text{font-family:var(--f-body);fill:var(--ink)}
 
 <nav role="tablist" aria-label="Pokusy">
   <button role="tab" id="t-centr" aria-selected="true" data-p="p-centr">1 · Odstředění krve</button>
-  <button role="tab" id="t-hb" aria-selected="false" data-p="p-hb">2 · Hemoglobin a kyslík</button>
-  <button role="tab" id="t-sat" aria-selected="false" data-p="p-sat">3 · Saturační křivka</button>
+  <button role="tab" id="t-sed" aria-selected="false" data-p="p-sed">2 · Sedimentace</button>
+  <button role="tab" id="t-hb" aria-selected="false" data-p="p-hb">3 · Hemoglobin a kyslík</button>
+  <button role="tab" id="t-sat" aria-selected="false" data-p="p-sat">4 · Saturační křivka</button>
 </nav>
 
 <!-- 1 CENTRIFUGACE -->
@@ -104,6 +105,29 @@ svg text{font-family:var(--f-body);fill:var(--ink)}
     </dl>
     <p class="status" id="hctOut">Vzorek je promíchaný.</p>
     <p class="note">Klikni na žlutou vrstvu plazmy a zobrazí se její složení. Červené krvinky, bílé krvinky a destičky se souhrnně nazývají <b>krevní tělíska (elementy)</b>, ne buňky.</p>
+  </div>
+</section>
+
+<!-- SEDIMENTACE -->
+<section class="stage" id="p-sed" role="tabpanel" aria-labelledby="t-sed" hidden>
+  <div class="panel">
+    <svg id="sedSvg" viewBox="0 0 520 460" role="img" aria-label="Sedimentace červených krvinek ve dvou zkumavkách"></svg>
+  </div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Jak rychle krvinky klesají?</h2>
+      <p>Nesrážlivou krev necháme stát ve svislé trubici. Červené krvinky pomalu klesají a nahoře zůstává čirá plazma. Měří se, o kolik milimetrů klesnou za 1 hodinu.</p>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="sedRun">Spustit 1 hodinu</button>
+      <button class="btn" id="sedReset">Znovu</button>
+    </div>
+    <label class="sl" for="sedTime">Uplynulý čas: <output id="sedTimeOut">0 min</output>
+      <input type="range" id="sedTime" min="0" max="60" step="1" value="0">
+    </label>
+    <dl class="facts mono" id="sedRead"></dl>
+    <p><b>Proč je to při zánětu rychlejší?</b> V plazmě přibude bílkovin a krvinky se slepují do „komínků“ – <b>penízkovatění</b>. Těžší komínky klesají rychleji než jednotlivé krvinky (viz lupy).</p>
+    <p class="note">Běžná hodnota je kolem 5 mm/h. Hodnota u zánětu je jen příklad – při zánětu je sedimentace zvýšená. Dnes ji nahrazuje rychlejší stanovení <b>CRP</b> (C-reaktivní protein), na počkání z kapky krve.</p>
   </div>
 </section>
 
@@ -245,6 +269,64 @@ $("#spin").onclick=spin;
 $("#reset").onclick=()=>{separated=false;showPlasma=false;drawTube(0);$("#hctOut").textContent="Vzorek je promíchaný."};
 $$("[data-hct]").forEach(b=>b.onclick=()=>{hct=+b.dataset.hct;pressGroup("[data-hct]",b);if(separated){drawTube(1);report()}else drawTube(0)});
 drawTube(0);
+
+/* ===== SEDIMENTATION ===== */
+const sed=$("#sedSvg");
+const SED=[{x:70,rate:5,name:"zdravý člověk",zy:130,stack:false},{x:200,rate:40,name:"zánět (příklad)",zy:340,stack:true}];
+const ST={top:50,w:50,pxmm:6,mm:60}; // tube shows 0–60 mm
+let sedMin=0, sedPlay=null, sedClock=0;
+function drawSed(now){
+  sed.innerHTML="";
+  const defs=el("defs",{},sed);
+  const H=ST.mm*ST.pxmm, bottom=ST.top+H;
+  // scale
+  for(let m=0;m<=ST.mm;m+=5){const y=ST.top+m*ST.pxmm;
+    el("line",{x1:30,x2:m%10?37:42,y1:y,y2:y,stroke:css("--muted")},sed);
+    if(m%10===0){const t=el("text",{x:26,y:y+4,"text-anchor":"end","font-size":12,class:"mono",fill:css("--muted")},sed);t.textContent=m;}}
+  const mmL=el("text",{x:26,y:ST.top-14,"text-anchor":"end","font-size":12,fill:css("--muted")},sed);mmL.textContent="mm";
+  SED.forEach((s,i)=>{
+    const drop=Math.min(ST.mm,s.rate*sedMin/60), dy=drop*ST.pxmm;
+    el("rect",{x:s.x,y:ST.top,width:ST.w,height:dy,fill:css("--plasma-soft")},sed);
+    el("rect",{x:s.x,y:ST.top+dy,width:ST.w,height:H-dy,fill:css("--blood")},sed);
+    el("rect",{x:s.x,y:ST.top-12,width:ST.w,height:H+12,fill:"none",stroke:css("--muted"),"stroke-width":2.5},sed);
+    if(dy>0){el("line",{x1:s.x-6,x2:s.x+ST.w+6,y1:ST.top+dy,y2:ST.top+dy,stroke:css("--ink"),"stroke-width":1.5,"stroke-dasharray":"3 3"},sed);}
+    const v=el("text",{x:s.x+ST.w/2,y:bottom+24,"text-anchor":"middle","font-size":16,"font-weight":700,class:"mono"},sed);v.textContent=drop.toFixed(1).replace(".",",")+" mm";
+    const n=el("text",{x:s.x+ST.w/2,y:bottom+44,"text-anchor":"middle","font-size":13,fill:css("--muted")},sed);n.textContent=s.name;
+    // magnifier
+    const cx=420,cy=s.zy,r=82;
+    const cp=el("clipPath",{id:"zc"+i},defs);el("circle",{cx,cy,r},cp);
+    el("line",{x1:s.x+ST.w,y1:ST.top+dy+20,x2:cx-r,y2:cy,stroke:css("--line"),"stroke-width":2},sed);
+    const g=el("g",{"clip-path":`url(#zc${i})`},sed);
+    el("rect",{x:cx-r,y:cy-r,width:2*r,height:2*r,fill:css("--plasma-soft")},g);
+    const t=(reduce?0:now/1000);
+    const speed=s.stack?26:6; // px per second in the zoom
+    if(!s.stack){
+      for(let k=0;k<16;k++){const bx=cx-r+14+((k*47)%(2*r-28));const y0=((k*61)%(2*r));
+        const y=cy-r+((y0+t*speed)%(2*r+20))-10;
+        el("ellipse",{cx:bx,cy:y,rx:9,ry:4,fill:css("--blood"),stroke:css("--blood-dark"),"stroke-width":1},g);}
+    }else{
+      for(let k=0;k<5;k++){const bx=cx-r+22+k*32;const y0=(k*53)%(2*r);
+        const y=cy-r+((y0+t*speed)%(2*r+60))-40;
+        for(let j=0;j<6;j++)el("ellipse",{cx:bx,cy:y+j*5,rx:9,ry:4,fill:css("--blood"),stroke:css("--blood-dark"),"stroke-width":1},g);}
+    }
+    el("circle",{cx,cy,r,fill:"none",stroke:css("--muted"),"stroke-width":3},sed);
+    const zl=el("text",{x:cx,y:cy+r+18,"text-anchor":"middle","font-size":13,fill:css("--muted")},sed);
+    zl.textContent=s.stack?"lupa: krvinky v „komíncích“":"lupa: jednotlivé krvinky";
+  });
+  $("#sedTimeOut").textContent=Math.round(sedMin)+" min";
+  $("#sedTime").value=Math.round(sedMin);
+  $("#sedRead").innerHTML=SED.map(s=>`<dt>${s.name}</dt><dd>${(s.rate*sedMin/60).toFixed(1).replace(".",",")} mm za ${Math.round(sedMin)} min → ${s.rate} mm/h</dd>`).join("");
+}
+function sedLoop(now){
+  if(sedPlay!==null){sedMin=Math.min(60,(now-sedPlay)/1000*7.5);if(sedMin>=60)sedPlay=null;}
+  if(!$("#p-sed").hidden)drawSed(now);
+  sedClock=requestAnimationFrame(sedLoop);
+}
+$("#sedRun").onclick=()=>{sedPlay=performance.now()-sedMin/7.5*1000;if(reduce){sedMin=60;sedPlay=null;}};
+$("#sedReset").onclick=()=>{sedPlay=null;sedMin=0;};
+$("#sedTime").oninput=e=>{sedPlay=null;sedMin=+e.target.value;};
+drawSed(0);
+sedClock=requestAnimationFrame(sedLoop);
 
 /* ===== 2 HEMOGLOBIN ===== */
 const hb=$("#hbSvg");
