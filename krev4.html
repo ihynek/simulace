@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Krevní a mízní oběh</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --lymph:#2e9e5b; --fluid:#cfe8f5; --tissue:#f6e3d6; --cell:#e9c3ad;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --wall:#e6a596; --muscle:#c46a5a; --elast:#e0b23a;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --lymph:#4cc47e; --fluid:#1f3a4a; --tissue:#3a2e28; --cell:#6b4a3c;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --wall:#8a5246; --muscle:#b0584a; --elast:#d9a92e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --lymph:#4cc47e; --fluid:#1f3a4a; --tissue:#3a2e28; --cell:#6b4a3c;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --wall:#8a5246; --muscle:#b0584a; --elast:#d9a92e; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--lymph)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.6rem;font-variant-numeric:tabular-nums;margin:0}
+.path{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.95rem}
+.path span{border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.path span.o{border-color:var(--art);color:var(--art)} .path span.d{border-color:var(--vein);color:var(--vein)}
+.path span.cur{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Krevní <span>a mízní oběh</span></h1>
+  <p class="sub">Interaktivní pokusy ke 4. hodině · Oběhová soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-tk" aria-selected="true" data-p="p-tk">1 · Krev, tkáňový mok, míza</button>
+  <button role="tab" id="t-ob" aria-selected="false" data-p="p-ob">2 · Velký a malý oběh</button>
+  <button role="tab" id="t-cv" aria-selected="false" data-p="p-cv">3 · Stavba cév</button>
+  <button role="tab" id="t-tl" aria-selected="false" data-p="p-tl">4 · Měření tlaku</button>
+</nav>
+
+<!-- 1 TEKUTINY -->
+<section class="stage" id="p-tk" role="tabpanel" aria-labelledby="t-tk">
+  <div class="panel"><svg id="tkSvg" viewBox="0 0 520 430" role="img" aria-label="Krevní vlásečnice, tkáňový mok a mízní vlásečnice"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Odkud se bere míza?</h2>
+      <p>Krevním tlakem se ve vlásečnicích filtruje část krve do mezibuněčného prostoru – vzniká <b>tkáňový mok</b>. Ten nasávají <b>mízní vlásečnice</b> a mění se v <b>mízu (lymfu)</b>. Mízovody ji svádějí do podklíčkových žil a do horní duté žíly – míza se znovu stává součástí krve.</p>
+    </div>
+    <div class="row" role="group" aria-label="Situace">
+      <button class="btn" data-sit="norm" aria-pressed="true">Normálně</button>
+      <button class="btn" data-sit="sed">Dlouhé sezení</button>
+      <button class="btn" data-sit="kwa">Málo albuminu</button>
+      <button class="btn" data-sit="ele">Ucpané mízní cévy</button>
+    </div>
+    <p class="status" id="tkStatus"></p>
+    <p id="tkText"></p>
+    <p class="note">Mízní vlásečnice začínají <b>slepě</b>. Buňky jejich endotelu na sebe těsně nedoléhají a nemají bazální membránu, takže nabírají i velké bílkoviny a buňky (lymfocyty, nádorové buňky, bakterie). Mízní cévy mají mnoho <b>chlopní</b>; pohyb mízy zajišťují hlavně kosterní svaly a tok krve ve velkých tepnách.</p>
+  </div>
+</section>
+
+<!-- 2 OBĚH -->
+<section class="stage" id="p-ob" role="tabpanel" aria-labelledby="t-ob" hidden>
+  <div class="panel"><svg id="obSvg" viewBox="0 0 520 520" role="img" aria-label="Schéma velkého a malého krevního oběhu"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Cesta jedné krvinky</h2>
+      <p>Klikni na <b>Další úsek</b> a sleduj, kudy krvinka putuje. Červeně okysličená, modře odkysličená krev.</p>
+    </div>
+    <div class="row"><button class="btn primary" id="obNext">Další úsek ▶</button><button class="btn" id="obAuto">Přehrát celý oběh</button><button class="btn" id="obReset">Od začátku</button></div>
+    <p class="status" id="obStatus"></p>
+    <p id="obText"></p>
+    <div class="path" id="obPath"></div>
+    <p class="note"><b>Tepny</b> vedou krev ze srdce, <b>žíly</b> do srdce – bez ohledu na to, jakou krev vedou. Proto <b>plicní tepny</b> vedou odkysličenou a <b>plicní žíly</b> okysličenou krev. Oba oběhy jsou zapojeny <b>sériově</b>: obě komory přečerpají stejně krve za stejný čas.</p>
+  </div>
+</section>
+
+<!-- 3 CÉVY -->
+<section class="stage" id="p-cv" role="tabpanel" aria-labelledby="t-cv" hidden>
+  <div class="panel"><svg id="cvSvg" viewBox="0 0 520 420" role="img" aria-label="Průřez stěnou tepny, žíly a vlásečnice"></svg></div>
+  <div class="panel ctrl">
+    <div class="row" role="group" aria-label="Céva">
+      <button class="btn" data-v="art" aria-pressed="true">Tepna</button>
+      <button class="btn" data-v="vei">Žíla</button>
+      <button class="btn" data-v="kap">Vlásečnice</button>
+    </div>
+    <p class="status" id="cvStatus"></p>
+    <p id="cvText"></p>
+    <div>
+      <p style="margin-bottom:6px"><b>Co dělají cévy v kůži?</b></p>
+      <div class="row" role="group" aria-label="Situace kůže">
+        <button class="btn" data-skin="norm" aria-pressed="true">klid</button>
+        <button class="btn" data-skin="stud">stydím se</button>
+        <button class="btn" data-skin="zima">je mi zima</button>
+        <button class="btn" data-skin="horko">je mi horko</button>
+      </div>
+    </div>
+    <p id="skinText"></p>
+  </div>
+</section>
+
+<!-- 4 TLAK -->
+<section class="stage" id="p-tl" role="tabpanel" aria-labelledby="t-tl" hidden>
+  <div class="panel"><svg id="tlSvg" viewBox="0 0 520 440" role="img" aria-label="Měření krevního tlaku manžetou a fonendoskopem"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Změř tlak jako sestra</h2>
+      <p>Nafoukni manžetu nad systolický tlak – tok krve v pažní tepně se přeruší. Pak pomalu upouštěj a poslouchej fonendoskopem.</p>
+    </div>
+    <div class="row"><button class="btn primary" id="tlPump">Nafouknout manžetu</button><button class="btn" id="tlRelease">Upouštět ventilem</button><button class="btn" id="tlStop">Zastavit</button></div>
+    <p class="read" id="tlRead">0 mm Hg</p>
+    <p class="status" id="tlStatus"></p>
+    <p id="tlResult"></p>
+    <div class="row" role="group" aria-label="Pacient">
+      <button class="btn" data-pt="opt" aria-pressed="true">pacient A</button>
+      <button class="btn" data-pt="hyp">pacient B</button>
+      <button class="btn" data-pt="low">pacient C</button>
+    </div>
+    <p class="note">Optimální krevní tlak je <b>120/80</b> (systolický/diastolický), fyziologický interval 100–140/60–90. Jednotka <b>torr = mm Hg</b> (1 mm Hg = 133 Pa), podle Evangelisty Torricelliho. Zvukům víření krve se říká <b>Korotkovovy fenomény</b>.</p>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});drawStatic();}));
+const marker=(s,id,col)=>{let d=s.querySelector("defs")||el("defs",{},s);const m=el("marker",{id,viewBox:"0 0 10 10",refX:8,refY:5,markerWidth:6,markerHeight:6,orient:"auto"},d);el("path",{d:"M0 0 L10 5 L0 10 z",fill:col},m)};
+
+/* ===== 1 TEKUTINY ===== */
+const SIT={
+  norm:{st:"Rovnováha",ok:true,filt:1,drain:1,txt:"Kolik tekutiny se z vlásečnic přefiltruje, tolik se jí vrátí – část do krve, zbytek odvedou mízní cévy. Tkáně nejsou oteklé."},
+  sed:{st:"Otok nohou",ok:false,filt:1,drain:.35,txt:"Pohyb mízy zajišťují hlavně <b>kosterní svaly</b>. Při dlouhém sezení svaly nepracují, odtok mízy se zpomalí, tekutina se hromadí v končetinách – vzniká <b>otok (edém)</b>, typicky otékají nohy."},
+  kwa:{st:"Otok břicha – kwashiorkor",ok:false,filt:1.6,drain:1,txt:"Většinu krevních bílkovin vyrábějí <b>játra</b>. Při podvýživě nebo poškození jater (alkoholici s cirhózou) je v krvi málo <b>albuminu</b>, který na sebe váže vodu. Voda se z tkání nedostatečně odčerpává a hromadí se – hlavně v břišní dutině (<b>kwashiorkor</b>, typ podvýživy dětí v rozvojových zemích)."},
+  ele:{st:"Sloní nemoc (elefantiáza)",ok:false,filt:1,drain:0,txt:"Pokud mízní cévy ucpe parazit (například <b>vlasovec mízní</b>), míza vůbec neodtéká a vznikají masivní otoky – <b>sloní nemoc (elefantiáza)</b>."},
+};
+let sit="norm",swell=0;
+const tkParts=Array.from({length:60},(_,i)=>({p:Math.random(),k:i%3,ph:Math.random()*6}));
+function drawTk(now){
+  const s=$("#tkSvg");s.innerHTML="";marker(s,"aL",css("--lymph"));marker(s,"aA",css("--art"));marker(s,"aV",css("--vein"));
+  const t=reduce?0:now/1000,S=SIT[sit];
+  const target=S.ok?0:(sit==="ele"?1:sit==="kwa"?.8:.6);swell+=(target-swell)*.03;
+  const sw=swell*25;
+  // tkáň
+  el("rect",{x:0,y:110,width:520,height:210+sw,fill:css("--fluid")},s);
+  for(let i=0;i<7;i++){const x=40+i*70,y=215+(i%2?-20:20);el("ellipse",{cx:x,cy:y,rx:26,ry:20,fill:css("--cell")},s);el("circle",{cx:x,cy:y,r:7,fill:css("--muted"),opacity:.4},s)}
+  txt(s,12,140,"tkáňový mok mezi buňkami",{"font-size":12.5,"font-weight":600});
+  // krevní kapilára dole: tepénka → žilka
+  const g=el("linearGradient",{id:"gK",x1:0,x2:1},s.querySelector("defs"));el("stop",{offset:"0",  "stop-color":css("--art")},g);el("stop",{offset:"1","stop-color":css("--vein")},g);
+  el("rect",{x:0,y:320+sw,width:520,height:44,fill:"url(#gK)",rx:4},s);
+  txt(s,12,390+sw,"tepénka",{"font-size":12.5,"font-weight":600,fill:css("--art")});
+  txt(s,508,390+sw,"žilka",{"font-size":12.5,"font-weight":600,fill:css("--vein"),"text-anchor":"end"});
+  txt(s,260,390+sw,"krevní vlásečnice",{"font-size":12.5,"font-weight":600,"text-anchor":"middle"});
+  // erytrocyty v kapiláře
+  for(let i=0;i<9;i++){const x=((i*60+t*50)%560)-20;el("ellipse",{cx:x,cy:342+sw,rx:10,ry:6,fill:"#fff",opacity:.55},s)}
+  // mízní kapilára nahoře – slepý začátek vlevo
+  el("path",{d:`M70 60 h390 v40 h-390 a20 20 0 0 1 0 -40 z`,fill:css("--lymph"),opacity:.85},s);
+  for(let i=0;i<5;i++){const x=130+i*70;el("path",{d:`M${x} 100 l8 -10 l8 10`,fill:"none",stroke:"#fff","stroke-width":2,opacity:.8},s)}
+  txt(s,70,40,"mízní vlásečnice (začíná slepě)",{"font-size":12.5,"font-weight":600});
+  el("path",{d:`M465 80 h40`,stroke:css("--lymph"),"stroke-width":4,"marker-end":"url(#aL)"},s);
+  txt(s,505,40,"míza → mízovody → podklíčkové žíly",{"font-size":11.5,"text-anchor":"end",fill:css("--muted")});
+  // částice tekutiny: z kapiláry nahoru, část zpět dolů, část do mízní
+  tkParts.forEach((q,i)=>{const sp=reduce?0:.12;let p=(q.p+t*sp)%1;
+    const x0=60+(i*37)%400;
+    if(q.k===0||q.k===1){ // filtrace z kapiláry
+      if(q.k===1&&S.drain<.5&&i%2)return;
+      const toLymph=q.k===1&&S.drain>0;
+      const y0=320+sw, y1=toLymph?100:220;
+      if(toLymph&&p>S.drain&&S.drain<1){p=Math.min(p,.55)} // hromadí se
+      const y=y0+(y1-y0)*p, x=x0+Math.sin(p*6+q.ph)*10;
+      el("circle",{cx:x,cy:y,r:3.2,fill:css("--vein"),opacity:.75},s);
+    } else { // návrat do krve u žilky
+      if(sit==="kwa")return;
+      const x=300+((i*29)%180),y=230+(320+sw-230)*p;el("circle",{cx:x,cy:y,r:3.2,fill:css("--vein"),opacity:.5},s);
+    }
+  });
+  el("path",{d:`M110 ${312+sw} v-40`,stroke:css("--art"),"stroke-width":3,"marker-end":"url(#aA)"},s);
+  txt(s,118,290+sw,"filtrace krevním tlakem",{"font-size":11.5,fill:css("--ink")});
+  if(swell>.2)txt(s,260,230,sit==="ele"?"masivní otok":"otok (edém)",{"font-size":20,"font-weight":700,"text-anchor":"middle",fill:css("--bad"),opacity:Math.min(1,swell*1.5)});
+}
+function updTk(){const S=SIT[sit];$("#tkStatus").className="status "+(S.ok?"ok":"bad");$("#tkStatus").textContent=S.st;$("#tkText").innerHTML=S.txt;}
+$$("[data-sit]").forEach(b=>b.onclick=()=>{sit=b.dataset.sit;press("[data-sit]",b);updTk()});
+
+/* ===== 2 OBĚH ===== */
+const OB=[
+  {n:"pravá síň",o:false,p:[[260,250]],t:"Odkysličená krev z těla přitéká <b>horní a dolní dutou žílou</b> do <b>pravé síně</b>."},
+  {n:"pravá komora",o:false,p:[[260,250],[245,300]],t:"Ze síně přes chlopeň do <b>pravé komory</b>, která pumpuje krev do malého oběhu."},
+  {n:"plicnice (plicní kmen)",o:false,p:[[245,300],[215,200],[215,150]],t:"Z pravé komory vede velká tepna <b>plicnice (plicní kmen)</b>, která se větví na <b>pravou a levou plicní tepnu</b>. Je to tepna, ale vede odkysličenou krev."},
+  {n:"plicní vlásečnice",o:true,p:[[215,150],[150,110],[110,130]],t:"V <b>plicích</b> se krev ve vlásečnicích okysličí a zbaví CO₂."},
+  {n:"plicní žíly",o:true,p:[[110,130],[180,175],[290,190]],t:"Okysličenou krev přivádějí do srdce <b>čtyři plicní žíly</b>. Jsou to žíly, ale vedou okysličenou krev."},
+  {n:"levá síň",o:true,p:[[290,190],[300,240]],t:"Plicní žíly ústí do <b>levé síně</b>. Tím se uzavřel <b>malý (plicní) oběh</b>."},
+  {n:"levá komora",o:true,p:[[300,240],[285,300]],t:"Z levé síně do <b>levé komory</b> – má nejsilnější svalovinu, pumpuje krev do celého těla."},
+  {n:"aorta (srdečnice)",o:true,p:[[285,300],[300,170],[340,150],[360,200],[360,330]],t:"Z levé komory vychází největší tepna <b>aorta (srdečnice)</b>. Tepny se větví na tepénky."},
+  {n:"tělní vlásečnice",o:false,p:[[360,330],[360,420],[300,450],[220,450]],t:"V tkáních těla předá krev ve <b>vlásečnicích</b> kyslík a živiny a přijme CO₂ a zplodiny. Vlásečnice se spojují do žilek a žil."},
+  {n:"duté žíly",o:false,p:[[220,450],[175,400],[175,300],[240,262]],t:"Odkysličená krev se vrací <b>horní a dolní dutou žílou</b> do pravé síně. Tím se uzavřel <b>velký (tělní) oběh</b>."},
+];
+let obS=-1,obP=0,obAnim=null,obPlay=null;
+function lerpPath(pts,f){if(pts.length<2)return pts[0];const L=[];let tot=0;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);L.push(d);tot+=d}
+  let x=f*tot;for(let i=0;i<L.length;i++){if(x<=L[i]){const r=x/L[i];return[pts[i][0]+(pts[i+1][0]-pts[i][0])*r,pts[i][1]+(pts[i+1][1]-pts[i][1])*r]}x-=L[i]}return pts[pts.length-1]}
+function drawOb(){
+  const s=$("#obSvg");s.innerHTML="";const A=css("--art"),V=css("--vein");
+  // plíce
+  el("ellipse",{cx:130,cy:120,rx:85,ry:60,fill:css("--tissue"),stroke:css("--line")},s);txt(s,130,70,"plíce",{"text-anchor":"middle","font-size":14,"font-weight":700});
+  for(let i=0;i<6;i++)el("path",{d:`M${90+i*14} 105 q 10 25 20 0`,fill:"none",stroke:i%2?A:V,"stroke-width":2},s);
+  // tělo
+  el("rect",{x:150,y:400,width:260,height:90,rx:20,fill:css("--tissue"),stroke:css("--line")},s);txt(s,280,480,"tkáně těla",{"text-anchor":"middle","font-size":14,"font-weight":700});
+  for(let i=0;i<8;i++)el("path",{d:`M${200+i*22} 440 q 11 22 22 0`,fill:"none",stroke:i<4?A:V,"stroke-width":2},s);
+  // srdce
+  el("path",{d:"M220 220 q 0 -30 40 -30 h 50 q 40 0 40 30 v 40 q 0 50 -65 85 q -65 -35 -65 -85 z",fill:css("--panel"),stroke:css("--ink"),"stroke-width":2},s);
+  el("line",{x1:285,y1:200,x2:285,y2:335,stroke:css("--ink"),"stroke-width":2},s);el("line",{x1:222,y1:270,x2:348,y2:270,stroke:css("--ink"),"stroke-width":1.5,"stroke-dasharray":"4 3"},s);
+  txt(s,252,245,"PS",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:V});txt(s,318,245,"LS",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:A});
+  txt(s,252,300,"PK",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:V});txt(s,318,300,"LK",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:A});
+  txt(s,512,505,"PS/LS = pravá/levá síň · PK/LK = pravá/levá komora (srdce pacienta – jeho pravá strana je vlevo)",{"text-anchor":"end","font-size":10.5,fill:css("--muted")});
+  // cévy
+  const pipe=(d,col,lab,lx,ly,anchor="start")=>{el("path",{d,fill:"none",stroke:col,"stroke-width":9,"stroke-linecap":"round",opacity:.85},s);if(lab)txt(s,lx,ly,lab,{"font-size":12,"font-weight":600,fill:col,"text-anchor":anchor});};
+  pipe("M245 300 L215 200 L215 150 L150 110",V,"plicnice",226,235);
+  pipe("M110 130 L180 175 L290 190",A,"plicní žíly",150,190,"end");
+  pipe("M300 170 Q 320 120 360 150 L360 400",A,"aorta",370,180);
+  pipe("M220 450 Q 175 430 175 300 L 238 262",V,"duté žíly",168,350,"end");
+  // krvinka
+  if(obS>=0){const st=OB[obS];const [x,y]=lerpPath(st.p,obP);const col=st.o?A:V;
+    el("circle",{cx:x,cy:y,r:13,fill:col,stroke:"#fff","stroke-width":3},s);}
+  // legenda
+  txt(s,400,40,"okysličená krev",{"font-size":12.5,"font-weight":600,fill:A});txt(s,400,60,"odkysličená krev",{"font-size":12.5,"font-weight":600,fill:V});
+  txt(s,20,280,"MALÝ (plicní) OBĚH",{"font-size":12,"font-weight":700,fill:css("--muted")});
+  txt(s,380,300,"VELKÝ (tělní)",{"font-size":12,"font-weight":700,fill:css("--muted")});txt(s,380,316,"OBĚH",{"font-size":12,"font-weight":700,fill:css("--muted")});
+}
+function updOb(){
+  if(obS<0){$("#obStatus").textContent="Krvinka čeká v pravé síni";$("#obText").innerHTML="Začínáme odkysličenou krví, která se vrátila z těla.";}
+  else{const st=OB[obS];$("#obStatus").className="status";$("#obStatus").textContent=(obS+1)+". "+st.n;$("#obText").innerHTML=st.t;}
+  $("#obPath").innerHTML=OB.map((s,i)=>`<span class="${s.o?"o":"d"}${i===obS?" cur":""}">${s.n}</span>`).join("→");
+}
+function stepOb(){if(obAnim)cancelAnimationFrame(obAnim);obS=(obS+1)%OB.length;obP=0;updOb();const st=performance.now(),dur=reduce?1:1400;
+  const f=t=>{obP=Math.min(1,(t-st)/dur);drawOb();if(obP<1)obAnim=requestAnimationFrame(f)};obAnim=requestAnimationFrame(f)}
+$("#obNext").onclick=()=>{clearInterval(obPlay);stepOb()};
+$("#obAuto").onclick=()=>{clearInterval(obPlay);obS=-1;stepOb();obPlay=setInterval(()=>{if(obS>=OB.length-1){clearInterval(obPlay);return}stepOb()},reduce?50:1900)};
+$("#obReset").onclick=()=>{clearInterval(obPlay);if(obAnim)cancelAnimationFrame(obAnim);obS=-1;obP=0;updOb();drawOb()};
+
+/* ===== 3 CÉVY ===== */
+const CV={
+  art:{n:"Tepna (artérie)",t:"Vede krev <b>ze srdce</b>. Vrstvy zevnitř: <b>endotel</b> na bazální membráně, řídké vazivo, <b>vnitřní elastická vrstva</b>, silná vrstva <b>hladké svaloviny</b> (krevní tlak je v tepnách mnohem vyšší), vnější elastická vrstva a vnější kolagenová vrstva. Tepny se dělí na tepénky."},
+  vei:{n:"Žíla (véna)",t:"Vede krev <b>do srdce</b>. Stejné vrstvy jako tepna, ale <b>tenčí vrstva hladké svaloviny</b> a větší průsvit. Na vnitřní stěně, zejména v končetinách, jsou <b>žilní chlopně</b> – kapsičkovité výstupky, které brání zpětnému toku krve."},
+  kap:{n:"Vlásečnice (kapilára)",t:"Průměr asi <b>8 µm</b>, délka jen do 1 mm. Stěnu tvoří <b>jediná vrstva plochých buněk – endotel</b> na <b>bazální membráně</b>. Ve zvláštních případech má drobné otvory (<b>fenestrovaný endotel</b> – ledviny, střeva). Objevil je italský mikroskopik <b>Marcello Malpighi</b> v 17. století."},
+};
+const SKIN={
+  norm:{c:"#e9b49a",t:"Podíl krve v povrchových a hlubokých <b>škárových cévách</b> se reguluje podle potřeby organismu."},
+  stud:{c:"#e3786c",t:"Když se stydíme, <b>rozšíří se kožní cévy</b> v ušních boltcích a tvářích a zčervenáme (signalizace v rámci našeho druhu)."},
+  zima:{c:"#efd2c6",t:"Krev je vedena <b>hlubším cévním systémem</b> – kůže je bledá, ale chráněná před úniky tepla. Navíc funguje <b>tepelný výměník</b>: tepny a žíly končetin vedou těsně vedle sebe, teplo z tepny ohřívá vracející se žilní krev."},
+  horko:{c:"#e58a74",t:"Oblast pod pokožkou je <b>prokrvena</b>, kůže je červenější a odvádí nadbytečné teplo z povrchu těla."},
+};
+let cv="art",skin="norm";
+function drawCv(){
+  const s=$("#cvSvg");s.innerHTML="";const cx=170,cy=200;
+  const layers=cv==="art"?[["vnější kolagenová vrstva",150,"#d9cbb8"],["vnější elastická vrstva",132,css("--elast")],["hladká svalovina",124,css("--muscle")],["vnitřní elastická vrstva",80,css("--elast")],["řídké vazivo",72,"#f0d9c9"],["endotel",64,"#f4b6c0"]]
+    :cv==="vei"?[["vnější kolagenová vrstva",150,"#d9cbb8"],["vnější elastická vrstva",136,css("--elast")],["hladká svalovina",130,css("--muscle")],["vnitřní elastická vrstva",112,css("--elast")],["řídké vazivo",106,"#f0d9c9"],["endotel",100,"#c6d6f2"]]
+    :[["bazální membrána",46,"#d9cbb8"],["endotel",40,"#f4b6c0"]];
+  layers.forEach(([n,r,c],i)=>{el("circle",{cx,cy,r,fill:c,stroke:"#fff","stroke-width":1},s)});
+  const lumen=cv==="art"?58:cv==="vei"?94:30;
+  el("circle",{cx,cy,r:lumen,fill:cv==="vei"?css("--vein"):css("--art"),opacity:.85},s);
+  if(cv==="kap"){el("ellipse",{cx,cy,rx:14,ry:9,fill:"#fff",opacity:.7},s);txt(s,cx,cy+80,"jedna krvinka se sotva protáhne",{"text-anchor":"middle","font-size":12,fill:css("--muted")})}
+  if(cv==="vei"){el("path",{d:`M${cx-60} ${cy+40} q 30 -50 60 -10 M${cx+60} ${cy+40} q -30 -50 -60 -10`,stroke:"#fff","stroke-width":5,fill:"none"},s);txt(s,cx,cy-14,"žilní chlopně",{"text-anchor":"middle","font-size":12,"font-weight":700,fill:"#fff"})}
+  // popisky
+  layers.forEach(([n,r],i)=>{const y=40+i*42;const ang=-0.9+i*0.32;const px=cx+Math.cos(ang)*(r-4),py=cy+Math.sin(ang)*(r-4);
+    el("line",{x1:px,y1:py,x2:350,y2:y,stroke:css("--muted"),"stroke-width":1.3},s);el("circle",{cx:px,cy:py,r:3,fill:css("--ink")},s);
+    txt(s,356,y+4,n,{"font-size":13,"font-weight":600});});
+  // kůže
+  const SK=SKIN[skin];el("rect",{x:20,y:372,width:480,height:36,rx:8,fill:SK.c,stroke:css("--line")},s);
+  txt(s,260,395,"barva kůže",{"text-anchor":"middle","font-size":13,"font-weight":600,fill:"#18202a"});
+  $("#cvStatus").textContent=CV[cv].n;$("#cvText").innerHTML=CV[cv].t;$("#skinText").innerHTML=SK.t+(skin==="norm"?" Při fyzické aktivitě se relaxací hladké svaloviny <b>rozšiřují svalové cévy</b>, po jídle cévy kolem trávicí soustavy – proto se po obědě nekoupat. Zúžení cév způsobuje <b>noradrenalin</b> z vegetativních nervů, rozšíření např. <b>oxid dusnatý (NO)</b>.":"");
+}
+$$("[data-v]").forEach(b=>b.onclick=()=>{cv=b.dataset.v;press("[data-v]",b);drawCv()});
+$$("[data-skin]").forEach(b=>b.onclick=()=>{skin=b.dataset.skin;press("[data-skin]",b);drawCv()});
+
+/* ===== 4 TLAK ===== */
+const PT={opt:[120,80],hyp:[150,95],low:[95,58]};
+let pt="opt",cuff=0,mode="idle",heard=[],lastBeat=0,beatPhase=0;
+function arterialP(t){const [sy,di]=PT[pt];const ph=(t%0.85)/0.85;const w=ph<.15?ph/.15:Math.exp(-(ph-.15)*4);return di+(sy-di)*Math.max(0,Math.min(1,w));}
+function drawTl(now){
+  const s=$("#tlSvg");s.innerHTML="";const t=now/1000;const [sy,di]=PT[pt];
+  // paže
+  el("path",{d:"M40 120 Q 260 90 480 140 L 480 230 Q 260 200 40 220 z",fill:css("--tissue"),stroke:css("--line")},s);
+  txt(s,50,110,"paže",{"font-size":13,"font-weight":600});
+  // tepna
+  const flowing=cuff<di?"full":cuff<sy?"turb":"none";
+  el("path",{d:"M40 170 Q 260 145 480 185",stroke:css("--art"),"stroke-width":flowing==="none"?4:14,fill:"none",opacity:.85},s);
+  if(flowing!=="none"&&!reduce){for(let i=0;i<8;i++){const p=((t*(flowing==="turb"?.25:.5)+i/8)%1);const x=40+p*440,y=170-Math.sin(p*Math.PI)*22+p*15;
+    if(flowing==="turb"&&arterialP(t)<cuff&&x>170&&x<330)continue;
+    el("ellipse",{cx:x+(flowing==="turb"&&x>330?Math.sin(t*20+i)*4:0),cy:y,rx:8,ry:5,fill:"#fff",opacity:.7},s)}}
+  // manžeta
+  const infl=Math.min(1,cuff/200);
+  el("rect",{x:170,y:110-infl*12,width:160,height:120+infl*24,rx:14,fill:"#3a4a5e",opacity:.9},s);
+  txt(s,250,100-infl*12,"manžeta",{"text-anchor":"middle","font-size":13,"font-weight":600});
+  // fonendoskop
+  el("circle",{cx:380,cy:205,r:16,fill:"#9aa3ad",stroke:css("--ink"),"stroke-width":2},s);txt(s,380,250,"fonendoskop",{"text-anchor":"middle","font-size":12.5,"font-weight":600});
+  // tlakoměr
+  const gx=110,gy=340;el("circle",{cx:gx,cy:gy,r:70,fill:css("--panel"),stroke:css("--ink"),"stroke-width":3},s);
+  for(let v=0;v<=300;v+=20){const a=(-225+v/300*270)*Math.PI/180;const r1=v%40?60:54;el("line",{x1:gx+Math.cos(a)*r1,y1:gy+Math.sin(a)*r1,x2:gx+Math.cos(a)*66,y2:gy+Math.sin(a)*66,stroke:css("--ink"),"stroke-width":v%40?1:2},s);
+    if(v%40===0)txt(s,gx+Math.cos(a)*42,gy+Math.sin(a)*42+4,v,{"text-anchor":"middle","font-size":10,class:"mono"})}
+  const a=(-225+Math.min(300,cuff)/300*270)*Math.PI/180;el("line",{x1:gx,y1:gy,x2:gx+Math.cos(a)*58,y2:gy+Math.sin(a)*58,stroke:css("--accent"),"stroke-width":3},s);el("circle",{cx:gx,cy:gy,r:5,fill:css("--accent")},s);
+  txt(s,gx,gy+92,"mm Hg",{"text-anchor":"middle","font-size":12,fill:css("--muted")});
+  // zvuk
+  const sound=flowing==="turb";
+  const beat=Math.floor(t/0.85);if(sound&&beat!==lastBeat){lastBeat=beat;beatPhase=1;if(mode==="rel"&&!heard.length)heard.push(Math.round(cuff));}
+  if(mode==="rel"&&heard.length===1&&!sound&&cuff<di){heard.push(Math.round(cuff+1));}
+  beatPhase*=.9;
+  txt(s,290,330,sound?"ťuk… ťuk… ťuk":"ticho",{"font-size":22,"font-weight":700,fill:sound?css("--accent"):css("--muted"),opacity:sound?.4+beatPhase*.6:1});
+  txt(s,290,360,sound?"víření krve (Korotkovovy fenomény)":flowing==="none"?"tok krve je přerušen":"krev proudí tiše (laminárně)",{"font-size":12.5,fill:css("--muted")});
+  $("#tlRead").textContent=Math.round(cuff)+" mm Hg";
+}
+let tlLoop=null,tlLast=0;
+function tick(now){const dt=Math.min(.05,(now-(tlLast||now))/1000);tlLast=now;
+  if(mode==="pump"){cuff=Math.min(200,cuff+120*dt);if(cuff>=200)mode="idle";}
+  if(mode==="rel"){cuff=Math.max(0,cuff-(reduce?20:6)*dt);if(cuff<=0)mode="idle";}
+  const [sy,di]=PT[pt];
+  if(mode==="pump"||cuff>sy){$("#tlStatus").className="status";$("#tlStatus").textContent=cuff>sy?"Tok v pažní tepně je přerušen":"Nafukuji…";}
+  else if(cuff>di){$("#tlStatus").className="status ok";$("#tlStatus").textContent="Slyším tepání – tlak v tepně překonává manžetu";}
+  else if(cuff>0){$("#tlStatus").className="status";$("#tlStatus").textContent="Ticho – krev proudí volně";}
+  if(heard.length===2){$("#tlResult").innerHTML=`Změřeno: <b>${heard[0]}/${heard[1]} mm Hg</b>. První ťuknutí = <b>systolický</b> tlak, poslední = <b>diastolický</b>. `+(heard[0]>=140||heard[1]>=90?"Vysoký tlak (hypertenze).":heard[0]<100?"Spíše nízký tlak.":"V normě.");}
+  if(!$("#p-tl").hidden)drawTl(now);
+  requestAnimationFrame(tick);
+}
+$("#tlPump").onclick=()=>{mode="pump";heard=[];$("#tlResult").textContent=""};
+$("#tlRelease").onclick=()=>{if(cuff<PT[pt][0]){$("#tlStatus").textContent="Nejdřív nafoukni manžetu nad systolický tlak.";return}mode="rel";heard=[];$("#tlResult").textContent=""};
+$("#tlStop").onclick=()=>{mode="idle"};
+$$("[data-pt]").forEach(b=>b.onclick=()=>{pt=b.dataset.pt;press("[data-pt]",b);cuff=0;mode="idle";heard=[];$("#tlResult").textContent="";$("#tlStatus").textContent=""});
+
+function loop(now){if(!$("#p-tk").hidden)drawTk(now);requestAnimationFrame(loop)}
+function drawStatic(){drawOb();drawCv();drawTl(performance.now())}
+updTk();updOb();drawStatic();requestAnimationFrame(loop);requestAnimationFrame(tick);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",drawStatic);
+</script>
+</body>
+</html>
