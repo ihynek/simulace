@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Krevní skupiny a srážení</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u „Krev v laboratoři“ – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --blood:#b3122b; --blood-dark:#6e0a1c; --plasma-soft:#fbeeb8; --wall:#e9b7a6; --wall-dark:#c98571;
+  --antiA:#d6266b; --antiB:#2f80ed; --plt:#8e5bb5; --fibrin:#9aa3ad; --collagen:#e0a72e; --ok:#1e8a3c; --bad:#c0392b;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --blood:#e0405a; --blood-dark:#9b1830; --plasma-soft:#4a4128; --wall:#7a4a3e; --wall-dark:#a8695a;
+  --antiA:#ff5c9a; --antiB:#5aa2ff; --plt:#b98ae0; --fibrin:#c4ccd4; --collagen:#e9c14a; --ok:#4cc46d; --bad:#ff6b5a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --blood:#e0405a; --blood-dark:#9b1830; --plasma-soft:#4a4128; --wall:#7a4a3e; --wall-dark:#a8695a;
+  --antiA:#ff5c9a; --antiB:#5aa2ff; --plt:#b98ae0; --fibrin:#c4ccd4; --collagen:#e9c14a; --ok:#4cc46d; --bad:#ff6b5a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--blood)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--blood)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--antiB);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbl{font-weight:600;min-width:5.5em}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--blood);color:#fff;border-color:var(--blood)}
+.btn[aria-pressed="true"]{border-color:var(--blood);box-shadow:inset 0 0 0 1px var(--blood);background:var(--panel)}
+.btn.grp{min-width:3.2em}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+table.comp{border-collapse:collapse;font-variant-numeric:tabular-nums;width:100%;max-width:360px}
+table.comp th,table.comp td{border:1px solid var(--line);text-align:center;padding:5px 6px;font-size:.92rem}
+table.comp th{background:var(--bg);font-weight:600}
+table.comp td{cursor:pointer}
+table.comp td.y{color:var(--ok);font-weight:700}
+table.comp td.n{color:var(--bad)}
+table.comp td.cur{outline:3px solid var(--blood);outline-offset:-3px}
+.punnett{border-collapse:collapse;font-family:var(--f-mono);margin:4px 0}
+.punnett th,.punnett td{border:1px solid var(--line);padding:8px 12px;text-align:center;min-width:72px}
+.punnett th{background:var(--plasma-soft);font-weight:600}
+.punnett th.f{background:var(--bg)}
+.punnett td b{display:block;font-family:var(--f-body);font-size:.85rem}
+.res{display:flex;flex-wrap:wrap;gap:8px}
+.chipres{border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-weight:600;font-variant-numeric:tabular-nums}
+sup{font-size:.7em}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps span{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);font-weight:700;font-size:.9rem;color:var(--muted)}
+.steps span.cur{background:var(--blood);border-color:var(--blood);color:#fff}
+.steps span.done{border-color:var(--blood);color:var(--blood)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Krevní skupiny <span>a srážení</span></h1>
+  <p class="sub">Interaktivní pokusy k 2. hodině · Oběhová soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-tr" aria-selected="true" data-p="p-tr">1 · Transfuze</button>
+  <button role="tab" id="t-ded" aria-selected="false" data-p="p-ded">2 · Dědičnost skupin</button>
+  <button role="tab" id="t-sr" aria-selected="false" data-p="p-sr">3 · Srážení krve</button>
+</nav>
+
+<!-- 1 TRANSFUZE -->
+<section class="stage" id="p-tr" role="tabpanel" aria-labelledby="t-tr">
+  <div class="panel"><svg id="trSvg" viewBox="0 0 520 380" role="img" aria-label="Transfuze krve dárce do krve příjemce"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Komu můžu darovat krev?</h2>
+      <p>Na krvinkách jsou <b>antigeny (aglutinogeny)</b>, v plazmě <b>protilátky (aglutininy)</b> proti cizím antigenům. Když se potkají, krvinky se <b>shluknou (aglutinace)</b>.</p>
+    </div>
+    <div class="row" role="group" aria-label="Dárce"><span class="lbl">Dárce</span>
+      <button class="btn grp" data-don="A">A</button><button class="btn grp" data-don="B">B</button><button class="btn grp" data-don="AB">AB</button><button class="btn grp" data-don="0">0</button></div>
+    <div class="row" role="group" aria-label="Příjemce"><span class="lbl">Příjemce</span>
+      <button class="btn grp" data-rec="A">A</button><button class="btn grp" data-rec="B">B</button><button class="btn grp" data-rec="AB">AB</button><button class="btn grp" data-rec="0">0</button></div>
+    <div class="row"><button class="btn primary" id="trGo">Provést transfuzi</button><button class="btn" id="trReset">Znovu</button></div>
+    <p class="status" id="trStatus"></p>
+    <p id="trText"></p>
+    <table class="comp" id="comp" aria-label="Tabulka slučitelnosti"></table>
+    <p class="note">Řádky = dárce, sloupce = příjemce. Klikni na políčko a nastaví se dvojice. Skupina 0 je <b>univerzální dárce</b>, AB <b>univerzální příjemce</b>. Při skutečné transfuzi se hlídá i Rh faktor.</p>
+  </div>
+</section>
+
+<!-- 2 DĚDIČNOST -->
+<section class="stage" id="p-ded" role="tabpanel" aria-labelledby="t-ded" hidden>
+  <div class="panel">
+    <h2>Mendelův kombinační čtverec</h2>
+    <p class="sub" style="margin-bottom:8px">Systém AB0 – alely I<sup>A</sup>, I<sup>B</sup>, i</p>
+    <div style="overflow-x:auto"><table class="punnett" id="pAB0"></table></div>
+    <div class="res" id="rAB0" style="margin:8px 0 18px"></div>
+    <p class="sub" style="margin-bottom:8px">Rh faktor – gen D</p>
+    <div style="overflow-x:auto"><table class="punnett" id="pRh"></table></div>
+    <div class="res" id="rRh" style="margin-top:8px"></div>
+  </div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Můžu mít jinou skupinu než rodiče?</h2>
+      <p>Od každého rodiče dostaneme jednu alelu. Alely I<sup>A</sup> a I<sup>B</sup> jsou vůči i <b>dominantní</b>, spolu se projeví obě (AB).</p>
+    </div>
+    <div class="row"><span class="lbl">Matka</span><select class="btn" id="mA"></select><select class="btn" id="mR"></select></div>
+    <div class="row"><span class="lbl">Otec</span><select class="btn" id="oA"></select><select class="btn" id="oR"></select></div>
+    <div class="row"><button class="btn" id="exBook">Příklad z učebnice</button><button class="btn" id="exSurprise">Rodiče A × B</button></div>
+    <p class="status" id="dedStatus"></p>
+    <p class="note">Skupina A: I<sup>A</sup>I<sup>A</sup> nebo I<sup>A</sup>i · B: I<sup>B</sup>I<sup>B</sup> nebo I<sup>B</sup>i · AB: I<sup>A</sup>I<sup>B</sup> · 0: ii. Rh+: DD nebo Dd, Rh−: dd. V ČR: A 42 %, 0 39 %, B 15 %, AB 4 %; Rh+ asi 90 %.</p>
+  </div>
+</section>
+
+<!-- 3 SRÁŽENÍ -->
+<section class="stage" id="p-sr" role="tabpanel" aria-labelledby="t-sr" hidden>
+  <div class="panel"><svg id="srSvg" viewBox="0 0 520 400" role="img" aria-label="Poraněná céva a srážení krve"></svg></div>
+  <div class="panel ctrl">
+    <div class="steps" id="steps"></div>
+    <p class="status" id="srStatus"></p>
+    <p id="srText"></p>
+    <div class="row"><button class="btn" id="srPrev">◀ Zpět</button><button class="btn primary" id="srNext">Další krok ▶</button><button class="btn" id="srAll">Přehrát vše</button></div>
+    <div>
+      <p style="margin-bottom:6px"><b>Co když…</b></p>
+      <div class="row" role="group" aria-label="Podmínka" id="conds"></div>
+    </div>
+    <p class="note" id="srNote"></p>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});
+  redrawAll();
+}));
+const press=(sel,btn)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===btn));
+
+/* ===== 1 TRANSFUZE ===== */
+const AG={A:["A"],B:["B"],AB:["A","B"],"0":[]};
+const AB={A:["B"],B:["A"],AB:[],"0":["A","B"]}; // protilátky v plazmě
+let don="A",rec="B",trP=0,trAnim=null;
+const compatible=(d,r)=>AG[d].every(a=>!AB[r].includes(a));
+const cells=Array.from({length:9},(_,i)=>({sx:60+(i%3)*34,sy:130+Math.floor(i/3)*34,fx:250+((i*67)%220),fy:110+((i*41)%180)}));
+const abs=Array.from({length:10},(_,i)=>({x:240+((i*53)%230),y:105+((i*37)%190),r:(i*47)%360}));
+function antibody(g,x,y,rot,col,lab){
+  const a=el("g",{transform:`translate(${x} ${y}) rotate(${rot})`},g);
+  el("path",{d:"M0 10 V0 M0 0 L-7 -8 M0 0 L7 -8",stroke:col,"stroke-width":3,fill:"none","stroke-linecap":"round"},a);
+  return a;
+}
+function rbc(g,x,y,ags){
+  el("circle",{cx:x,cy:y,r:13,fill:css("--blood"),stroke:css("--blood-dark"),"stroke-width":1.5},g);
+  el("circle",{cx:x,cy:y,r:5,fill:css("--blood-dark"),opacity:.45},g);
+  ags.forEach((a,k)=>{for(let j=0;j<4;j++){const an=(j*90+k*45+20)*Math.PI/180,px=x+Math.cos(an)*16,py=y+Math.sin(an)*16;
+    if(a==="A")el("circle",{cx:px,cy:py,r:3.2,fill:css("--antiA")},g);
+    else el("rect",{x:px-3,y:py-3,width:6,height:6,fill:css("--antiB"),transform:`rotate(45 ${px} ${py})`},g);}});
+}
+function drawTr(){
+  const s=$("#trSvg");s.innerHTML="";
+  const ok=compatible(don,rec);
+  // bag
+  el("rect",{x:30,y:90,width:130,height:150,rx:18,fill:css("--plasma-soft"),stroke:css("--muted"),"stroke-width":2},s);
+  txt(s,95,80,"dárce "+don,{"text-anchor":"middle","font-weight":700,"font-size":16});
+  // recipient vessel
+  el("rect",{x:230,y:90,width:260,height:220,rx:14,fill:css("--plasma-soft"),stroke:css("--muted"),"stroke-width":2},s);
+  txt(s,360,80,"krev příjemce "+rec,{"text-anchor":"middle","font-weight":700,"font-size":16});
+  // tube
+  el("path",{d:"M160 165 C195 165 200 200 230 200",stroke:css("--muted"),"stroke-width":6,fill:"none",opacity:.5},s);
+  // antibodies of recipient
+  const recAb=AB[rec];
+  abs.forEach((a,i)=>{if(!recAb.length)return;const t=recAb[i%recAb.length];
+    let x=a.x,y=a.y;
+    if(!ok&&trP>0.6){ // antibodies move to clumps
+      const target=cl(i%2);x+= (target.x+(i%3-1)*14-x)*Math.min(1,(trP-.6)/.4);y+=(target.y+((i>>1)%3-1)*14-y)*Math.min(1,(trP-.6)/.4);}
+    antibody(s,x,y,a.r,t==="A"?css("--antiA"):css("--antiB"));});
+  // donor cells
+  cells.forEach((c,i)=>{
+    let x=c.sx,y=c.sy;
+    if(trP>0){const p=Math.min(1,trP/.6);let fx=c.fx,fy=c.fy;
+      x=c.sx+(fx-c.sx)*p;y=c.sy+(fy-c.sy)*p-Math.sin(p*Math.PI)*30;
+      if(!ok&&trP>0.6){const q=Math.min(1,(trP-.6)/.4),t=cl(i%2),k=Math.floor(i/2);
+        const tx=t.x+Math.cos(k*1.4)*22*(k?1:0),ty=t.y+Math.sin(k*1.4)*22*(k?1:0);x=fx+(tx-fx)*q;y=fy+(ty-fy)*q;}}
+    rbc(s,x,y,AG[don]);
+  });
+  // legend
+  const lg=el("g",{transform:"translate(30 330)"},s);
+  el("circle",{cx:6,cy:0,r:4,fill:css("--antiA")},lg);txt(lg,16,5,"antigen A",{"font-size":13});
+  el("rect",{x:96,y:-4,width:8,height:8,fill:css("--antiB"),transform:"rotate(45 100 0)"},lg);txt(lg,112,5,"antigen B",{"font-size":13});
+  antibody(lg,206,4,0,css("--antiA"));txt(lg,218,5,"anti-A",{"font-size":13});
+  antibody(lg,286,4,0,css("--antiB"));txt(lg,298,5,"anti-B",{"font-size":13});
+  txt(lg,0,26,"Plazma příjemce: "+(recAb.length?recAb.map(x=>"anti-"+x).join(" + "):"žádné protilátky"),{"font-size":13,fill:css("--muted")});
+  // status
+  const st=$("#trStatus"),tx=$("#trText");
+  if(trP<1){st.className="status";st.textContent="Dárce "+don+" → příjemce "+rec;
+    tx.innerHTML="Krvinky dárce nesou "+(AG[don].length?"antigen "+AG[don].join(" a "):"<b>žádný antigen</b> (skupina 0)")+". Plazma příjemce obsahuje "+(recAb.length?recAb.map(x=>"<b>anti-"+x+"</b>").join(" a "):"<b>žádné protilátky</b>")+".";}
+  else if(ok){st.className="status ok";st.textContent="Transfuze je v pořádku";
+    tx.innerHTML="Protilátky příjemce nenašly na krvinkách dárce svůj antigen, krvinky se volně rozptýlily.";}
+  else{const hit=AG[don].filter(a=>AB[rec].includes(a));st.className="status bad";st.textContent="Aglutinace – krvinky se shlukují!";
+    tx.innerHTML="Protilátky <b>anti-"+hit.join(" a anti-")+"</b> příjemce se navázaly na antigen "+hit.join(" a ")+" krvinek dárce. Shluknuté krvinky pak napadají bílé krvinky – nesprávná transfuze může vést až ke smrti.";}
+  drawComp();
+}
+function cl(k){return k?{x:410,y:220}:{x:300,y:170}}
+function drawComp(){
+  const G=["A","B","AB","0"];let h="<tr><th>dárce ↓ / příjemce →</th>"+G.map(g=>`<th>${g}</th>`).join("")+"</tr>";
+  G.forEach(d=>{h+=`<tr><th>${d}</th>`+G.map(r=>{const ok=compatible(d,r);return `<td class="${ok?"y":"n"}${d===don&&r===rec?" cur":""}" data-d="${d}" data-r="${r}">${ok?"✓":"✗"}</td>`}).join("")+"</tr>"});
+  const t=$("#comp");t.innerHTML=h;
+  t.querySelectorAll("td").forEach(td=>td.onclick=()=>{don=td.dataset.d;rec=td.dataset.r;sync();});
+}
+function sync(){trP=0;if(trAnim)cancelAnimationFrame(trAnim);press("[data-don]",$(`[data-don="${don}"]`));press("[data-rec]",$(`[data-rec="${rec}"]`));drawTr();}
+$$("[data-don]").forEach(b=>b.onclick=()=>{don=b.dataset.don;sync()});
+$$("[data-rec]").forEach(b=>b.onclick=()=>{rec=b.dataset.rec;sync()});
+$("#trReset").onclick=sync;
+$("#trGo").onclick=()=>{if(trAnim)cancelAnimationFrame(trAnim);const st=performance.now(),dur=reduce?1:2600;
+  const f=t=>{trP=Math.min(1,(t-st)/dur);drawTr();if(trP<1)trAnim=requestAnimationFrame(f)};trAnim=requestAnimationFrame(f)};
+
+/* ===== 2 DĚDIČNOST ===== */
+const GA=["IAIA","IAi","IBIB","IBi","IAIB","ii"], GR=["DD","Dd","dd"];
+const al=g=>g==="ii"?["i","i"]:g.match(/IA|IB|i/g);
+const fmt=a=>a==="IA"?"I<sup>A</sup>":a==="IB"?"I<sup>B</sup>":a;
+const phen=(a,b)=>{const s=[a,b];if(s.includes("IA")&&s.includes("IB"))return"AB";if(s.includes("IA"))return"A";if(s.includes("IB"))return"B";return"0"};
+const gname=g=>{const a=al(g);return a.map(fmt).join("")+" ("+phen(a[0],a[1])+")"};
+function fillSel(sel,arr,lab){sel.innerHTML=arr.map(g=>`<option value="${g}">${lab(g)}</option>`).join("")}
+fillSel($("#mA"),GA,g=>al(g).join("").replace(/I(A|B)/g,"I$1")+" – skupina "+phen(...al(g)));
+fillSel($("#oA"),GA,g=>al(g).join("").replace(/I(A|B)/g,"I$1")+" – skupina "+phen(...al(g)));
+fillSel($("#mR"),GR,g=>g+(g==="dd"?" – Rh−":" – Rh+"));fillSel($("#oR"),GR,g=>g+(g==="dd"?" – Rh−":" – Rh+"));
+const COL={A:"var(--antiA)",B:"var(--antiB)",AB:"var(--plt)","0":"var(--muted)"};
+function square(tbl,m,o,ph,colf){
+  let h=`<tr><th class="f">otec ↓ / matka →</th>${m.map(a=>`<th>${fmt(a)}</th>`).join("")}</tr>`;const counts={};
+  o.forEach(b=>{h+=`<tr><th class="f">${fmt(b)}</th>`+m.map(a=>{const p=ph(a,b);counts[p]=(counts[p]||0)+1;
+    const g=[a,b].sort((x,y)=>(x==="i"||x==="d")-(y==="i"||y==="d")).map(fmt).join("");return `<td>${g}<b style="color:${colf(p)}">${p}</b></td>`}).join("")+"</tr>"});
+  tbl.innerHTML=h;return counts;
+}
+function drawDed(){
+  const m=al($("#mA").value),o=al($("#oA").value);
+  const c=square($("#pAB0"),m,o,phen,p=>COL[p]);
+  $("#rAB0").innerHTML=Object.entries(c).sort().map(([k,v])=>`<span class="chipres" style="border-color:${COL[k]}">skupina ${k}: ${v*25} %</span>`).join("");
+  const mr=$("#mR").value.split(""),orr=$("#oR").value.split("");
+  const rp=(a,b)=>(a==="D"||b==="D")?"Rh+":"Rh−";
+  const c2=square($("#pRh"),mr,orr,rp,p=>p==="Rh+"?"var(--blood)":"var(--muted)");
+  $("#rRh").innerHTML=Object.entries(c2).map(([k,v])=>`<span class="chipres">${k}: ${v*25} %</span>`).join("");
+  const mp=phen(...m),op=phen(...o);const kids=Object.keys(c);
+  const diff=kids.filter(k=>k!==mp&&k!==op);
+  $("#dedStatus").textContent=diff.length?`Dítě může mít i skupinu ${diff.join(", ")}, kterou nemá ani jeden z rodičů.`:"Děti mohou mít jen skupiny, které mají rodiče.";
+}
+["#mA","#oA","#mR","#oR"].forEach(s=>$(s).onchange=drawDed);
+$("#exBook").onclick=()=>{$("#mA").value="IAi";$("#oA").value="IAIB";$("#mR").value="Dd";$("#oR").value="Dd";drawDed()};
+$("#exSurprise").onclick=()=>{$("#mA").value="IAi";$("#oA").value="IBi";$("#mR").value="Dd";$("#oR").value="dd";drawDed()};
+$("#exBook").onclick();
+
+/* ===== 3 SRÁŽENÍ ===== */
+const STEPS=[
+  ["Poranění cévy","Stěna cévy se poruší a odhalí se vlákna bílkoviny <b>kolagenu</b>. Krev začne vytékat."],
+  ["Aktivace destiček","Krevní destičky se přichytí na kolagen, vytvoří <b>panožky</b>, vylijí obsah váčků a nalepí se na stěnu cévy. Uvolní i látky, které <b>zúží</b> porušenou cévu (např. <b>serotonin</b>)."],
+  ["Destičková zátka","Destičky se nalepují i na sebe navzájem a ucpávají ránu. Krvácení se zmírní, ale zátka je zatím křehká."],
+  ["Vznik trombinu","Za přítomnosti destiček a <b>vápenatých kationtů Ca²⁺</b> se v plazmě <b>protrombin</b> (proenzym z jater, k jeho syntéze je potřeba <b>vitamin K</b>) změní na enzym <b>trombin</b>."],
+  ["Fibrinová síť","Trombin mění rozpustný <b>fibrinogen</b> na nerozpustná vlákna <b>fibrinu</b>. Fibrinová síť zachytí krvinky – vznikne <b>krevní koláč</b>, z něj vytéká nažloutlá plazma a později vznikne <b>strup</b>."],
+];
+const CONDS={
+  none:{n:"normálně",note:"Srážecí faktory vyrábějí hlavně játra. Celý proces se nazývá koagulační kaskáda."},
+  aspirin:{n:"aspirin",fail:2,note:"<b>Kyselina acetylsalicylová (aspirin, acylpyrin)</b> snižuje tvorbu látky <b>tromboxan</b> – destičky se hůř spojují. Proto ho preventivně berou lidé s nemocemi srdce a cév."},
+  heparin:{n:"heparin",fail:3,note:"<b>Heparin</b> (polysacharid z bazofilů; lék z prasečí nebo hovězí tkáně, podává se injekčně) <b>blokuje tvorbu trombinu</b>. Fibrin nevznikne."},
+  warfarin:{n:"warfarin / málo vit. K",fail:3,note:"<b>Warfarin</b> (tablety, také jed na hlodavce) <b>inhibuje účinek vitaminu K</b> – játra nevyrobí funkční protrombin. Stejně se projeví nedostatek vitaminu K: zvýšená krvácivost."},
+  hemo:{n:"hemofilie",fail:3,note:"<b>Hemofilie</b> – dědičná porucha genu pro srážecí faktor (A: faktor VIII, B: faktor IX, geny na chromozomu X). Kaskáda se zastaví, hrozí vykrvácení. Léčba: srážecí faktory vyráběné geneticky modifikovanými bakteriemi."},
+  citrat:{n:"citrát / EDTA",fail:3,note:"<b>Citronan sodný</b> nebo <b>EDTA</b> ve zkumavce při odběru vychytá <b>vápenaté ionty</b> – bez Ca²⁺ se krev nesrazí. Bílé krystalky na dně odběrových zkumavek."},
+  leiden:{n:"Leidenská mutace",extra:true,note:"<b>Leidenská mutace</b> genu pro srážecí faktor V → <b>zvýšená srážlivost</b>. Sraženina roste i dovnitř cévy – <b>trombóza</b>. Trombus může cévu ucpat; riziko roste při operacích, dlouhém cestování a hormonální antikoncepci."},
+};
+let srS=0,cond="none",srT=0;
+$("#conds").innerHTML=Object.entries(CONDS).map(([k,v])=>`<button class="btn" data-cond="${k}" aria-pressed="${k==="none"}">${v.n}</button>`).join("");
+$$("[data-cond]").forEach(b=>b.onclick=()=>{cond=b.dataset.cond;press("[data-cond]",b);updSr()});
+const plts=Array.from({length:16},(_,i)=>({x:120+((i*71)%300),y:250+((i*29)%90)}));
+const rbcs=Array.from({length:14},(_,i)=>({x:(i*41)%520,y:235+((i*23)%110)}));
+function blocked(step){const c=CONDS[cond];return c.fail!==undefined&&step>=c.fail}
+function drawSr(now){
+  const s=$("#srSvg");s.innerHTML="";const t=reduce?0:now/1000;
+  const fail=CONDS[cond].fail, S=srS;
+  const narrow=S>=1?12:0;
+  // tissue outside (top)
+  el("rect",{x:0,y:0,width:520,height:170,fill:css("--panel")},s);
+  txt(s,14,24,"okolní tkáň",{"font-size":13,fill:css("--muted")});
+  // vessel lumen
+  el("rect",{x:0,y:200+narrow,width:520,height:170-narrow,fill:css("--plasma-soft")},s);
+  // walls (top with wound gap 210–310)
+  const wy=170+narrow;
+  el("rect",{x:0,y:wy,width:210,height:30,fill:css("--wall")},s);
+  el("rect",{x:310,y:wy,width:210,height:30,fill:css("--wall")},s);
+  el("rect",{x:0,y:370,width:520,height:30,fill:css("--wall")},s);
+  // collagen at wound edges
+  for(let i=0;i<7;i++){el("path",{d:`M${204+i*2} ${wy+4+i*3} q 20 ${-6+i} ${40+i*4} ${8}`,stroke:css("--collagen"),"stroke-width":2,fill:"none",opacity:.9},s);
+    el("path",{d:`M${316-i*2} ${wy+4+i*3} q -20 ${-6+i} ${-40-i*4} ${8}`,stroke:css("--collagen"),"stroke-width":2,fill:"none",opacity:.9},s);}
+  // flowing RBCs
+  rbcs.forEach((r,i)=>{const x=(r.x+t*40)%560-20;el("ellipse",{cx:x,cy:r.y,rx:11,ry:6,fill:css("--blood"),stroke:css("--blood-dark")},s)});
+  // bleeding out of wound
+  const fibrinOK=S>=4&&!(fail!==undefined&&fail<=3);
+  const plugStrong=S>=2&&fail!==2;
+  const bleeding=!fibrinOK && !(cond==="leiden"&&S>=4);
+  const leak=bleeding?(S>=2?(plugStrong?0.45:0.8):1):0;
+  if(leak>0)for(let i=0;i<Math.round(9*leak);i++){const ph=((t*0.6+i*0.13)%1);
+    const x=230+((i*37)%60)+Math.sin(ph*6+i)*8,y=wy+10-ph*130;
+    el("ellipse",{cx:x,cy:y,rx:9,ry:5,fill:css("--blood"),opacity:1-ph*0.6},s);}
+  // platelets
+  plts.forEach((p,i)=>{
+    let x=p.x,y=p.y,act=false;
+    if(S>=1&&i<10){const tx=214+(i%5)*20,ty=wy+8+Math.floor(i/5)*12;
+      const q=S>=2?1:.6;
+      if(cond==="aspirin"&&S>=2&&i>=5){x=p.x+(tx-p.x)*.3;y=p.y+(ty-p.y)*.3}else{x=p.x+(tx-p.x)*q;y=p.y+(ty-p.y)*q;act=true}}
+    else{x=(p.x+t*30)%540-10}
+    if(act){const g=el("g",{},s);for(let k=0;k<6;k++){const a=k*60*Math.PI/180;el("line",{x1:x,y1:y,x2:x+Math.cos(a)*9,y2:y+Math.sin(a)*9,stroke:css("--plt"),"stroke-width":2},g)}
+      el("circle",{cx:x,cy:y,r:5,fill:css("--plt")},g);}
+    else el("ellipse",{cx:x,cy:y,rx:5,ry:3,fill:css("--plt")},s);
+  });
+  // trombin
+  if(S>=3){const ok3=!(fail!==undefined&&fail<=3);
+    const g=el("g",{transform:"translate(330 300)"},s);
+    txt(g,0,0,"protrombin",{"font-size":14,"font-weight":600});
+    el("path",{d:"M84 -5 h40",stroke:ok3?css("--ink"):css("--bad"),"stroke-width":2,"marker-end":"url(#ar)"},g);
+    txt(g,130,0,"trombin",{"font-size":14,"font-weight":700,fill:ok3?css("--ok"):css("--bad"),"text-decoration":ok3?"":"line-through"});
+    txt(g,86,-12,"Ca²⁺",{"font-size":12,fill:css("--muted")});
+    if(!ok3){el("line",{x1:84,y1:-14,x2:124,y2:4,stroke:css("--bad"),"stroke-width":3},g);el("line",{x1:84,y1:4,x2:124,y2:-14,stroke:css("--bad"),"stroke-width":3},g);}
+  }
+  // fibrin
+  if(fibrinOK||(cond==="leiden"&&S>=4)){
+    const fg=el("g",{},s);
+    for(let i=0;i<14;i++){el("path",{d:`M${200+i*9} ${wy-14} L${330-i*8} ${wy+34}`,stroke:css("--fibrin"),"stroke-width":1.6,opacity:.9},fg);
+      el("path",{d:`M${200} ${wy-10+i*3.4} Q 260 ${wy+i*2} 322 ${wy-8+i*3}`,stroke:css("--fibrin"),"stroke-width":1.3,fill:"none",opacity:.8},fg);}
+    for(let i=0;i<6;i++)el("ellipse",{cx:222+i*15,cy:wy+4+(i%2)*14,rx:8,ry:5,fill:css("--blood"),stroke:css("--blood-dark")},fg);
+    txt(s,265,wy-22,"krevní koláč",{"text-anchor":"middle","font-size":13,"font-weight":700});
+    if(cond==="leiden"){const g2=el("g",{},s);
+      el("path",{d:`M200 ${wy+30} Q 260 ${wy+130} 330 ${wy+30} Z`,fill:css("--blood-dark"),opacity:.75},g2);
+      for(let i=0;i<10;i++)el("path",{d:`M${210+i*12} ${wy+30} L${240+i*6} ${wy+110}`,stroke:css("--fibrin"),"stroke-width":1.2},g2);
+      txt(s,265,wy+150,"trombus roste do cévy",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:css("--bad")});}
+  }
+  // labels
+  txt(s,14,wy+20,"stěna cévy",{"font-size":12,fill:css("--ink")});
+  txt(s,14,392,"stěna cévy",{"font-size":12,fill:css("--ink")});
+  if(S>=1&&narrow)txt(s,400,wy+20,"céva se zužuje",{"font-size":12,fill:css("--ink")});
+  const defs=el("defs",{},s);const m=el("marker",{id:"ar",viewBox:"0 0 10 10",refX:8,refY:5,markerWidth:6,markerHeight:6,orient:"auto"},defs);
+  el("path",{d:"M0 0 L10 5 L0 10 z",fill:css("--ink")},m);
+}
+function updSr(){
+  $("#steps").innerHTML=STEPS.map((_,i)=>`<span class="${i===srS?"cur":i<srS?"done":""}">${i+1}</span>`).join("");
+  const [h,tx]=STEPS[srS];const c=CONDS[cond];
+  let st=h,cls="status",extra="";
+  if(c.fail!==undefined&&srS>=c.fail){cls="status bad";
+    extra=c.fail===2?" <b>Destičky se spojují jen málo – zátka je slabá.</b>":" <b>Tady se proces zastaví – trombin ani fibrin nevznikne a krvácení pokračuje.</b>";}
+  if(srS===4&&cond==="none"){cls="status ok";st+=" – krvácení zastaveno";}
+  if(srS===4&&cond==="aspirin"){cls="status ok";st+=" – sraženina vznikla, ale déle to trvalo";extra="";}
+  if(srS===4&&cond==="leiden"){cls="status bad";st+=" – trombóza";}
+  $("#srStatus").className=cls;$("#srStatus").textContent=(srS+1)+". "+st;
+  $("#srText").innerHTML=tx+extra;$("#srNote").innerHTML=c.note;
+  $("#srPrev").disabled=srS===0;$("#srNext").disabled=srS===STEPS.length-1;
+}
+$("#srNext").onclick=()=>{srS=Math.min(4,srS+1);updSr()};
+$("#srPrev").onclick=()=>{srS=Math.max(0,srS-1);updSr()};
+let playT=null;$("#srAll").onclick=()=>{clearInterval(playT);srS=0;updSr();playT=setInterval(()=>{if(srS>=4){clearInterval(playT);return}srS++;updSr()},reduce?10:1800)};
+function loop(now){if(!$("#p-sr").hidden)drawSr(now);requestAnimationFrame(loop)}
+updSr();drawSr(0);requestAnimationFrame(loop);
+
+function redrawAll(){drawTr();drawDed();drawSr(performance.now())}
+sync();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redrawAll);
+</script>
+</body>
+</html>
