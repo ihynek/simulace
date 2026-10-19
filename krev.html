@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Krev v laboratoři</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult — záložky nahoře, vlevo pokus (zkumavka/molekula/graf), vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --blood:#b3122b; --blood-dark:#6e0a1c; --oxy:#e0303f; --raspberry:#d6266b;
+  --plasma:#f2c94c; --plasma-soft:#fbeeb8; --buffy:#eceae0; --o2:#2f80ed; --co:#555e68;
+  --glass:#e8eef3;
+  --f-display:"Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --f-mono:"IBM Plex Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --blood:#e0405a; --blood-dark:#9b1830; --oxy:#ff5a66; --raspberry:#ff5c9a;
+  --plasma:#e9c14a; --plasma-soft:#4a4128; --buffy:#cfcabb; --o2:#5aa2ff; --co:#a3adb8; --glass:#26303a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --blood:#e0405a; --blood-dark:#9b1830; --oxy:#ff5a66; --raspberry:#ff5c9a;
+  --plasma:#e9c14a; --plasma-soft:#4a4128; --buffy:#cfcabb; --o2:#5aa2ff; --co:#a3adb8; --glass:#26303a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--blood)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--blood)}
+nav button:focus-visible,.btn:focus-visible,input:focus-visible{outline:2px solid var(--o2);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--blood);color:#fff;border-color:var(--blood)}
+.btn[aria-pressed="true"]{border-color:var(--blood);box-shadow:inset 0 0 0 1px var(--blood)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--blood);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--blood)}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.95rem;margin:0}
+.facts dt{font-family:var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.facts dd{margin:0}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.key{display:inline-block;width:.8em;height:.8em;border-radius:2px;vertical-align:-.05em;margin-right:6px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+.mono{font-family:var(--f-mono)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Krev <span>v laboratoři</span></h1>
+  <p class="sub">Interaktivní pokusy k 1. hodině · Oběhová soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-centr" aria-selected="true" data-p="p-centr">1 · Odstředění krve</button>
+  <button role="tab" id="t-hb" aria-selected="false" data-p="p-hb">2 · Hemoglobin a kyslík</button>
+  <button role="tab" id="t-sat" aria-selected="false" data-p="p-sat">3 · Saturační křivka</button>
+</nav>
+
+<!-- 1 CENTRIFUGACE -->
+<section class="stage" id="p-centr" role="tabpanel" aria-labelledby="t-centr">
+  <div class="panel">
+    <svg id="tubeSvg" viewBox="0 0 470 460" role="img" aria-label="Zkumavka s krví">
+      <g id="rotor"></g>
+    </svg>
+  </div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Co se stane po odstředění?</h2>
+      <p>Krev se přidáním látky proti srážení udrží tekutá. V odstředivce se těžší krevní tělíska usadí na dně.</p>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="spin">Odstředit</button>
+      <button class="btn" id="reset">Znovu promíchat</button>
+    </div>
+    <div class="row" role="group" aria-label="Vzorek">
+      <button class="btn" data-hct="42" aria-pressed="true">Typický vzorek (42 %)</button>
+      <button class="btn" data-hct="50" aria-pressed="false">Muž, horní hodnota (50 %)</button>
+      <button class="btn" data-hct="30" aria-pressed="false">Chudokrevnost</button>
+    </div>
+    <dl class="facts" id="layers">
+      <dt><span class="key" style="background:var(--plasma)"></span>plazma</dt><dd>nažloutlá tekutina, zbytek objemu</dd>
+      <dt><span class="key" style="background:var(--buffy);outline:1px solid var(--line)"></span>~1 %</dt><dd>buffy coat: bílé krvinky a krevní destičky</dd>
+      <dt><span class="key" style="background:var(--blood)"></span>hematokrit</dt><dd>objem červených krvinek na dně zkumavky</dd>
+    </dl>
+    <p class="status" id="hctOut">Vzorek je promíchaný.</p>
+    <p class="note">Klikni na žlutou vrstvu plazmy a zobrazí se její složení. Červené krvinky, bílé krvinky a destičky se souhrnně nazývají <b>krevní tělíska (elementy)</b>, ne buňky.</p>
+  </div>
+</section>
+
+<!-- 2 HEMOGLOBIN -->
+<section class="stage" id="p-hb" role="tabpanel" aria-labelledby="t-hb" hidden>
+  <div class="panel">
+    <svg id="hbSvg" viewBox="0 0 420 380" role="img" aria-label="Molekula hemoglobinu se čtyřmi hemy"></svg>
+  </div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Molekula hemoglobinu</h2>
+      <p>4 globiny, v každém hem s <b>železnatým kationtem Fe²⁺</b>. Každý hem naváže 1 molekulu O₂, celá molekula tedy přenese až <b>4 O₂</b>.</p>
+    </div>
+    <div class="row" role="group" aria-label="Prostředí">
+      <button class="btn" data-env="lung" aria-pressed="true">Plíce (hodně O₂)</button>
+      <button class="btn" data-env="rest" aria-pressed="false">Tkáň v klidu</button>
+      <button class="btn" data-env="work" aria-pressed="false">Pracující sval</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="coBtn" aria-pressed="false">Přidat oxid uhelnatý (CO)</button>
+      <button class="btn" id="metBtn" aria-pressed="false">Oxidovat Fe²⁺ → Fe³⁺</button>
+    </div>
+    <p class="status" id="hbStatus"></p>
+    <p id="hbText"></p>
+    <p class="note">Barva krve: okysličená je jahodově červená, krev s CO malinově červená, methemoglobin hnědorezavý.</p>
+  </div>
+</section>
+
+<!-- 3 SATURACE -->
+<section class="stage" id="p-sat" role="tabpanel" aria-labelledby="t-sat" hidden>
+  <div class="panel" style="overflow-x:auto">
+    <svg id="satSvg" viewBox="0 0 520 380" role="img" aria-label="Saturační křivka hemoglobinu"></svg>
+  </div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Kolik kyslíku hemoglobin drží?</h2>
+      <p>Graf ukazuje nasycení (saturaci) kyslíkem podle toho, kolik kyslíku je v okolí (parciální tlak).</p>
+    </div>
+    <label class="sl" for="po2">Parciální tlak kyslíku: <output id="po2Out"></output>
+      <input type="range" id="po2" min="200" max="12000" step="100" value="2600">
+    </label>
+    <div class="row">
+      <button class="btn" data-pre="12000">Plíce</button>
+      <button class="btn" data-pre="5300">Tkáň v klidu</button>
+      <button class="btn" data-pre="2600">Pracující sval</button>
+    </div>
+    <label class="sl" for="work">Svalová práce (teplota ↑, pH ↓): <output id="workOut"></output>
+      <input type="range" id="work" min="0" max="100" value="0">
+    </label>
+    <div class="row" role="group" aria-label="Zobrazené křivky">
+      <button class="btn" data-curve="myo" aria-pressed="true">Myoglobin</button>
+      <button class="btn" data-curve="fet" aria-pressed="true">Plodový Hb</button>
+      <button class="btn" data-curve="adu" aria-pressed="true">Dospělý Hb</button>
+    </div>
+    <dl class="facts mono" id="readout"></dl>
+    <p class="note">Esovitý tvar: čím víc O₂ už je navázáno, tím snáz se váže další. Plodový hemoglobin má k O₂ větší afinitu, proto kyslík přechází z krve matky do plodu. Myoglobin odebírá kyslík z krve do svalu.</p>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* tabs */
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});
+  if(b.dataset.p==="p-sat")drawSat();
+}));
+function pressGroup(sel,btn){$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===btn))}
+
+/* ===== 1 CENTRIFUGE ===== */
+const tube=$("#tubeSvg");
+let hct=42, separated=false, anim=null, showPlasma=false;
+const T={x:170,y:30,w:90,h:360}; // tube interior
+function drawTube(progress){ // 0 = mixed, 1 = separated
+  tube.innerHTML="";
+  const defs=el("defs",{},tube);
+  const cp=el("clipPath",{id:"tc"},defs);
+  el("path",{d:`M${T.x} ${T.y} h${T.w} v${T.h-45} a${T.w/2} 45 0 0 1 ${-T.w} 0 z`},cp);
+  const g=el("g",{"clip-path":"url(#tc)"},tube);
+  const bottom=T.y+T.h, fill=T.h-20; // filled height
+  const top=bottom-fill;
+  // mixed colour fades
+  el("rect",{x:T.x,y:top,width:T.w,height:fill,fill:css("--blood"),opacity:1-progress},g);
+  const rbcH=fill*hct/100, buffyH=Math.max(4,fill*0.012), plH=fill-rbcH-buffyH;
+  const gs=el("g",{opacity:progress},g);
+  const pl=el("rect",{x:T.x,y:top,width:T.w,height:plH,fill:css("--plasma"),style:"cursor:pointer"},gs);
+  pl.addEventListener("click",()=>{if(separated){showPlasma=!showPlasma;drawTube(1)}});
+  el("rect",{x:T.x,y:top+plH,width:T.w,height:buffyH,fill:css("--buffy")},gs);
+  el("rect",{x:T.x,y:top+plH+buffyH,width:T.w,height:rbcH+60,fill:css("--blood")},gs);
+  // particles when mixed
+  if(progress<1){const pg=el("g",{opacity:1-progress},g);
+    for(let i=0;i<70;i++){const yy=top+((i*53)%fill);const xx=T.x+8+((i*37)%(T.w-16));
+      const settle=yy+(bottom-yy)*progress*0.9;
+      el("ellipse",{cx:xx,cy:settle,rx:5,ry:3,fill:css("--blood-dark"),opacity:.6},pg)}}
+  // glass outline
+  el("path",{d:`M${T.x} ${T.y-10} v${T.h-35} a${T.w/2} 45 0 0 0 ${T.w} 0 v${-(T.h-35)}`,fill:"none",stroke:css("--muted"),"stroke-width":3},tube);
+  el("rect",{x:T.x-12,y:T.y-22,width:T.w+24,height:14,rx:4,fill:css("--line")},tube);
+  // scale
+  for(let p=0;p<=100;p+=10){const yy=bottom-fill*p/100;
+    el("line",{x1:T.x+T.w+6,x2:T.x+T.w+(p%50?14:22),y1:yy,y2:yy,stroke:css("--muted")},tube);
+    if(p%50===0){const t=el("text",{x:T.x+T.w+28,y:yy+5,"font-size":14,class:"mono"},tube);t.textContent=p+" %";}}
+  if(progress===1){
+    const lab=(y,txt,col)=>{el("line",{x1:T.x-8,x2:T.x-40,y1:y,y2:y,stroke:css("--muted")},tube);
+      const t=el("text",{x:T.x-46,y:y+5,"text-anchor":"end","font-size":15,"font-weight":600},tube);t.textContent=txt;if(col)t.setAttribute("fill",col)};
+    lab(top+plH/2,"plazma "+(100-hct-1)+" %");
+    lab(top+plH+buffyH/2,"buffy coat ~1 %");
+    lab(top+plH+buffyH+rbcH/2,"erytrocyty "+hct+" %");
+    if(showPlasma){ // plasma breakdown box
+      const bx=335,by=40,bw=130;
+      el("rect",{x:bx,y:by,width:bw,height:170,rx:8,fill:css("--panel"),stroke:css("--plasma"),"stroke-width":2},tube);
+      const tt=el("text",{x:bx+12,y:by+24,"font-size":15,"font-weight":700},tube);tt.textContent="Krevní plazma";
+      [[91,"voda",css("--o2")],[8,"organické látky",css("--plasma")],[1,"ionty solí",css("--muted")]].reduce((yy,[v,n,c])=>{
+        el("rect",{x:bx+12,y:yy,width:(bw-24)*v/91,height:12,fill:c,rx:2},tube);
+        const t=el("text",{x:bx+12,y:yy+30,"font-size":13},tube);t.textContent=v+" % "+n;return yy+44},by+40);
+      const n=el("text",{x:bx+12,y:by+162,"font-size":11,fill:css("--muted")},tube);n.textContent="Na⁺, Cl⁻, Ca²⁺, HCO₃⁻";
+    }
+  }
+}
+function spin(){
+  if(anim)cancelAnimationFrame(anim);
+  const dur=reduce?1:2200,st=performance.now();
+  $("#hctOut").textContent="Odstřeďuji…";
+  const step=t=>{const p=Math.min(1,(t-st)/dur);
+    tube.style.transform=p<1?`rotate(${Math.sin(p*Math.PI*14)*2*(1-p)}deg)`:"";
+    drawTube(p<1?p*p:1);
+    if(p<1)anim=requestAnimationFrame(step);else{separated=true;report()}};
+  anim=requestAnimationFrame(step);
+}
+function report(){
+  const msg=hct>=50?"Hematokrit 50 %: horní hodnota u mužů.":hct<35?`Hematokrit ${hct} %: málo červených krvinek, chudokrevnost (anémie).`:`Hematokrit ${hct} %: typická hodnota.`;
+  $("#hctOut").textContent=msg;
+}
+$("#spin").onclick=spin;
+$("#reset").onclick=()=>{separated=false;showPlasma=false;drawTube(0);$("#hctOut").textContent="Vzorek je promíchaný."};
+$$("[data-hct]").forEach(b=>b.onclick=()=>{hct=+b.dataset.hct;pressGroup("[data-hct]",b);if(separated){drawTube(1);report()}else drawTube(0)});
+drawTube(0);
+
+/* ===== 2 HEMOGLOBIN ===== */
+const hb=$("#hbSvg");
+let env="lung", co=false, met=false;
+const sites=[[140,120],[280,120],[140,260],[280,260]];
+const envBound={lung:4,rest:3,work:1};
+function drawHb(){
+  hb.innerHTML="";
+  const stateColor=met?"#8a4b2a":co?css("--raspberry"):(envBound[env]>=3?css("--oxy"):css("--blood-dark"));
+  // globin blobs
+  const cols=[css("--o2"),css("--o2"),"#2a9d8f","#2a9d8f"];
+  sites.forEach(([x,y],i)=>{
+    el("ellipse",{cx:x,cy:y,rx:78,ry:62,fill:cols[i],opacity:.18},hb);
+    const t=el("text",{x:x+(i%2?40:-40),y:y+(i<2?-44:56),"text-anchor":"middle","font-size":13,fill:css("--muted")},hb);
+    t.textContent=i<2?"β-globin":"α-globin";
+  });
+  // centre colour = blood colour indicator
+  el("circle",{cx:210,cy:190,r:26,fill:stateColor},hb);
+  const ct=el("text",{x:210,y:236,"text-anchor":"middle","font-size":12,fill:css("--muted")},hb);ct.textContent="barva krve";
+  let bound=co?4:met?0:envBound[env];
+  sites.forEach(([x,y],i)=>{
+    // heme square
+    el("rect",{x:x-22,y:y-22,width:44,height:44,rx:6,fill:css("--panel"),stroke:stateColor,"stroke-width":3,transform:`rotate(45 ${x} ${y})`},hb);
+    const fe=el("text",{x,y:y+5,"text-anchor":"middle","font-size":14,"font-weight":700,class:"mono"},hb);
+    fe.textContent=met?"Fe³⁺":"Fe²⁺";
+    const isBound=i<bound;
+    if(isBound){
+      const lig=el("g",{style:reduce?"":"transition:transform .6s"},hb);
+      if(co){el("circle",{cx:x+30,cy:y-30,r:9,fill:css("--co")},lig);el("circle",{cx:x+42,cy:y-40,r:9,fill:css("--co")},lig);
+        const t=el("text",{x:x+56,y:y-44,"font-size":13,"font-weight":700},lig);t.textContent="CO";}
+      else{el("circle",{cx:x+30,cy:y-30,r:9,fill:css("--o2")},lig);el("circle",{cx:x+44,cy:y-42,r:9,fill:css("--o2")},lig);
+        const t=el("text",{x:x+58,y:y-46,"font-size":13,"font-weight":700},lig);t.textContent="O₂";}
+    }
+  });
+  // released O2 floating out
+  if(!co&&!met&&bound<4){for(let i=0;i<4-bound;i++){const g=el("g",{},hb);
+    const c=el("circle",{cx:380,cy:60+i*40,r:9,fill:css("--o2")},g);
+    if(!reduce)el("animate",{attributeName:"cx",values:"360;395;360",dur:(2+i*.4)+"s",repeatCount:"indefinite"},c);
+    const t=el("text",{x:350,y:64+i*40,"text-anchor":"end","font-size":12,fill:css("--muted")},g);t.textContent="O₂ do tkáně";}}
+  // status text
+  const st=$("#hbStatus"),tx=$("#hbText");
+  if(met){st.textContent="Methemoglobin: 0 O₂ navázáno";tx.textContent="Železnatý kation se zoxidoval na železitý (Fe³⁺). Hemoglobin ztratil schopnost poutat kyslík. Oxidaci způsobují např. dusičnany a dusitany, nitrobenzen nebo anilin. Kojenci jsou náchylnější. Zpět redukuje Fe³⁺ např. vitamin C.";}
+  else if(co){st.textContent="Karbonylhemoglobin: 4 × CO, 0 × O₂";tx.textContent="CO se na hemoglobin váže asi 250× silněji než kyslík a obsadí všechna vazebná místa. Kyslík se nemá kam navázat. Léčba: hyperbarická komora s téměř 100% kyslíkem a tlakem až 3 atmosféry, CO je postupně nahrazen O₂.";}
+  else{st.textContent=`Navázáno ${bound} ze 4 molekul O₂`;
+    tx.textContent=env==="lung"?"V plicích je kyslíku hodně, hemoglobin se nasytí a krev je jasně (jahodově) červená.":
+      env==="rest"?"V tkáni je kyslíku méně, hemoglobin část O₂ uvolní.":
+      "Pracující sval: vyšší teplota a nižší pH (CO₂, laktát) snižují afinitu hemoglobinu ke kyslíku. Hemoglobin odevzdá kyslíku mnohem víc.";}
+}
+$$("[data-env]").forEach(b=>b.onclick=()=>{env=b.dataset.env;pressGroup("[data-env]",b);drawHb()});
+$("#coBtn").onclick=e=>{co=!co;if(co)met=false;$("#coBtn").setAttribute("aria-pressed",co);$("#metBtn").setAttribute("aria-pressed",met);drawHb()};
+$("#metBtn").onclick=e=>{met=!met;if(met)co=false;$("#metBtn").setAttribute("aria-pressed",met);$("#coBtn").setAttribute("aria-pressed",co);drawHb()};
+drawHb();
+
+/* ===== 3 SATURATION ===== */
+const sat=$("#satSvg");
+const show={myo:true,fet:true,adu:true};
+const hill=(p,p50,n)=>100*Math.pow(p,n)/(Math.pow(p,n)+Math.pow(p50,n));
+const curves={
+  myo:{name:"myoglobin",p50:()=>350,n:1,col:()=>css("--o2"),dash:""},
+  fet:{name:"plodový Hb",p50:()=>2500,n:2.7,col:()=>css("--raspberry"),dash:"7 5"},
+  adu:{name:"dospělý Hb",p50:()=>3600+ +$("#work").value*16,n:2.7,col:()=>"#2a9d8f",dash:""}
+};
+const G={x0:66,y0:320,w:430,h:280,pmax:12000};
+const X=p=>G.x0+G.w*p/G.pmax, Y=s=>G.y0-G.h*s/100;
+function drawSat(){
+  sat.innerHTML="";
+  const ink=css("--muted"),line=css("--line");
+  for(let s=0;s<=100;s+=25){el("line",{x1:G.x0,x2:G.x0+G.w,y1:Y(s),y2:Y(s),stroke:line},sat);
+    const t=el("text",{x:G.x0-10,y:Y(s)+5,"text-anchor":"end","font-size":13,class:"mono",fill:ink},sat);t.textContent=s;}
+  for(let p=0;p<=12000;p+=3000){const t=el("text",{x:X(p),y:G.y0+22,"text-anchor":"middle","font-size":13,class:"mono",fill:ink},sat);t.textContent=p.toLocaleString("cs-CZ");}
+  el("line",{x1:G.x0,x2:G.x0+G.w,y1:G.y0,y2:G.y0,stroke:ink},sat);el("line",{x1:G.x0,x2:G.x0,y1:G.y0,y2:G.y0-G.h,stroke:ink},sat);
+  const xl=el("text",{x:G.x0+G.w/2,y:G.y0+48,"text-anchor":"middle","font-size":13,fill:ink},sat);xl.textContent="parciální tlak kyslíku (Pa)";
+  const yl=el("text",{x:16,y:G.y0-G.h/2,"text-anchor":"middle","font-size":13,fill:ink,transform:`rotate(-90 16 ${G.y0-G.h/2})`},sat);yl.textContent="nasycení kyslíkem (%)";
+  // ghost of resting adult curve when shifted
+  const w=+$("#work").value;
+  const path=(c,p50)=>{let d="";for(let p=0;p<=12000;p+=100)d+=(p?"L":"M")+X(p).toFixed(1)+" "+Y(hill(p,p50,c.n)).toFixed(1);return d};
+  if(show.adu&&w>0)el("path",{d:path(curves.adu,3600),fill:"none",stroke:"#2a9d8f","stroke-width":2,opacity:.3},sat);
+  const po=+$("#po2").value;
+  el("line",{x1:X(po),x2:X(po),y1:G.y0,y2:G.y0-G.h,stroke:css("--blood"),"stroke-dasharray":"4 4"},sat);
+  const rd=$("#readout");rd.innerHTML="";
+  let ly=0;
+  for(const k of ["myo","fet","adu"]){if(!show[k])continue;const c=curves[k];const p50=c.p50();
+    el("path",{d:path(c,p50),fill:"none",stroke:c.col(),"stroke-width":3.5,"stroke-dasharray":c.dash},sat);
+    const s=hill(po,p50,c.n);
+    el("circle",{cx:X(po),cy:Y(s),r:6,fill:c.col(),stroke:css("--panel"),"stroke-width":2},sat);
+    // legend
+    el("line",{x1:G.x0+G.w-130,x2:G.x0+G.w-104,y1:Y(40)+ly,y2:Y(40)+ly,stroke:c.col(),"stroke-width":3.5,"stroke-dasharray":c.dash},sat);
+    const t=el("text",{x:G.x0+G.w-98,y:Y(40)+ly+5,"font-size":13},sat);t.textContent=c.name;ly+=22;
+    rd.insertAdjacentHTML("beforeend",`<dt>${c.name}</dt><dd>${s.toFixed(0)} % nasycení</dd>`);
+  }
+  if(show.adu&&w>0){const r=hill(po,3600,2.7)-hill(po,curves.adu.p50(),2.7);
+    rd.insertAdjacentHTML("beforeend",`<dt>práce svalu</dt><dd>dospělý Hb uvolní o ${r.toFixed(0)} % O₂ víc</dd>`);}
+  $("#po2Out").textContent=po.toLocaleString("cs-CZ")+" Pa";
+  $("#workOut").textContent=w===0?"klid":w<50?"mírná":"intenzivní";
+}
+$("#po2").oninput=drawSat;$("#work").oninput=drawSat;
+$$("[data-pre]").forEach(b=>b.onclick=()=>{$("#po2").value=b.dataset.pre;if(b.dataset.pre==="2600"&&$("#work").value==="0")$("#work").value=70;drawSat()});
+$$("[data-curve]").forEach(b=>b.onclick=()=>{const k=b.dataset.curve;show[k]=!show[k];b.setAttribute("aria-pressed",show[k]);drawSat()});
+drawSat();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{drawTube(separated?1:0);drawHb();drawSat()});
+</script>
+</body>
+</html>
