@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bílé krvinky a imunita</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --blood:#b3122b; --accent:#3d5a99; --igm:#2a9d8f; --igg:#e09f1f; --path:#5a8f29; --virus:#c0392b;
+  --mac:#8e5bb5; --th:#4a90c2; --tc:#1f9e8f; --bcell:#3d6fb8; --ok:#1e8a3c; --bad:#c0392b;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --blood:#e0405a; --accent:#7f9be0; --igm:#4cc2b3; --igg:#f2b84a; --path:#86c255; --virus:#ff6b5a;
+  --mac:#b98ae0; --th:#78b6e6; --tc:#4cc2b3; --bcell:#7fa4e6; --ok:#4cc46d; --bad:#ff6b5a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --blood:#e0405a; --accent:#7f9be0; --igm:#4cc2b3; --igg:#f2b84a; --path:#86c255; --virus:#ff6b5a;
+  --mac:#b98ae0; --th:#78b6e6; --tc:#4cc2b3; --bcell:#7fa4e6; --ok:#4cc46d; --bad:#ff6b5a; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.btn:disabled{opacity:.45;cursor:default}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+.info{border:1px solid var(--line);border-radius:8px;padding:12px 14px;min-height:7em}
+.info h3{font-family:var(--f-display);margin:0 0 4px;font-size:1.15rem}
+.info dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:6px 0 0;font-size:.95rem}
+.info dt{color:var(--muted)} .info dd{margin:0}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps span{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);font-weight:700;font-size:.9rem;color:var(--muted)}
+.steps span.cur{background:var(--accent);border-color:var(--accent);color:#fff}
+.steps span.done{border-color:var(--accent);color:var(--accent)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.score{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Bílé krvinky <span>a imunita</span></h1>
+  <p class="sub">Interaktivní pokusy k 3. hodině · Oběhová soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-sm" aria-selected="true" data-p="p-sm">1 · Krevní roztěr</button>
+  <button role="tab" id="t-im" aria-selected="false" data-p="p-im">2 · Imunitní odpověď</button>
+  <button role="tab" id="t-ab" aria-selected="false" data-p="p-ab">3 · Paměť imunity</button>
+</nav>
+
+<!-- 1 ROZTĚR -->
+<section class="stage" id="p-sm" role="tabpanel" aria-labelledby="t-sm">
+  <div class="panel"><svg id="smSvg" viewBox="0 0 520 520" role="img" aria-label="Obarvený krevní roztěr pod mikroskopem"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Krevní roztěr pod mikroskopem</h2>
+      <p>Po obarvení se obarví jádra leukocytů a v granulocytech i váčky (granula). Červené krvinky jádro nemají. Klikni na bílou krvinku.</p>
+    </div>
+    <div class="row" role="group" aria-label="Režim">
+      <button class="btn" id="mExplore" aria-pressed="true">Prozkoumat</button>
+      <button class="btn" id="mFind" aria-pressed="false">Najdi buňku</button>
+      <button class="btn" id="mNew">Nový roztěr</button>
+    </div>
+    <p class="status" id="smStatus">Klikni na kteroukoli bílou krvinku.</p>
+    <div class="info" id="smInfo"></div>
+    <p class="note"><b>Námořníci loví mezi evropskými břehy:</b> neutrofily 60 %, lymfocyty 30 %, monocyty 6 %, eozinofily 3 %, bazofily 1 %. V 1 µl krve je 4 000–10 000 leukocytů. Roztěr ukazuje zhruba tento poměr; makrofágy a dendritické buňky žijí ve tkáních.</p>
+  </div>
+</section>
+
+<!-- 2 IMUNITNÍ ODPOVĚĎ -->
+<section class="stage" id="p-im" role="tabpanel" aria-labelledby="t-im" hidden>
+  <div class="panel"><svg id="imSvg" viewBox="0 0 520 420" role="img" aria-label="Schéma imunitní odpovědi"></svg></div>
+  <div class="panel ctrl">
+    <div class="row" role="group" aria-label="Typ imunity">
+      <button class="btn" data-mode="hum" aria-pressed="true">Humorální (protilátková)</button>
+      <button class="btn" data-mode="bun" aria-pressed="false">Buněčná</button>
+    </div>
+    <div class="steps" id="imSteps"></div>
+    <p class="status" id="imStatus"></p>
+    <p id="imText"></p>
+    <div class="row"><button class="btn" id="imPrev">◀ Zpět</button><button class="btn primary" id="imNext">Další krok ▶</button><button class="btn" id="imAll">Přehrát vše</button></div>
+    <p class="note" id="imNote"></p>
+  </div>
+</section>
+
+<!-- 3 PAMĚŤ -->
+<section class="stage" id="p-ab" role="tabpanel" aria-labelledby="t-ab" hidden>
+  <div class="panel"><svg id="abSvg" viewBox="0 0 520 380" role="img" aria-label="Graf koncentrace protilátek IgM a IgG v čase"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Na druhý pokus rychleji a pořádně</h2>
+      <p>Při prvním setkání s antigenem trvá týdny, než B-lymfocyty vyrobí dost protilátek. Zůstanou ale <b>paměťové B-lymfocyty</b>. Při druhém setkání je odpověď rychlejší a silnější.</p>
+    </div>
+    <label class="sl" for="day2">Druhé setkání s antigenem: <output id="day2Out"></output>
+      <input type="range" id="day2" min="18" max="36" step="1" value="28">
+    </label>
+    <div class="row" role="group" aria-label="První setkání">
+      <button class="btn" data-first="nem" aria-pressed="true">1. setkání: nemoc</button>
+      <button class="btn" data-first="vak" aria-pressed="false">1. setkání: očkování</button>
+    </div>
+    <div class="row" role="group" aria-label="Zobrazené křivky">
+      <button class="btn" data-c="igm" aria-pressed="true">IgM</button>
+      <button class="btn" data-c="igg" aria-pressed="true">IgG</button>
+    </div>
+    <p id="abText"></p>
+    <p class="note"><b>IgM</b> (makroglobulin, 5 spojených „Y“) – protilátka probíhající akutní infekce. <b>IgG</b> (jedno „Y“) – dlouhodobé protilátky po prodělané infekci a po očkování, nejhojnější, prochází placentou; koncentrace roste 2–3 dny po maximu IgM. Graf je schematický, osa y je logaritmická.</p>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+let rnd=1;const R=()=>{rnd=(rnd*16807)%2147483647;return rnd/2147483647};
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});drawAll();}));
+
+/* ===== 1 ROZTĚR ===== */
+const TYPES={
+  neu:{n:"Neutrofil",p:"60–70 %",g:"granulocyt",j:"segmentované (jako kus věnce buřtů) – polynukleár",f:"Nejhojnější bílé krvinky, sebevražední bojovníci, žijí řádově hodiny až 3 dny. Fagocytují hlavně bakterie; ve váčku je likvidují reaktivními radikály a silnými oxidačními činidly (oxidační vzplanutí, např. chlornanový aniont jako v Savu). Samy umírají – v místě boje vzniká zánět a hnis."},
+  eoz:{n:"Eozinofil",p:"3 %",g:"granulocyt",j:"dvoulaločné; granula se barví kyselým eozinem (oranžově)",f:"Vylijí obsah váčků s antiparazitárními látkami do okolí parazita, vypouštějí kationické proteiny, které narušují membrány buněk. Při parazitární infekci jejich počet stoupá. Omezeně fagocytují a patří mezi antigen prezentující buňky."},
+  baz:{n:"Bazofil",p:"1–2 %",g:"granulocyt",j:"dvoulaločné; granula se barví zásaditými barvivy (tmavě modrofialově)",f:"Produkují heparin a serotonin pro stažení cév, regulují záněty a produkcí histaminu se podílejí na alergických reakcích. Určené pro boj s mnohobuněčnými parazity."},
+  lym:{n:"Lymfocyt",p:"20–30 %",g:"agranulocyt",j:"jedno kulovité jádro, které zabírá skoro celou buňku",f:"Unikátní pro obratlovce, nástroje specifické adaptivní imunity. Některé vydrží v tkáních i roky. B-lymfocyty – protilátky (humorální imunita), T-lymfocyty – buněčná imunita, NK-buňky – přirozená imunita."},
+  mon:{n:"Monocyt",p:"5–6 %",g:"agranulocyt",j:"jedno velké ledvinité jádro",f:"Největší leukocyt. Umí se přeměnit ve velký fagocytující makrofág nebo po proniknutí do tkání v dendritickou buňku. Schopný diapedézy – proniká stěnou cévy mezi buňkami endotelu. Patří mezi antigen prezentující buňky."},
+};
+const ORDER=["neu","neu","neu","neu","neu","neu","neu","neu","neu","neu","neu","lym","lym","lym","lym","lym","mon","mon","eoz","baz"];
+let wbc=[],rbc=[],mode="explore",target=null,score=[0,0],selected=null,flash=null;
+function newSmear(){
+  rnd=Math.floor(Math.random()*1e6)+1;rbc=[];wbc=[];
+  const C={x:260,y:260,r:245};
+  const ok=(x,y,r,arr)=>Math.hypot(x-C.x,y-C.y)<C.r-r-4&&arr.every(o=>Math.hypot(o.x-x,o.y-y)>o.r+r+2);
+  const types=[...ORDER].sort(()=>R()-.5).slice(0,14);
+  ["neu","lym","mon","eoz","baz"].forEach(t=>{if(!types.includes(t))types[types.findIndex((x,i)=>types.filter(y=>y===x).length>1)]=t});
+  types.forEach(t=>{const r=t==="mon"?27:t==="lym"?17:23;for(let k=0;k<400;k++){const x=40+R()*440,y=40+R()*440;if(ok(x,y,r,wbc)){wbc.push({x,y,r,t,rot:R()*360});break;}}});
+  for(let k=0;k<3000&&rbc.length<150;k++){const x=20+R()*480,y=20+R()*480,r=13+R()*2;if(ok(x,y,r,[...wbc,...rbc]))rbc.push({x,y,r});}
+  selected=null;drawSmear();
+}
+function nucleus(g,c){
+  const P="#4b2a7a",P2="#6b3fa0";
+  if(c.t==="neu"){for(let i=0;i<4;i++){const a=(c.rot+i*55)*Math.PI/180;el("ellipse",{cx:c.x+Math.cos(a)*9,cy:c.y+Math.sin(a)*9,rx:6.5,ry:5,fill:P2},g)}
+    for(let i=0;i<14;i++){const a=R()*6.28,d=R()*17;el("circle",{cx:c.x+Math.cos(a)*d,cy:c.y+Math.sin(a)*d,r:1,fill:"#c9a3c9"},g)}}
+  if(c.t==="eoz"){for(let i=0;i<26;i++){const a=R()*6.28,d=R()*19;el("circle",{cx:c.x+Math.cos(a)*d,cy:c.y+Math.sin(a)*d,r:2.3,fill:"#e8743b"},g)}
+    el("ellipse",{cx:c.x-7,cy:c.y,rx:8,ry:7,fill:P2},g);el("ellipse",{cx:c.x+8,cy:c.y+1,rx:8,ry:7,fill:P2},g);}
+  if(c.t==="baz"){el("ellipse",{cx:c.x-6,cy:c.y,rx:8,ry:7,fill:P2},g);el("ellipse",{cx:c.x+7,cy:c.y+1,rx:8,ry:7,fill:P2},g);
+    for(let i=0;i<30;i++){const a=R()*6.28,d=R()*19;el("circle",{cx:c.x+Math.cos(a)*d,cy:c.y+Math.sin(a)*d,r:2.4,fill:"#2b1b5e"},g)}}
+  if(c.t==="lym")el("circle",{cx:c.x+1,cy:c.y,r:c.r-4,fill:P},g);
+  if(c.t==="mon")el("path",{d:`M${c.x-16} ${c.y-6} q 10 -14 26 -6 q 10 6 4 16 q -6 6 -14 0 q -6 -4 -10 4 q -8 6 -10 -4 z`,fill:P2,transform:`rotate(${c.rot} ${c.x} ${c.y})`},g);
+}
+function drawSmear(){
+  const s=$("#smSvg");s.innerHTML="";rnd=7;
+  const defs=el("defs",{},s);const cp=el("clipPath",{id:"field"},defs);el("circle",{cx:260,cy:260,r:250},cp);
+  el("circle",{cx:260,cy:260,r:254,fill:"#20252b"},s);
+  const g=el("g",{"clip-path":"url(#field)"},s);
+  el("rect",{x:0,y:0,width:520,height:520,fill:"#f6eef0"},g);
+  rbc.forEach(r=>{el("circle",{cx:r.x,cy:r.y,r:r.r,fill:"#e9a1ad"},g);el("circle",{cx:r.x,cy:r.y,r:r.r*.45,fill:"#f3c9d0"},g)});
+  wbc.forEach((c,i)=>{
+    const cg=el("g",{style:"cursor:pointer",tabindex:0,role:"button","aria-label":"bílá krvinka"},g);
+    const cyto={neu:"#e8d6e6",eoz:"#f2d2c2",baz:"#d9d0ea",lym:"#b9c9ec",mon:"#c9cfdc"}[c.t];
+    el("circle",{cx:c.x,cy:c.y,r:c.r,fill:cyto,stroke:"#b8a3c0","stroke-width":1},cg);
+    nucleus(cg,c);
+    if(selected===i||flash&&flash.i===i){el("circle",{cx:c.x,cy:c.y,r:c.r+6,fill:"none",stroke:flash&&flash.i===i?(flash.ok?"#1e8a3c":"#c0392b"):"#3d5a99","stroke-width":3.5},cg);}
+    const act=()=>clickCell(i);cg.addEventListener("click",act);cg.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();act()}});
+  });
+  txt(s,26,505,"zvětšeno asi 1 000×",{"font-size":12,fill:"#c9ced6"});
+}
+function showInfo(t){const d=TYPES[t];$("#smInfo").innerHTML=`<h3>${d.n}</h3><dl><dt>skupina</dt><dd>${d.g}</dd><dt>v krvi</dt><dd>${d.p} leukocytů</dd><dt>jádro</dt><dd>${d.j}</dd></dl><p style="margin:8px 0 0">${d.f}</p>`;}
+function clickCell(i){
+  const c=wbc[i];
+  if(mode==="explore"){selected=i;showInfo(c.t);$("#smStatus").className="status";$("#smStatus").textContent=TYPES[c.t].n;drawSmear();return;}
+  const ok=c.t===target;score[1]++;if(ok)score[0]++;
+  flash={i,ok};drawSmear();
+  $("#smStatus").className="status "+(ok?"ok":"bad");
+  $("#smStatus").innerHTML=(ok?"Správně! ":"To je "+TYPES[c.t].n.toLowerCase()+". ")+`<span class="score">(${score[0]}/${score[1]})</span>`;
+  showInfo(c.t);
+  setTimeout(()=>{flash=null;if(ok)nextTarget();else drawSmear();},reduce?200:1100);
+}
+function nextTarget(){const types=[...new Set(wbc.map(c=>c.t))];let t;do{t=types[Math.floor(Math.random()*types.length)]}while(types.length>1&&t===target);target=t;
+  $("#smStatus").className="status";$("#smStatus").innerHTML=`Najdi: <b>${TYPES[t].n.toLowerCase()}</b> <span class="score">(${score[0]}/${score[1]})</span>`;drawSmear();}
+$("#mExplore").onclick=e=>{mode="explore";press("#mExplore,#mFind",e.currentTarget);$("#smStatus").className="status";$("#smStatus").textContent="Klikni na kteroukoli bílou krvinku.";$("#smInfo").innerHTML="";selected=null;drawSmear()};
+$("#mFind").onclick=e=>{mode="find";score=[0,0];selected=null;press("#mExplore,#mFind",e.currentTarget);$("#smInfo").innerHTML="";nextTarget()};
+$("#mNew").onclick=()=>{newSmear();if(mode==="find")nextTarget()};
+
+/* ===== 2 IMUNITNÍ ODPOVĚĎ ===== */
+const HUM=[
+  ["Patogen proniká do těla","Bakterie nese na povrchu cizí molekuly – <b>antigeny</b>. Konkrétní seskupení atomů na antigenu, na které se váže protilátka, je <b>epitop</b>."],
+  ["Fagocytóza a prezentace antigenu","<b>Makrofág</b> nebo <b>dendritická buňka</b> patogen pohltí a kousky jeho proteinů vystaví na <b>MHC II</b> (MHC 2. třídy) – <b>prezentace antigenu</b>."],
+  ["Pomocný T-lymfocyt","<b>Pomocný T-lymfocyt (Th, CD4)</b> antigen rozpozná a pomocí signálních molekul <b>cytokinů (interleukinů)</b> přivolá B-lymfocyty."],
+  ["Množení B-lymfocytů","<b>Panenský (naivní) B-lymfocyt</b>, jehož protilátka se na antigen váže, se začne množit. Vznikne mnoho <b>plazmatických B-lymfocytů</b>."],
+  ["Protilátky","Plazmatické buňky zasypou vetřelce <b>protilátkami (imunoglobuliny)</b>. Protilátky patogen obalí a označí pro fagocyty – <b>opsonizace</b> – a fagocyty ho zlikvidují."],
+  ["Paměťové B-lymfocyty","Po prodělané infekci (i po očkování) zůstanou v těle roky <b>paměťové B-lymfocyty</b>. Při dalším setkání spustí imunitní odpověď rychleji a silněji."],
+];
+const BUN=[
+  ["Virus napadne buňku","Virus pronikne do buňky a ta začne vyrábět virové proteiny."],
+  ["Výstavka na MHC I","Všechny buňky (kromě trofoblastu zárodku a spermií) vystavují na <b>MHC I</b> krátké peptidy (asi 10 aminokyselin) ze všech svých bílkovin – i z virových."],
+  ["Cytotoxický T-lymfocyt","<b>Cytotoxický T-lymfocyt (Tc, CD8)</b> svým T-receptorem rozpozná cizí peptid na MHC I."],
+  ["Perforiny","Tc-buňka vnutí napadené buňce proteiny <b>perforiny</b>, které jí udělají otvory do membrány."],
+  ["Apoptóza","Otvory vstoupí proteázy (<b>granzymy, kaspázy</b>), které spustí <b>programovanou buněčnou smrt (apoptózu)</b>. Zbytky uklidí makrofágy."],
+  ["NK-buňky","Buňky, které na povrchu nemají MHC I (často <b>nádorové</b>), zlikvidují <b>NK-buňky (natural killer)</b> – součást vrozené imunity."],
+];
+let imMode="hum",imS=0;
+function cellShape(g,x,y,r,fill,label,opts={}){el("circle",{cx:x,cy:y,r,fill,opacity:opts.op??.9,stroke:css("--ink"),"stroke-width":opts.sw??0},g);
+  if(opts.nuc!==false)el("circle",{cx:x+(opts.nx||0),cy:y+(opts.ny||0),r:r*.45,fill:"#000",opacity:.18},g);
+  if(label)txt(g,x,y+r+16,label,{"text-anchor":"middle","font-size":12.5,"font-weight":600});}
+function bacterium(g,x,y,rot=0,coat=false){const b=el("g",{transform:`translate(${x} ${y}) rotate(${rot})`},g);
+  el("rect",{x:-16,y:-8,width:32,height:16,rx:8,fill:css("--path")},b);
+  [[-10,-9],[2,-9],[12,6],[-6,8]].forEach(([a,c])=>el("rect",{x:a-2.5,y:c-2.5,width:5,height:5,fill:"#f2c14e",transform:`rotate(45 ${a} ${c})`},b));
+  if(coat)for(let k=0;k<6;k++){const an=k*60*Math.PI/180;Y(b,Math.cos(an)*22,Math.sin(an)*16,k*60+90,css("--bcell"))}
+  return b;}
+function Y(g,x,y,rot,col){const a=el("g",{transform:`translate(${x} ${y}) rotate(${rot})`},g);
+  el("path",{d:"M0 7 V0 M0 0 L-5 -6 M0 0 L5 -6",stroke:col,"stroke-width":2.5,fill:"none","stroke-linecap":"round"},a);}
+function arrow(g,x1,y1,x2,y2,lab){el("line",{x1,y1,x2,y2,stroke:css("--muted"),"stroke-width":2,"marker-end":"url(#ah)"},g);if(lab)txt(g,(x1+x2)/2,(y1+y2)/2-6,lab,{"text-anchor":"middle","font-size":11.5,fill:css("--muted")});}
+function drawIm(now){
+  const s=$("#imSvg");s.innerHTML="";const t=reduce?0:now/1000;
+  const d=el("defs",{},s);const m=el("marker",{id:"ah",viewBox:"0 0 10 10",refX:8,refY:5,markerWidth:7,markerHeight:7,orient:"auto"},d);el("path",{d:"M0 0 L10 5 L0 10 z",fill:css("--muted")},m);
+  const S=imS,wob=k=>Math.sin(t*2+k)*2;
+  if(imMode==="hum"){
+    // 1 patogen
+    const pg=el("g",{},s);
+    if(S<=0){[[80,90],[120,130],[60,150]].forEach(([x,y],k)=>bacterium(pg,x+wob(k),y,k*30));txt(s,95,190,"patogen",{"text-anchor":"middle","font-size":12.5,"font-weight":600});}
+    if(S>=4){[[300,330],[350,360],[420,330]].forEach(([x,y],k)=>bacterium(pg,x+wob(k),y,k*40,true));txt(s,360,395,"patogeny obalené protilátkami",{"text-anchor":"middle","font-size":12.5,"font-weight":600});}
+    // 2 makrofag
+    if(S>=1){const g=el("g",{},s);
+      el("path",{d:"M40 90 q 20 -40 60 -20 q 40 -10 45 30 q 25 30 -5 55 q -20 35 -60 15 q -45 5 -45 -35 q -15 -25 5 -45 z",fill:css("--mac"),opacity:.85},g);
+      bacterium(g,95,110,20);txt(g,95,185,"makrofág / dendritická buňka",{"text-anchor":"middle","font-size":12.5,"font-weight":600});
+      // MHC II with antigen
+      el("path",{d:"M150 100 h10 M155 100 v-8",stroke:css("--ink"),"stroke-width":2.5},g);el("rect",{x:151,y:84,width:8,height:8,fill:"#f2c14e",transform:"rotate(45 155 88)"},g);
+      txt(g,170,80,"MHC II + antigen",{"font-size":11.5,fill:css("--muted")});}
+    // 3 Th
+    if(S>=2){const g=el("g",{},s);cellShape(g,270,110,30,css("--th"),"pomocný T-lymfocyt (Th)");arrow(g,170,105,236,108);
+      for(let k=0;k<6;k++){const p=((t*.5+k/6)%1);el("circle",{cx:300+p*80,cy:120+p*60+Math.sin(k)*10,r:3.5,fill:css("--th")},g)}
+      txt(g,330,175,"cytokiny",{"font-size":11.5,fill:css("--muted")});}
+    // 4 B cells
+    if(S>=3){const g=el("g",{},s);cellShape(g,430,90,26,css("--bcell"),"naivní B-lymfocyt");
+      [[400,200],[450,215],[425,250],[470,170]].forEach(([x,y],k)=>{if(S>=3)cellShape(g,x,y,18,css("--bcell"),null,{op:.75})});
+      txt(g,430,290,"plazmatické B-lymfocyty",{"text-anchor":"middle","font-size":12.5,"font-weight":600});arrow(g,430,120,430,175);}
+    // 5 antibodies
+    if(S>=4){const g=el("g",{},s);for(let k=0;k<10;k++){const p=((t*.3+k/10)%1);Y(g,420-p*60+Math.sin(k*2)*20,255+p*60,k*40,css("--bcell"))}}
+    // 6 memory
+    if(S>=5){const g=el("g",{},s);cellShape(g,110,320,22,css("--bcell"),"paměťové B-lymfocyty",{sw:2});cellShape(g,160,335,18,css("--bcell"),null,{sw:2});
+      txt(g,135,280,"zůstávají roky",{"text-anchor":"middle","font-size":11.5,fill:css("--muted")});}
+  }else{
+    // cell infected
+    const hx=170,hy=200;
+    const dead=S>=4;
+    const g=el("g",{},s);
+    el("circle",{cx:hx,cy:hy,r:dead?60:70,fill:"#e8b4c8",opacity:dead?.45:.85,stroke:dead?css("--bad"):"none","stroke-dasharray":dead?"6 5":"0"},g);
+    el("circle",{cx:hx-10,cy:hy+5,r:24,fill:"#000",opacity:.15},g);
+    txt(g,hx,hy+92,"buňka napadená virem",{"text-anchor":"middle","font-size":12.5,"font-weight":600});
+    for(let k=0;k<5;k++){const a=k*1.25+t*.3;el("circle",{cx:hx+Math.cos(a)*35,cy:hy+Math.sin(a)*35,r:6,fill:css("--virus")},g)}
+    if(S>=1)[[-1,-1],[1,-1],[1,1]].forEach(([a,b],k)=>{const x=hx+a*60,y=hy+b*40;el("path",{d:`M${x} ${y} l ${a*12} ${b*8}`,stroke:css("--ink"),"stroke-width":3},g);el("circle",{cx:x+a*16,cy:y+b*11,r:4.5,fill:css("--virus")},g)});
+    if(S>=1)txt(g,hx+110,hy-60,"MHC I + virový peptid",{"font-size":11.5,fill:css("--muted")});
+    if(S>=2){const x=370,y=190;cellShape(s,x,y,34,css("--tc"),"cytotoxický T-lymfocyt (Tc)");arrow(s,x-36,y,hx+85,hy-10,"T-receptor");}
+    if(S>=3){for(let k=0;k<6;k++){const a=k*1.05;el("rect",{x:hx+Math.cos(a)*62-3,y:hy+Math.sin(a)*62-3,width:6,height:6,fill:css("--tc")},s)}
+      txt(s,hx,hy-80,"perforiny – otvory v membráně",{"text-anchor":"middle","font-size":12,"font-weight":600});}
+    if(S>=4){for(let k=0;k<8;k++){const p=((t*.4+k/8)%1);el("circle",{cx:330-p*120,cy:200+Math.sin(k*1.7)*25,r:3,fill:css("--tc")},s)}
+      txt(s,hx,hy+114,"apoptóza (granzymy, kaspázy)",{"text-anchor":"middle","font-size":12,"font-weight":600,fill:css("--bad")});}
+    if(S>=5){const g2=el("g",{},s);el("circle",{cx:420,cy:340,r:30,fill:"#d9a35a",opacity:.8},g2);txt(g2,420,385,"nádorová buňka bez MHC I",{"text-anchor":"middle","font-size":11.5,"font-weight":600});
+      cellShape(g2,330,335,22,"#c46aa3","NK-buňka");arrow(g2,354,336,388,338);}
+  }
+}
+function updIm(){
+  const L=imMode==="hum"?HUM:BUN;imS=Math.min(imS,L.length-1);
+  $("#imSteps").innerHTML=L.map((_,i)=>`<span class="${i===imS?"cur":i<imS?"done":""}">${i+1}</span>`).join("");
+  $("#imStatus").textContent=(imS+1)+". "+L[imS][0];$("#imText").innerHTML=L[imS][1];
+  $("#imNote").innerHTML=imMode==="hum"?"<b>Humorální (protilátková) imunita</b> – z lat. humor = šťáva, tělní tekutina. Zajišťují ji B-lymfocyty. Písmeno B podle Fabriciovy burzy, orgánu ptáků, u nichž byly B-lymfocyty objeveny.":"<b>Buněčná imunita</b> – T-lymfocyty bojují v přímém souboji buňka proti buňce. Písmeno T podle brzlíku (thymus), kde T-lymfocyty „chodí do školy“.";
+  $("#imPrev").disabled=imS===0;$("#imNext").disabled=imS===L.length-1;
+}
+$$("[data-mode]").forEach(b=>b.onclick=()=>{imMode=b.dataset.mode;imS=0;press("[data-mode]",b);updIm()});
+$("#imNext").onclick=()=>{imS++;updIm()};$("#imPrev").onclick=()=>{imS--;updIm()};
+let imPlay=null;$("#imAll").onclick=()=>{clearInterval(imPlay);imS=0;updIm();imPlay=setInterval(()=>{const L=imMode==="hum"?HUM:BUN;if(imS>=L.length-1){clearInterval(imPlay);return}imS++;updIm()},reduce?10:2200)};
+
+/* ===== 3 PAMĚŤ ===== */
+let first="nem";const showC={igm:true,igg:true};
+const gauss=(x,m,s)=>Math.exp(-((x-m)**2)/(2*s*s));
+function conc(kind,d,d2){ // log-units 0..4
+  let v=0;
+  if(kind==="igm"){v=1.5*gauss(d,9,2.6);if(d>=d2)v+=0.9*gauss(d,d2+5,2.2);}
+  else{v=1.9*gauss(d,13,3.2)+(d>13?0.45*(1-gauss(d,13,3.2)):0);
+    if(d>=d2){const q=Math.min(1,(d-d2)/6);v=Math.max(v,0.45+3.0*(q*q*(3-2*q)))}}
+  if(first==="vak"&&d<d2)v*=.75;
+  return v;
+}
+function drawAb(){
+  const s=$("#abSvg");s.innerHTML="";const d2=+$("#day2").value;$("#day2Out").textContent=d2+". den";
+  const X=d=>60+d*(440/42),Yv=v=>320-v*(260/4);
+  const ink=css("--muted");
+  el("rect",{x:X(d2),y:40,width:X(42)-X(d2),height:280,fill:css("--accent"),opacity:.08},s);
+  txt(s,(X(d2)+X(42))/2,58,"sekundární odpověď",{"text-anchor":"middle","font-size":12.5,"font-weight":600});
+  txt(s,(X(0)+X(d2))/2,58,"primární odpověď",{"text-anchor":"middle","font-size":12.5,"font-weight":600});
+  el("line",{x1:60,x2:500,y1:320,y2:320,stroke:ink},s);el("line",{x1:60,x2:60,y1:40,y2:320,stroke:ink},s);
+  for(let d=0;d<=42;d+=7){el("line",{x1:X(d),x2:X(d),y1:320,y2:326,stroke:ink},s);txt(s,X(d),342,d,{"text-anchor":"middle","font-size":12,class:"mono",fill:ink});}
+  txt(s,500,362,"dny",{"text-anchor":"end","font-size":12,fill:ink});
+  txt(s,22,180,"koncentrace protilátek (log)",{"text-anchor":"middle","font-size":12,fill:ink,transform:"rotate(-90 22 180)"});
+  const mk=(x,col,lab)=>{el("line",{x1:x,x2:x,y1:70,y2:318,stroke:col,"stroke-width":2,"stroke-dasharray":"5 4"},s);txt(s,x+4,84,lab,{"font-size":11.5,fill:col,"font-weight":600});};
+  mk(X(0),css("--path"),first==="vak"?"očkování":"1. setkání");mk(X(d2),css("--bad"),"2. setkání");
+  [["igm",css("--igm"),"IgM"],["igg",css("--igg"),"IgG"]].forEach(([k,col,lab])=>{if(!showC[k])return;let p="";
+    for(let d=0;d<=42;d+=.25)p+=(d?"L":"M")+X(d).toFixed(1)+" "+Yv(conc(k,d,d2)).toFixed(1);
+    el("path",{d:p,fill:"none",stroke:col,"stroke-width":3.2},s);
+    const pk=k==="igm"?9:13;txt(s,X(pk)+6,Yv(conc(k,pk,d2))-8,lab,{"font-size":13,"font-weight":700,fill:col});});
+  const t1=14,t2=6;
+  $("#abText").innerHTML=(first==="vak"?"Očkování vytvoří paměťové buňky, aniž bychom nemoc prodělali. ":"")+`Primární odpověď: maximum IgG asi za <b>${t1} dní</b>. Sekundární odpověď: vysoká hladina IgG už asi za <b>${t2} dní</b> a mnohem vyšší – patogen nestihne způsobit nemoc.`;
+}
+$("#day2").oninput=drawAb;
+$$("[data-first]").forEach(b=>b.onclick=()=>{first=b.dataset.first;press("[data-first]",b);drawAb()});
+$$("[data-c]").forEach(b=>b.onclick=()=>{showC[b.dataset.c]=!showC[b.dataset.c];b.setAttribute("aria-pressed",showC[b.dataset.c]);drawAb()});
+
+function loop(now){if(!$("#p-im").hidden)drawIm(now);requestAnimationFrame(loop)}
+function drawAll(){drawSmear();drawIm(performance.now());drawAb()}
+newSmear();updIm();drawAb();requestAnimationFrame(loop);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",drawAll);
+</script>
+</body>
+</html>
