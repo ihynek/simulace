@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dechové objemy a spirometrie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Spectral:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#1A2430; --muted:#5C6978; --line:#CBD5E0;
+  --krivka:#1B4F86; --vt:#2F7D32; --irv:#1B4F86; --erv:#0E7490; --rv:#8A94A0;
+  --norm:#3C7A3A; --obstr:#C2410C; --restr:#5B4A9E; --akcent:#1B4F86;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+    --krivka:#6FA8DC; --vt:#7FBC7B; --irv:#6FA8DC; --erv:#5BBBD4; --rv:#77828F;
+    --norm:#7FBC7B; --obstr:#E8794A; --restr:#A294DC; --akcent:#6FA8DC;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+  --krivka:#6FA8DC; --vt:#7FBC7B; --irv:#6FA8DC; --erv:#5BBBD4; --rv:#77828F;
+  --norm:#7FBC7B; --obstr:#E8794A; --restr:#A294DC; --akcent:#6FA8DC;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+h1{font-family:"Spectral",Georgia,serif;font-weight:700;font-size:clamp(1.65rem,3.3vw,2.3rem);line-height:1.12;margin:0 0 .3rem}
+.lead{color:var(--muted);max-width:66ch;margin:0 0 1.3rem}
+h2{font-family:"Spectral",Georgia,serif;font-size:1.08rem;margin:0 0 .55rem}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:1.1rem;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.stage{background:var(--panel);border:2px solid var(--line);border-radius:16px;overflow:hidden}
+canvas{display:block;width:100%;height:auto}
+#cv{aspect-ratio:4/3}
+#fv{aspect-ratio:4/3}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.95rem 1.05rem}
+.side{display:flex;flex-direction:column;gap:.85rem}
+label.hl{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;gap:.6rem}
+label.hl span{font-weight:400;color:var(--muted);font-size:.9rem;text-align:right}
+input[type=range]{width:100%;accent-color:var(--akcent);margin:.45rem 0 .1rem}
+.stupnice{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.volby{display:flex;gap:.45rem;margin-top:.15rem;flex-wrap:wrap}
+.volby button{flex:1 1 auto;font:inherit;border:1px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:9px;padding:.42rem .7rem;cursor:pointer}
+.volby button[aria-pressed="true"]{background:var(--akcent);border-color:var(--akcent);color:#fff;font-weight:700}
+:root[data-theme="dark"] .volby button[aria-pressed="true"]{color:#101820}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .volby button[aria-pressed="true"]{color:#101820}}
+button:focus-visible,input:focus-visible{outline:3px solid var(--akcent);outline-offset:2px}
+.chk{display:flex;align-items:center;gap:.4rem;font-size:.92rem;color:var(--muted);margin-top:.6rem;cursor:pointer}
+.chk input{accent-color:var(--akcent)}
+table.udaje{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+table.udaje th,table.udaje td{text-align:left;padding:.2rem .3rem;border-bottom:1px solid var(--line)}
+table.udaje th{font-weight:400;color:var(--muted)}
+table.udaje td{font-weight:700;text-align:right;white-space:nowrap}
+table.udaje tr.sed th,table.udaje tr.sed td{color:var(--rv)}
+table.udaje tr.soucet th,table.udaje tr.soucet td{border-top:2px solid var(--line);border-bottom:none}
+.klic{display:inline-block;width:.75rem;height:.75rem;border-radius:3px;margin-right:.45rem;vertical-align:-1px}
+.vysv{margin:.6rem 0 0;min-height:4.5em}
+.note{font-size:.85rem;color:var(--muted);margin:.9rem 0 0}
+.pomer{font-family:"Spectral",Georgia,serif;font-size:1.9rem;line-height:1.05}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Dechové objemy a spirometrie</h1>
+  <p class="lead">Vlevo je spirogram — záznam objemu vzduchu v plicích v čase. Posuvníky měň hloubku klidného dechu a vitální kapacitu a sleduj, jak se z dílčích objemů skládají kapacity. Přepínačem si zkus, jak záznam změní obstrukce a restrikce.</p>
+
+  <div class="grid">
+    <div class="side" style="gap:1.1rem">
+      <div class="stage">
+        <canvas id="cv" role="img" aria-label="Spirogram: záznam objemu vzduchu v plicích v čase s vyznačenými dechovými objemy"></canvas>
+      </div>
+      <div class="stage">
+        <canvas id="fv" role="img" aria-label="Křivka průtok–objem při usilovném výdechu a nádechu"></canvas>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="box">
+        <label class="hl" for="vt">Hloubka klidného dechu <span id="vtPopis"></span></label>
+        <input id="vt" type="range" min="300" max="1000" step="10" value="500">
+        <div class="stupnice"><span>mělký dech</span><span>hluboký dech</span></div>
+
+        <label class="hl" for="vc" style="margin-top:.9rem">Vitální kapacita <span id="vcPopis"></span></label>
+        <input id="vc" type="range" min="2500" max="6500" step="50" value="4800">
+        <div class="stupnice"><span>2,5 l</span><span>6,5 l</span></div>
+
+        <h2 style="margin-top:1rem">Co kdyby</h2>
+        <div class="volby" role="group" aria-label="Stav dýchacích cest">
+          <button id="bNorm" aria-pressed="true">zdravé plíce</button>
+          <button id="bObstr" aria-pressed="false">obstrukce</button>
+          <button id="bRestr" aria-pressed="false">restrikce</button>
+        </div>
+        <p class="vysv" id="vysv"></p>
+      </div>
+
+      <div class="box">
+        <h2>Objemy a kapacity</h2>
+        <table class="udaje">
+          <tbody>
+            <tr><th><i class="klic" style="background:var(--vt)"></i>VT — dechový objem</th><td id="oVT"></td></tr>
+            <tr><th><i class="klic" style="background:var(--irv)"></i>IRV — inspirační rezervní</th><td id="oIRV"></td></tr>
+            <tr><th><i class="klic" style="background:var(--erv)"></i>ERV — exspirační rezervní</th><td id="oERV"></td></tr>
+            <tr class="soucet"><th><b>VC — vitální kapacita</b></th><td id="oVC"></td></tr>
+            <tr class="sed"><th><i class="klic" style="background:var(--rv)"></i>RV — reziduální objem</th><td id="oRV"></td></tr>
+            <tr class="sed soucet"><th>TLC — totální kapacita</th><td id="oTLC"></td></tr>
+          </tbody>
+        </table>
+        <label class="chk"><input type="checkbox" id="chkRV" checked> zobrazit RV a TLC</label>
+        <p class="note" id="noteRV">RV a TLC jsou šedě: <strong>spirometr je změřit neumí</strong> — vzduch, který po maximálním výdechu v plicích zůstane, se do náustku nikdy nedostane. Měří se jinými metodami (ředění heliem, bodypletysmografie).</p>
+      </div>
+
+      <div class="box">
+        <h2>Usilovný výdech</h2>
+        <table class="udaje">
+          <tbody>
+            <tr><th>FVC — usilovná vitální kapacita</th><td id="oFVC"></td></tr>
+            <tr><th>FEV<sub>1</sub> — objem za první sekundu</th><td id="oFEV1"></td></tr>
+            <tr><th>PEF — vrcholový průtok</th><td id="oPEF"></td></tr>
+          </tbody>
+        </table>
+        <p style="margin:.7rem 0 0;color:var(--muted)">Tiffeneauův index FEV<sub>1</sub>/FVC</p>
+        <p class="pomer" id="oTiff" style="margin:.1rem 0 0"></p>
+        <p class="note" id="oTiffPopis" style="margin-top:.2rem"></p>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Model je zjednodušený a slouží k pochopení vztahů mezi objemy, ne k výpočtu vlastních hodnot. Skutečná náležitá hodnota se počítá z výšky, věku, pohlaví a etnika.</p>
+</div>
+
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+var fv=document.getElementById('fv'), fvx=fv.getContext('2d');
+var rezim='norm';
+
+function barva(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function fmt(l){ return (l).toFixed(2).replace('.',',')+' l'; }
+
+/* ---------- model ---------- */
+function model(){
+  var vtMl=+document.getElementById('vt').value;
+  var vcSlider=+document.getElementById('vc').value/1000;
+  var vc, rv, tiff, pefK;
+  if(rezim==='obstr'){ vc=vcSlider*0.80; rv=vcSlider*0.55; tiff=0.55; pefK=0.62; }
+  else if(rezim==='restr'){ vc=vcSlider*0.62; rv=vcSlider*0.19; tiff=0.88; pefK=1.00; }
+  else { vc=vcSlider; rv=vcSlider*0.30; tiff=0.83; pefK=1.00; }
+
+  var vt=vtMl/1000;
+  // klidný dech se nikdy nevejde nad kapacitu: VT zabere nejvýš polovinu VC
+  if(vt>vc*0.5) vt=vc*0.5;
+  var erv=vc*0.25;
+  var irv=vc-vt-erv;
+  if(irv<0.25){ erv=Math.max(0.15, vc-vt-0.25); irv=vc-vt-erv; }
+
+  var fvc=vc;                                  // u usilovného manévru je FVC ~ VC
+  if(rezim==='obstr') fvc=vc*0.95;             // při obstrukci se část vzduchu "uvězní"
+  var fev1=fvc*tiff;
+  var pef=(0.9+1.05*fvc)*pefK;                 // hrubý odhad l/s
+
+  return {vt:vt, irv:irv, erv:erv, vc:vc, rv:rv, tlc:vc+rv, frc:rv+erv,
+          fvc:fvc, fev1:fev1, pef:pef, tiff:tiff};
+}
+
+/* ---------- spirogram ---------- */
+function objemVCase(t, m){
+  // t v sekundách, 0..24; vrací objem v plicích (l)
+  var per=3.0, frc=m.frc;
+  function klid(tt){ return frc + m.vt*0.5*(1-Math.cos(2*Math.PI*tt/per)); }
+  function hladce(x){ x=Math.max(0,Math.min(1,x)); return x*x*(3-2*x); }
+  if(t<9) return klid(t);
+  if(t<11){ var a=klid(9); return a+(m.tlc-a)*hladce((t-9)/2); }          // maximální nádech
+  if(t<13.5) return m.tlc-(m.tlc-m.rv)*hladce((t-11)/2.5);                // maximální výdech
+  if(t<15.5) return m.rv+(frc-m.rv)*hladce((t-13.5)/2);                   // návrat ke klidu
+  return klid(t-15.5);
+}
+
+function kresliSpirogram(){
+  var m=model(), W=cv.width/dpr, H=cv.height/dpr;
+  var L=46, R=W-104, T=18, B=H-30;
+  var ukazRV=document.getElementById('chkRV').checked;
+  var maxY=m.tlc*1.06, minY=ukazRV?0:m.rv*0.92;
+
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=barva('--panel'); ctx.fillRect(0,0,W,H);
+  var ink=barva('--ink'), muted=barva('--muted'), line=barva('--line');
+  ctx.font='12px "Atkinson Hyperlegible",system-ui,sans-serif';
+
+  function X(t){ return L+(R-L)*t/24; }
+  function Y(v){ return B-(B-T)*(v-minY)/(maxY-minY); }
+
+  // mřížka a osa objemu
+  ctx.strokeStyle=line; ctx.lineWidth=1; ctx.fillStyle=muted; ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(var v=Math.ceil(minY); v<=maxY; v++){
+    ctx.beginPath(); ctx.moveTo(L,Y(v)); ctx.lineTo(R,Y(v)); ctx.stroke();
+    ctx.fillText(v+' l', L-6, Y(v));
+  }
+  ctx.strokeStyle=muted; ctx.beginPath(); ctx.moveTo(L,T); ctx.lineTo(L,B); ctx.lineTo(R,B); ctx.stroke();
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText('čas', (L+R)/2, B+8);
+
+  // plocha reziduálního objemu
+  if(ukazRV){
+    ctx.fillStyle=barva('--rv'); ctx.globalAlpha=.14;
+    ctx.fillRect(L, Y(m.rv), R-L, B-Y(m.rv)); ctx.globalAlpha=1;
+  }
+
+  // vodicí čáry úrovní
+  var urovne=[[m.frc,'FRC'],[m.frc+m.vt,''],[m.tlc,'TLC'],[m.rv,'RV']];
+  ctx.setLineDash([3,4]); ctx.strokeStyle=line;
+  for(var i=0;i<urovne.length;i++){
+    if(!ukazRV && (urovne[i][1]==='RV'||urovne[i][1]==='TLC')) continue;
+    ctx.beginPath(); ctx.moveTo(L,Y(urovne[i][0])); ctx.lineTo(R+8,Y(urovne[i][0])); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  // vlastní křivka
+  ctx.strokeStyle=barva('--krivka'); ctx.lineWidth=2.4; ctx.lineJoin='round';
+  ctx.beginPath();
+  for(var t=0;t<=24;t+=0.03){
+    var y=Y(objemVCase(t,m));
+    if(t===0) ctx.moveTo(X(t),y); else ctx.lineTo(X(t),y);
+  }
+  ctx.stroke();
+
+  // svorky objemů vpravo
+  var bx=R+22;
+  function svorka(v1,v2,popis,hodnota,barvaS,posun){
+    var y1=Y(v1), y2=Y(v2), x=bx+(posun||0);
+    ctx.strokeStyle=barvaS; ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(x-5,y1); ctx.lineTo(x,y1); ctx.lineTo(x,y2); ctx.lineTo(x-5,y2);
+    ctx.stroke();
+    // šipky
+    [[y1,1],[y2,-1]].forEach(function(p){
+      ctx.beginPath(); ctx.moveTo(x,p[0]); ctx.lineTo(x-3.5,p[0]+4.5*p[1]); ctx.lineTo(x+3.5,p[0]+4.5*p[1]);
+      ctx.closePath(); ctx.fillStyle=barvaS; ctx.fill();
+    });
+    var ym=(y1+y2)/2;
+    ctx.fillStyle=barvaS; ctx.textAlign='left'; ctx.textBaseline='middle';
+    if(Math.abs(y1-y2)>26){
+      ctx.font='bold 12px "Atkinson Hyperlegible",system-ui,sans-serif';
+      ctx.fillText(popis, x+6, ym-7);
+      ctx.font='12px "Atkinson Hyperlegible",system-ui,sans-serif';
+      ctx.fillText(hodnota, x+6, ym+8);
+    } else {
+      ctx.font='bold 12px "Atkinson Hyperlegible",system-ui,sans-serif';
+      ctx.fillText(popis+'  '+hodnota, x+6, ym);
+      ctx.font='12px "Atkinson Hyperlegible",system-ui,sans-serif';
+    }
+  }
+  svorka(m.frc+m.vt, m.tlc, 'IRV', fmt(m.irv), barva('--irv'));
+  svorka(m.frc, m.frc+m.vt, 'VT', fmt(m.vt), barva('--vt'));
+  svorka(m.rv, m.frc, 'ERV', fmt(m.erv), barva('--erv'));
+  if(ukazRV) svorka(0, m.rv, 'RV', fmt(m.rv), barva('--rv'));
+
+  // popisky fází
+  ctx.fillStyle=muted; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.font='12px "Atkinson Hyperlegible",system-ui,sans-serif';
+  ctx.fillText('klidné dýchání', X(4.5), B-4);
+  ctx.fillText('max. nádech', X(10), T+14);
+  ctx.fillText('max. výdech', X(12.6), B-4);
+  ctx.fillText('klidné dýchání', X(20), B-4);
+}
+
+/* ---------- křivka průtok–objem ---------- */
+function kresliFV(){
+  var m=model(), W=fv.width/dpr, H=fv.height/dpr;
+  var L=52, R=W-16, T=18, B=H-34;
+  fvx.setTransform(dpr,0,0,dpr,0,0);
+  fvx.clearRect(0,0,W,H);
+  fvx.fillStyle=barva('--panel'); fvx.fillRect(0,0,W,H);
+  var muted=barva('--muted'), line=barva('--line');
+  fvx.font='12px "Atkinson Hyperlegible",system-ui,sans-serif';
+
+  var maxV=7, maxF=12;
+  function X(v){ return L+(R-L)*v/maxV; }
+  function Y(f){ return T+(B-T)*(maxF-f)/(2*maxF); }   // +maxF nahoře, -maxF dole
+
+  fvx.strokeStyle=line; fvx.lineWidth=1;
+  for(var v=0;v<=maxV;v++){ fvx.beginPath(); fvx.moveTo(X(v),T); fvx.lineTo(X(v),B); fvx.stroke(); }
+  fvx.strokeStyle=muted; fvx.beginPath(); fvx.moveTo(L,Y(0)); fvx.lineTo(R,Y(0)); fvx.stroke();
+  fvx.beginPath(); fvx.moveTo(L,T); fvx.lineTo(L,B); fvx.stroke();
+  fvx.fillStyle=muted; fvx.textAlign='center'; fvx.textBaseline='top';
+  fvx.fillText('objem (l)', (L+R)/2, B+6);
+  for(var vv=0;vv<=maxV;vv+=2) fvx.fillText(String(vv), X(vv), Y(0)+4);
+  fvx.save(); fvx.translate(14,(T+B)/2); fvx.rotate(-Math.PI/2);
+  fvx.textAlign='center'; fvx.textBaseline='middle'; fvx.fillText('průtok (l/s)',0,0); fvx.restore();
+  fvx.textAlign='right'; fvx.textBaseline='middle';
+  fvx.fillText('výdech', L-6, Y(maxF*0.62)); fvx.fillText('nádech', L-6, Y(-maxF*0.62));
+
+  // výdechová část: prudký vzestup k PEF, pak pokles k nule v objemu FVC
+  var pef=m.pef, fvc=m.fvc, vPef=fvc*0.14;
+  function prutok(v){
+    if(v<=vPef) return pef*Math.pow(v/vPef, 0.55);
+    var u=(v-vPef)/(fvc-vPef);                       // 0..1
+    if(rezim==='obstr') return pef*Math.pow(1-u, 2.6);   // konkávní "vykousnutí"
+    if(rezim==='restr') return pef*Math.pow(1-u, 0.95);
+    return pef*(1-u)*(1-0.22*u);
+  }
+  fvx.strokeStyle=barva(rezim==='obstr'?'--obstr':rezim==='restr'?'--restr':'--norm');
+  fvx.lineWidth=2.6; fvx.lineJoin='round';
+  fvx.beginPath();
+  for(var q=0;q<=fvc+1e-9;q+=fvc/260){
+    var y=Y(prutok(q));
+    if(q===0) fvx.moveTo(X(0),Y(0)); else fvx.lineTo(X(q),y);
+  }
+  // nádechová část: půlkruh pod osou
+  for(var s=1;s>=0;s-=1/160){
+    var vv2=fvc*s, f=-0.72*pef*Math.sqrt(Math.max(0,1-Math.pow(2*s-1,2)));
+    fvx.lineTo(X(vv2), Y(f));
+  }
+  fvx.closePath(); fvx.stroke();
+
+  // značka PEF
+  fvx.fillStyle=fvx.strokeStyle;
+  fvx.beginPath(); fvx.arc(X(vPef), Y(pef), 3.4, 0, 2*Math.PI); fvx.fill();
+  fvx.textAlign='left'; fvx.textBaseline='bottom';
+  fvx.font='bold 12px "Atkinson Hyperlegible",system-ui,sans-serif';
+  fvx.fillText('PEF', X(vPef)+7, Y(pef)+2);
+}
+
+/* ---------- výstupy ---------- */
+var POPIS={
+  norm:'Zdravé dýchací cesty. Sestupná část výdechové křivky je skoro přímá a za první sekundu vydechneš kolem 80 % vitální kapacity.',
+  obstr:'Obstrukce — zúžené dýchací cesty (astma, CHOPN). Vzduch z plic uniká pomaleji, sestupná část křivky se „vykousne“ dovnitř. Klesá hlavně FEV₁, proto klesá i Tiffeneauův index. Část vzduchu zůstane uvězněná, takže roste reziduální objem.',
+  restr:'Restrikce — plíce nebo hrudník se hůř rozpínají (plicní fibróza, deformita hrudníku, obezita). Všechny objemy jsou menší, ale průchodnost cest je v pořádku: křivka má stejný tvar, jen je menší, a Tiffeneauův index zůstává normální nebo je vyšší.'
+};
+
+function prekresli(){
+  var m=model();
+  document.getElementById('vtPopis').textContent=Math.round(m.vt*1000)+' ml';
+  document.getElementById('vcPopis').textContent=fmt(+document.getElementById('vc').value/1000);
+  document.getElementById('oVT').textContent=fmt(m.vt);
+  document.getElementById('oIRV').textContent=fmt(m.irv);
+  document.getElementById('oERV').textContent=fmt(m.erv);
+  document.getElementById('oVC').textContent=fmt(m.vc);
+  document.getElementById('oRV').textContent=fmt(m.rv);
+  document.getElementById('oTLC').textContent=fmt(m.tlc);
+  document.getElementById('oFVC').textContent=fmt(m.fvc);
+  document.getElementById('oFEV1').textContent=fmt(m.fev1);
+  document.getElementById('oPEF').textContent=m.pef.toFixed(1).replace('.',',')+' l/s';
+  var t=Math.round(m.fev1/m.fvc*100);
+  document.getElementById('oTiff').textContent=t+' %';
+  document.getElementById('oTiffPopis').textContent =
+    t<70 ? 'Pod 70 % — typické pro obstrukci.' : 'Nad 70 % — průchodnost dýchacích cest je v pořádku.';
+  document.getElementById('vysv').textContent=POPIS[rezim];
+  var sed=document.getElementById('chkRV').checked;
+  document.getElementById('noteRV').style.display=sed?'':'none';
+  kresliSpirogram(); kresliFV();
+}
+
+/* ---------- ovládání ---------- */
+var tlacitka={norm:document.getElementById('bNorm'), obstr:document.getElementById('bObstr'), restr:document.getElementById('bRestr')};
+Object.keys(tlacitka).forEach(function(k){
+  tlacitka[k].addEventListener('click', function(){
+    rezim=k;
+    Object.keys(tlacitka).forEach(function(j){ tlacitka[j].setAttribute('aria-pressed', j===k?'true':'false'); });
+    prekresli();
+  });
+});
+['vt','vc','chkRV'].forEach(function(id){
+  document.getElementById(id).addEventListener('input', prekresli);
+});
+
+/* ---------- velikost plátna ---------- */
+var dpr=1;
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1, 2);
+  [cv,fv].forEach(function(c){
+    var r=c.getBoundingClientRect();
+    if(r.width<2) return;
+    c.width=Math.round(r.width*dpr);
+    c.height=Math.round(r.width*0.75*dpr);
+  });
+}
+resize();
+addEventListener('resize', function(){ resize(); prekresli(); });   // po změně velikosti plátno zbělá, musí se překreslit
+if(window.matchMedia){
+  var mq=window.matchMedia('(prefers-color-scheme: dark)');
+  if(mq.addEventListener) mq.addEventListener('change', prekresli);
+}
+prekresli();
+})();
+</script>
+</body>
+</html>
