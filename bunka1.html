@@ -398,8 +398,8 @@ const FAGO=[
   ["Bakterie u buňky","Bílá krvinka (leukocyt) nebo měňavka narazí na bakterii."],
   ["Panožky obklopují kořist","Buňka vysune <b>panožky</b> a obejme jimi bakterii – začíná <b>fagocytóza</b>."],
   ["Vznikl fagozóm","Membrána se uzavře a bakterie je uvnitř buňky ve váčku – <b>fagozómu</b>."],
-  ["Přicházejí lyzozómy","<b>Lyzozómy</b> – váčky s hydrolytickými enzymy – putují k fagozómu."],
-  ["Fagolyzozóm – trávení","Lyzozómy splynou s fagozómem → <b>fagolyzozóm</b> (potravní vakuola). Enzymy bakterii rozloží."],
+  ["Přicházejí lysozómy","<b>Lysozómy</b> – váčky s hydrolytickými enzymy – putují k fagozómu."],
+  ["Fagolysozóm – trávení","Lysozómy splynou s fagozómem → <b>fagolysozóm</b> (potravní vakuola). Enzymy bakterii rozloží."],
   ["Exocytóza zbytků","Váček se zbytky splyne s membránou a vyprázdní obsah ven – <b>exocytóza</b>."],
 ];
 const PINO=[
@@ -434,11 +434,11 @@ function drawCyt(now){
       el("path",{d:`M 240 ${Y} C 244 ${Y-h*.45}, 250 ${Y-h+18}, ${lt+6} ${Y-h+18} L ${rt-6} ${Y-h+18} C 350 ${Y-h+18}, 356 ${Y-h*.45}, 360 ${Y} Z`,fill:C("--water"),opacity:.08},s);
       bact(s,300,130);lys(0);txt(s,215,Y-60,"panožky",{"text-anchor":"end","font-weight":600,fill:C("--acc")});}
     if(cs===2){flat();const y=lerp(130,280,p);el("circle",{cx:300,cy:y,r:46,fill:C("--water"),opacity:.15,stroke:C("--mem"),"stroke-width":4},s);bact(s,300,y);lys(0);txt(s,360,y-40,"fagozóm",{"font-weight":600,fill:C("--acc")});}
-    if(cs===3){flat();el("circle",{cx:300,cy:280,r:46,fill:C("--water"),opacity:.15,stroke:C("--mem"),"stroke-width":4},s);bact(s,300,280);lys(p*.75);txt(s,120,340,"lyzozómy",{"font-weight":600,fill:C("--lys")});}
+    if(cs===3){flat();el("circle",{cx:300,cy:280,r:46,fill:C("--water"),opacity:.15,stroke:C("--mem"),"stroke-width":4},s);bact(s,300,280);lys(p*.75);txt(s,120,340,"lysozómy",{"font-weight":600,fill:C("--lys")});}
     if(cs===4){flat();el("circle",{cx:300,cy:280,r:54,fill:C("--lys"),opacity:.22,stroke:C("--mem"),"stroke-width":4},s);
       const r=rng(5);for(let k=0;k<22;k++)el("circle",{cx:300+(r()-.5)*90,cy:280+(r()-.5)*90,r:2.2,fill:C("--lys")},s);
       bact(s,300,280,lerp(1,.35,p),lerp(1,.25,p));for(let k=0;k<6;k++)el("rect",{x:270+k*10+(r()-.5)*20*p,y:270+(r()-.5)*40*p,width:6,height:6,rx:2,fill:C("--bact"),opacity:p},s);
-      txt(s,365,240,"fagolyzozóm",{"font-weight":600,fill:C("--acc")});}
+      txt(s,365,240,"fagolysozóm",{"font-weight":600,fill:C("--acc")});}
     if(cs===5){const y=lerp(280,Y+40,Math.min(1,p*1.6)),open=Math.max(0,(p-.6)/.4);
       el("path",{d:`M 0 ${Y} L ${260-open*20} ${Y}`,...memS},s);el("path",{d:`M ${340+open*20} ${Y} L 600 ${Y}`,...memS},s);
       if(open<.05)el("path",{d:`M 260 ${Y} L 340 ${Y}`,...memS},s);
