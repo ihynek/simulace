@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Průduchy a hustota průduchů</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Spectral:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#1A2430; --muted:#5C6978; --line:#CBD5E0;
+  --stena:#6E8BA8; --prudu:#2F6B46; --prudu-tm:#1D4630; --znacka:#C2410C;
+  --ok:#3C7A3A; --chyba:#B5452F; --akcent:#1B4F86; --poleBg:#F7FAFC; --trichom:#8A6B4F;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+    --stena:#7E9CBA; --prudu:#6FAE85; --prudu-tm:#A8D8BC; --znacka:#E8794A;
+    --ok:#7FBC7B; --chyba:#E8736A; --akcent:#6FA8DC; --poleBg:#141C25; --trichom:#C9A383;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+  --stena:#7E9CBA; --prudu:#6FAE85; --prudu-tm:#A8D8BC; --znacka:#E8794A;
+  --ok:#7FBC7B; --chyba:#E8736A; --akcent:#6FA8DC; --poleBg:#141C25; --trichom:#C9A383;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+h1{font-family:"Spectral",Georgia,serif;font-weight:700;font-size:clamp(1.65rem,3.3vw,2.3rem);line-height:1.12;margin:0 0 .3rem}
+.lead{color:var(--muted);max-width:66ch;margin:0 0 1.3rem}
+h2{font-family:"Spectral",Georgia,serif;font-size:1.08rem;margin:0 0 .55rem}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.72fr);gap:1.1rem;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.stage{background:var(--panel);border:2px solid var(--line);border-radius:16px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1/1;touch-action:manipulation;cursor:crosshair}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.95rem 1.05rem}
+.side{display:flex;flex-direction:column;gap:.85rem}
+.volby{display:flex;gap:.45rem;flex-wrap:wrap}
+.volby button{flex:1 1 auto;font:inherit;border:1px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:9px;padding:.42rem .7rem;cursor:pointer}
+.volby button[aria-pressed="true"]{background:var(--akcent);border-color:var(--akcent);color:#fff;font-weight:700}
+:root[data-theme="dark"] .volby button[aria-pressed="true"]{color:#101820}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .volby button[aria-pressed="true"]{color:#101820}}
+button.akce{width:100%;font:inherit;border:1px solid var(--akcent);background:var(--akcent);color:#fff;font-weight:700;
+  border-radius:9px;padding:.5rem .7rem;cursor:pointer;margin-top:.5rem}
+:root[data-theme="dark"] button.akce{color:#101820}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) button.akce{color:#101820}}
+button.druhotna{background:transparent;color:var(--ink);border-color:var(--line);font-weight:400}
+button:focus-visible{outline:3px solid var(--akcent);outline-offset:2px}
+dl.udaje{display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem;margin:.2rem 0 0}
+dl.udaje dt{color:var(--muted)}
+dl.udaje dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.velke{font-family:"Spectral",Georgia,serif;font-size:2rem;line-height:1.05;font-variant-numeric:tabular-nums}
+.vysv{margin:.55rem 0 0;min-height:4.2em}
+.note{font-size:.85rem;color:var(--muted);margin:.8rem 0 0}
+.verdikt{font-weight:700;margin:.5rem 0 0}
+.verdikt.ok{color:var(--ok)} .verdikt.chyba{color:var(--chyba)}
+.legenda{display:flex;gap:1rem;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin-top:.5rem}
+.legenda i{display:inline-block;width:.8rem;height:.8rem;border-radius:3px;margin-right:.35rem;vertical-align:-1px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Průduchy a hustota průduchů</h1>
+  <p class="lead">Zorné pole mikroskopu s pokožkou listu. Klikáním označ všechny průduchy, které se do pole počítají, a pak si nech ukázat řešení. Kromě pokožkových buněk a průduchů jsou v poli i trichomy, krycí i žláznaté — ty se do počtu nepočítají. Přepínačem porovnej spodní a svrchní stranu listu; to je přesně otázka, na kterou budeš v laborce odpovídat.</p>
+
+  <div class="grid">
+    <div class="stage">
+      <canvas id="cv" role="img" aria-label="Zorné pole mikroskopu s pokožkou listu a průduchy"></canvas>
+    </div>
+
+    <div class="side">
+      <div class="box">
+        <h2>Strana listu</h2>
+        <div class="volby" role="group" aria-label="Strana listu">
+          <button id="bSpodni" aria-pressed="true">spodní</button>
+          <button id="bSvrchni" aria-pressed="false">svrchní</button>
+        </div>
+        <button class="akce druhotna" id="bNove">nové zorné pole</button>
+        <p class="vysv" id="vysv"></p>
+      </div>
+
+      <div class="box">
+        <h2>Počítání</h2>
+        <dl class="udaje">
+          <dt>označeno</dt><dd id="oZnaceno">0</dd>
+          <dt>plocha zorného pole</dt><dd id="oPlocha"></dd>
+        </dl>
+        <button class="akce" id="bVyhodnot">ukázat řešení</button>
+        <button class="akce druhotna" id="bReset">smazat značky</button>
+        <p class="verdikt" id="verdikt"></p>
+        <div class="legenda">
+          <span><i style="background:var(--znacka)"></i>tvoje značka</span>
+          <span><i style="background:var(--prudu)"></i>průduch</span>
+          <span><i style="background:var(--trichom)"></i>trichom – nepočítá se</span>
+        </div>
+      </div>
+
+      <div class="box">
+        <h2>Hustota průduchů</h2>
+        <p class="velke" id="oHustota">—</p>
+        <p class="note" style="margin-top:.1rem" id="oVypocet"></p>
+
+        <h2 style="margin-top:.9rem">Číslo zorného pole okuláru</h2>
+        <div class="volby" role="group" aria-label="Číslo zorného pole okuláru">
+          <button id="bFN18" aria-pressed="true">18</button>
+          <button id="bFN20" aria-pressed="false">20</button>
+        </div>
+        <p class="note">Je vyryté na okuláru, třeba „10×/18“. Průměr zorného pole = číslo zorného pole ÷ zvětšení objektivu. Přepni ho a všimni si, že ze stejného počtu průduchů vyjde jiná hustota — proto se zorné pole musí nejdřív zkalibrovat.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Snímek je modelový, ne fotografie. Tvar buněk i rozmístění průduchů odpovídají pokožce dvouděložné rostliny, konkrétní hodnoty hustoty se u každého druhu i listu liší — proto se měří.</p>
+</div>
+
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+var strana='spodni', fn=18, dpr=1;
+var OBJEKTIV=40, OKULAR=10;              // počítá se při zvětšení 400×
+var pruduchy=[], trichomy=[], znacky=[], odhaleno=false, seed=1;
+
+var HUSTOTA={spodni:180, svrchni:60};    // modelové hustoty na mm²
+var POPIS={
+  spodni:'Spodní strana listu. U většiny dvouděložných rostlin je průduchů mnohem víc než na svrchní straně — spodní strana je ve stínu listu, méně se zahřívá a odpařování se z ní dá lépe regulovat.',
+  svrchni:'Svrchní strana listu. Průduchů je tu výrazně méně, protože povrch obrácený ke slunci se silně zahřívá a ztráty vody by byly velké. Některé rostliny je tu nemají vůbec.'
+};
+
+function prumerPoleMm(){ return fn/OBJEKTIV; }           // mm
+function plochaMm2(){ var r=prumerPoleMm()/2; return Math.PI*r*r; }
+function fmt(x,n){ return x.toFixed(n).replace('.',','); }
+
+// deterministický generátor, ať jde zorné pole zopakovat
+function rnd(){ seed=(seed*1664525+1013904223)%4294967296; return seed/4294967296; }
+
+function generuj(){
+  odhaleno=false; znacky=[]; pruduchy=[]; trichomy=[];
+  // průduchy se sypou i kousek za okraj pole (poloměr 0,62 proti 0,46), aby okraj nebyl prázdný;
+  // počet se proto musí navýšit v poměru ploch, jinak by v zorném poli vyšla nižší hustota
+  var n=Math.round(HUSTOTA[strana]*plochaMm2()*Math.pow(0.62/0.46,2));
+  // rozmístění s minimální vzdáleností (průduchy se nedotýkají)
+  var pokusy=0;
+  while(pruduchy.length<n && pokusy<4000){
+    pokusy++;
+    var a=rnd()*2*Math.PI, r=Math.sqrt(rnd())*0.62;   // i kousek za okrajem pole
+    var x=0.5+Math.cos(a)*r, y=0.5+Math.sin(a)*r;
+    var ok=true;
+    for(var i=0;i<pruduchy.length;i++){
+      var dx=pruduchy[i].x-x, dy=pruduchy[i].y-y;
+      if(dx*dx+dy*dy < 0.0042){ ok=false; break; }
+    }
+    if(ok) pruduchy.push({x:x, y:y, uhel:rnd()*Math.PI, oznacen:false});
+  }
+  // trichomy – krycí (dlouhý špičatý chlup) a žláznaté (stopka s hlavičkou)
+  var pocetT=2+Math.floor(rnd()*3);
+  for(var t=0;t<pocetT;t++){
+    var at=rnd()*2*Math.PI, rt=Math.sqrt(rnd())*0.42;
+    trichomy.push({
+      x:0.5+Math.cos(at)*rt, y:0.5+Math.sin(at)*rt,
+      typ: rnd()<0.55 ? 'kryci' : 'zlaznaty',
+      uhel: rnd()*2*Math.PI, delka: 0.10+rnd()*0.10
+    });
+  }
+  kresli(); obnovUdaje();
+}
+
+/* ---------- kresba pokožkových buněk ----------
+   Mřížka vrcholů s náhodným posunem; každá hrana je zvlněná křivka uložená do
+   paměti, takže sousední buňky sdílejí přesně tutéž hranu a síť se uzavře. */
+var NX=8, NY=8, vrcholy=null, hrany=null, krokPx=0;
+
+function sum(i,j,k){                                  // deterministické „náhodné“ číslo
+  var h=Math.sin(i*127.1+j*311.7+k*74.7)*43758.5453;
+  return h-Math.floor(h);
+}
+function postavSit(S){
+  krokPx=S/NX;
+  vrcholy=[]; hrany={};
+  for(var i=-1;i<=NX+1;i++){
+    vrcholy[i+1]=[];
+    for(var j=-1;j<=NY+1;j++){
+      vrcholy[i+1][j+1]={
+        x:i*krokPx+(sum(i,j,1)-0.5)*krokPx*0.42,
+        y:j*krokPx+(sum(i,j,2)-0.5)*krokPx*0.42
+      };
+    }
+  }
+}
+function V(i,j){ return vrcholy[i+1] && vrcholy[i+1][j+1]; }
+
+function hrana(i,j,smer){                              // body hrany od V(i,j) dál
+  var klic=i+'_'+j+'_'+smer;
+  if(hrany[klic]) return hrany[klic];
+  var a=V(i,j), b=smer==='h'?V(i+1,j):V(i,j+1);
+  if(!a||!b) return null;
+  var dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy);
+  var nx=-dy/len, ny=dx/len;
+  var amp=krokPx*0.19*(0.7+sum(i,j,smer==='h'?3:4)*0.6);
+  var faze=sum(i,j,smer==='h'?5:6)*Math.PI*2;
+  var pocet=1+Math.round(sum(i,j,7))*0.5;              // 1 nebo 1,5 laloku
+  var body=[];
+  for(var k=0;k<=16;k++){
+    var t=k/16;
+    var s=Math.sin(t*Math.PI*2*pocet+faze)*amp*Math.sin(t*Math.PI);
+    body.push({x:a.x+dx*t+nx*s, y:a.y+dy*t+ny*s});
+  }
+  hrany[klic]=body;
+  return body;
+}
+function cestaBunky(i,j){
+  var h1=hrana(i,j,'h'), v2=hrana(i+1,j,'v'), h3=hrana(i,j+1,'h'), v4=hrana(i,j,'v');
+  if(!h1||!v2||!h3||!v4) return null;
+  return h1.concat(v2.slice(1), h3.slice().reverse().slice(1), v4.slice().reverse().slice(1));
+}
+
+function kresli(){
+  var S=cv.width/dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,S,S);
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+  ctx.fillRect(0,0,S,S);
+
+  var cx=S/2, cy=S/2, R=S*0.46;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI); ctx.clip();
+  ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--poleBg').trim();
+  ctx.fillRect(0,0,S,S);
+
+  // --- pokožkové buňky ---
+  postavSit(S);
+  var stena=getComputedStyle(document.documentElement).getPropertyValue('--stena').trim();
+  for(var i=-1;i<=NX;i++){
+    for(var j=-1;j<=NY;j++){
+      var c=cestaBunky(i,j);
+      if(!c) continue;
+      ctx.beginPath();
+      ctx.moveTo((c[c.length-1].x+c[0].x)/2,(c[c.length-1].y+c[0].y)/2);
+      for(var k=0;k<c.length;k++){
+        var nx2=c[(k+1)%c.length];
+        ctx.quadraticCurveTo(c[k].x,c[k].y,(c[k].x+nx2.x)/2,(c[k].y+nx2.y)/2);
+      }
+      ctx.closePath();
+      ctx.fillStyle=stena; ctx.globalAlpha=0.06+sum(i,j,9)*0.05; ctx.fill();
+      ctx.globalAlpha=0.9; ctx.strokeStyle=stena;
+      ctx.lineWidth=Math.max(1.1,S*0.0028); ctx.lineJoin='round'; ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+  }
+
+  // --- trichomy ---
+  var tr=getComputedStyle(document.documentElement).getPropertyValue('--trichom').trim();
+  for(var q=0;q<trichomy.length;q++){
+    var t=trichomy[q];
+    ctx.save(); ctx.translate(t.x*S, t.y*S); ctx.rotate(t.uhel);
+    ctx.strokeStyle=tr; ctx.lineWidth=Math.max(1.3,S*0.0034); ctx.globalAlpha=.95;
+    var L=t.delka*S;
+    if(t.typ==='kryci'){
+      // dlouhý zašpičatělý chlup se dvěma přehrádkami
+      ctx.beginPath();
+      ctx.moveTo(-S*0.012,0); ctx.quadraticCurveTo(L*0.5,-S*0.014, L, -S*0.002);
+      ctx.moveTo(-S*0.012,S*0.009); ctx.quadraticCurveTo(L*0.5, S*0.004, L, -S*0.002);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(L*0.33,-S*0.008); ctx.lineTo(L*0.33,S*0.006);
+      ctx.moveTo(L*0.66,-S*0.006); ctx.lineTo(L*0.66,S*0.004);
+      ctx.stroke();
+    } else {
+      // žláznatý: krátká stopka a kulatá hlavička
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(L*0.62,0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(L*0.62+S*0.016,0,S*0.016,0,2*Math.PI);
+      ctx.fillStyle=tr; ctx.globalAlpha=.22; ctx.fill(); ctx.globalAlpha=.95; ctx.stroke();
+    }
+    ctx.globalAlpha=1; ctx.restore();
+  }
+
+  // --- průduchy ---
+  var rp=S*0.028, polePozadi=getComputedStyle(document.documentElement).getPropertyValue('--poleBg').trim();
+  for(var k=0;k<pruduchy.length;k++){
+    var p=pruduchy[k], px=p.x*S, py=p.y*S;
+    ctx.save(); ctx.translate(px,py); ctx.rotate(p.uhel);
+    ctx.fillStyle=polePozadi;                       // průduch je sám buňkou – překryje stěnu pod sebou
+    ctx.beginPath(); ctx.ellipse(0,0,rp*1.08,rp*1.18,0,0,2*Math.PI); ctx.fill();
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--prudu').trim();
+    ctx.globalAlpha=.55;
+    ctx.beginPath(); ctx.ellipse(-rp*0.42,0,rp*0.55,rp*1.05,0,0,2*Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.ellipse( rp*0.42,0,rp*0.55,rp*1.05,0,0,2*Math.PI); ctx.fill();
+    ctx.globalAlpha=1;
+    ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--prudu-tm').trim();
+    ctx.lineWidth=Math.max(1,S*0.0022);
+    ctx.beginPath(); ctx.ellipse(-rp*0.42,0,rp*0.55,rp*1.05,0,0,2*Math.PI); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse( rp*0.42,0,rp*0.55,rp*1.05,0,0,2*Math.PI); ctx.stroke();
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--prudu-tm').trim();
+    ctx.beginPath(); ctx.ellipse(0,0,rp*0.14,rp*0.85,0,0,2*Math.PI); ctx.fill();
+    ctx.restore();
+
+    if(odhaleno){
+      var uvnitr=Math.hypot(px-cx,py-cy)<=R;
+      ctx.strokeStyle=uvnitr
+        ? getComputedStyle(document.documentElement).getPropertyValue('--ok').trim()
+        : getComputedStyle(document.documentElement).getPropertyValue('--muted').trim();
+      ctx.lineWidth=Math.max(1.6,S*0.0040);
+      ctx.globalAlpha=uvnitr?1:.35;
+      ctx.beginPath(); ctx.arc(px,py,rp*1.7,0,2*Math.PI); ctx.stroke();
+      ctx.globalAlpha=1;
+    }
+  }
+  ctx.restore();
+
+  // --- značky uživatele ---
+  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--znacka').trim();
+  ctx.lineWidth=Math.max(1.8,S*0.0042);
+  for(var m=0;m<znacky.length;m++){
+    var z=znacky[m];
+    ctx.beginPath(); ctx.moveTo(z.x-rp*0.8,z.y-rp*0.8); ctx.lineTo(z.x+rp*0.8,z.y+rp*0.8);
+    ctx.moveTo(z.x+rp*0.8,z.y-rp*0.8); ctx.lineTo(z.x-rp*0.8,z.y+rp*0.8); ctx.stroke();
+  }
+
+  // --- okraj zorného pole ---
+  ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+  ctx.globalAlpha=.55; ctx.lineWidth=Math.max(2,S*0.005);
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI); ctx.stroke(); ctx.globalAlpha=1;
+}
+
+/* ---------- vyhodnocení ---------- */
+function spravnyPocet(){
+  var S=cv.width/dpr, cx=S/2, cy=S/2, R=S*0.46, n=0;
+  for(var i=0;i<pruduchy.length;i++){
+    var px=pruduchy[i].x*S, py=pruduchy[i].y*S;
+    if(Math.hypot(px-cx,py-cy)<=R) n++;
+  }
+  return n;
+}
+function obnovUdaje(){
+  document.getElementById('oZnaceno').textContent=znacky.length;
+  document.getElementById('oPlocha').textContent=fmt(plochaMm2(),3)+' mm²';
+  var n = odhaleno ? spravnyPocet() : znacky.length;
+  if(znacky.length===0 && !odhaleno){
+    document.getElementById('oHustota').textContent='—';
+    document.getElementById('oVypocet').textContent='Označ průduchy a hustota se dopočítá.';
+  } else {
+    var h=n/plochaMm2();
+    document.getElementById('oHustota').textContent=Math.round(h)+' průduchů / mm²';
+    document.getElementById('oVypocet').textContent=n+' ÷ '+fmt(plochaMm2(),3)+' mm² = '+Math.round(h)+' /mm²';
+  }
+  document.getElementById('vysv').textContent=POPIS[strana];
+}
+
+document.getElementById('bVyhodnot').addEventListener('click', function(){
+  odhaleno=true;
+  var spravne=spravnyPocet(), moje=znacky.length, v=document.getElementById('verdikt');
+  var rozdil=moje-spravne;
+  if(rozdil===0){ v.textContent='Přesně tak – v poli je '+spravne+' průduchů.'; v.className='verdikt ok'; }
+  else { v.textContent='Označil/a jsi '+moje+', v poli jich je '+spravne+
+      (rozdil>0?' (o '+rozdil+' víc)':' (o '+(-rozdil)+' míň)')+'.'; v.className='verdikt chyba'; }
+  kresli(); obnovUdaje();
+});
+document.getElementById('bReset').addEventListener('click', function(){
+  znacky=[]; odhaleno=false;
+  document.getElementById('verdikt').textContent=''; kresli(); obnovUdaje();
+});
+document.getElementById('bNove').addEventListener('click', function(){
+  seed=Math.floor(Math.random()*4294967296);
+  document.getElementById('verdikt').textContent=''; generuj();
+});
+
+cv.addEventListener('click', function(e){
+  if(odhaleno) return;
+  var r=cv.getBoundingClientRect(), S=cv.width/dpr;
+  var x=(e.clientX-r.left)/r.width*S, y=(e.clientY-r.top)/r.height*S;
+  var rp=S*0.030;
+  for(var i=0;i<znacky.length;i++){                 // druhé kliknutí značku zruší
+    if(Math.hypot(znacky[i].x-x,znacky[i].y-y)<rp*1.4){ znacky.splice(i,1); kresli(); obnovUdaje(); return; }
+  }
+  znacky.push({x:x,y:y}); kresli(); obnovUdaje();
+});
+
+function prepinac(idA,idB,hodnotaA,hodnotaB,nastav){
+  var a=document.getElementById(idA), b=document.getElementById(idB);
+  function klik(el,other,hod){
+    el.addEventListener('click', function(){
+      el.setAttribute('aria-pressed','true'); other.setAttribute('aria-pressed','false');
+      nastav(hod);
+    });
+  }
+  klik(a,b,hodnotaA); klik(b,a,hodnotaB);
+}
+prepinac('bSpodni','bSvrchni','spodni','svrchni', function(v){
+  strana=v; document.getElementById('verdikt').textContent=''; generuj();
+});
+prepinac('bFN18','bFN20',18,20, function(v){ fn=v; obnovUdaje(); });
+
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  var r=cv.getBoundingClientRect();
+  if(r.width<2) return;
+  cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.width*dpr);
+}
+resize();
+addEventListener('resize', function(){ resize(); kresli(); });   // po změně velikosti plátno zbělá
+if(window.matchMedia){
+  var mq=window.matchMedia('(prefers-color-scheme: dark)');
+  if(mq.addEventListener) mq.addEventListener('change', kresli);
+}
+generuj();
+})();
+</script>
+</body>
+</html>
