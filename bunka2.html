@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stěna, organely a jádro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout jako u „Krevní skupiny a srážení“ – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --acc:#c55a11; --cyto:#fde9d4; --cyto2:#f6c99c; --mem:#d9822b; --wall:#5a8f3c; --dna:#7b3fa0; --nuc:#c9b6e4;
+  --rib:#2f5d8a; --mito:#d0453a; --er:#2f9a6a; --ga:#3a6fc4; --water:#2f80ed; --glu:#e0a72e; --ion:#8e5bb5; --bact:#3f9a3a; --lys:#8a5a2b;
+  --ok:#1e8a3c; --bad:#c0392b; --hl:#ffb000;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --acc:#f08a43; --cyto:#3b2c20; --cyto2:#5a3d24; --mem:#e89a4a; --wall:#7cc25a; --dna:#c08ae6; --nuc:#4a3b62;
+  --rib:#7fb0e6; --mito:#ff6b5a; --er:#4cc48c; --ga:#6f9cf0; --water:#5aa2ff; --glu:#f0c14e; --ion:#b98ae0; --bact:#6cc45f; --lys:#c79a62;
+  --ok:#4cc46d; --bad:#ff6b5a; --hl:#ffc940; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em}
+h1 span{color:var(--acc)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--acc)}
+button:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:8px 13px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn[aria-pressed="true"]{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc);background:var(--panel)}
+.btn:disabled{opacity:.45;cursor:default}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.lab{font-size:.85rem;color:var(--muted);font-weight:600;margin:0 0 4px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+.cmp{border-collapse:collapse;width:100%;font-size:.92rem}
+.cmp th,.cmp td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.cmp th{background:var(--bg)}
+.yes{color:var(--ok);font-weight:700} .no{color:var(--bad);font-weight:700}
+.steps{display:flex;gap:6px;flex-wrap:wrap}
+.steps span{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line);font-weight:700;font-size:.9rem;color:var(--muted)}
+.steps span.cur{background:var(--acc);border-color:var(--acc);color:#fff}
+.steps span.done{border-color:var(--acc);color:var(--acc)}
+.tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:.85rem;font-weight:600;border:1px solid var(--line);margin:0 4px 4px 0}
+.tag.on{border-color:var(--acc);color:var(--acc)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+.cmp td{text-align:center}
+input[type=range]{accent-color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Stěna, organely <span>a jádro</span></h1>
+  <p class="sub">Interaktivní animace ke 2. hodině · Biologie buňky · kap. 7–11</p>
+</header>
+
+<nav role="tablist" aria-label="Animace">
+  <button role="tab" aria-selected="true" data-p="p-gram">1 · Gramovo barvení</button>
+  <button role="tab" aria-selected="false" data-p="p-org">2 · Organely</button>
+  <button role="tab" aria-selected="false" data-p="p-bil">3 · Cesta bílkoviny</button>
+  <button role="tab" aria-selected="false" data-p="p-ph">4 · Vakuola a pH</button>
+  <button role="tab" aria-selected="false" data-p="p-dna">5 · Komplementarita</button>
+</nav>
+
+<!-- 1 GRAM -->
+<section class="stage" id="p-gram" role="tabpanel">
+  <div class="panel"><svg id="gramSvg" viewBox="0 0 600 420" role="img" aria-label="Gramovo barvení G+ a G− bakterií"></svg></div>
+  <div class="panel ctrl">
+    <div class="steps" id="gSteps"></div>
+    <p class="status" id="gStatus"></p>
+    <p id="gText"></p>
+    <div class="row"><button class="btn" id="gPrev">◀ Zpět</button><button class="btn primary" id="gNext">Další krok ▶</button><button class="btn" id="gAll">Přehrát vše</button></div>
+    <p class="note"><b>VLAK / VLAS</b> = <b>V</b>ioleť krystalová → <b>L</b>ugolův roztok → <b>A</b>lkohol (aceton) → <b>K</b>arbolfuchsin / <b>S</b>afranin. Techniku vyvinul dánský mikrobiolog <b>Hans Christian Gram</b> (1884).</p>
+  </div>
+</section>
+
+<!-- 2 ORGANELY -->
+<section class="stage" id="p-org" role="tabpanel" hidden>
+  <div class="panel"><svg id="orgSvg" viewBox="0 0 600 440" role="img" aria-label="Organely živočišné a rostlinné buňky"></svg></div>
+  <div class="panel ctrl">
+    <div class="row" role="group" aria-label="Typ buňky"><button class="btn" data-cell="ziv" aria-pressed="true">Živočišná buňka</button><button class="btn" data-cell="rost" aria-pressed="false">Rostlinná buňka</button></div>
+    <p style="margin:0">Klepni na organelu v obrázku nebo na tlačítko.</p>
+    <div class="row" id="orgBtns"></div>
+    <p class="status" id="oStatus"></p>
+    <p id="oText"></p>
+    <table class="cmp" id="oTbl"></table>
+  </div>
+</section>
+
+<!-- 3 CESTA BÍLKOVINY -->
+<section class="stage" id="p-bil" role="tabpanel" hidden>
+  <div class="panel"><svg id="bilSvg" viewBox="0 0 600 400" role="img" aria-label="Cesta bílkoviny z ribozómu ven z buňky"></svg></div>
+  <div class="panel ctrl">
+    <div class="steps" id="bSteps"></div>
+    <p class="status" id="bStatus"></p>
+    <p id="bText"></p>
+    <div class="row"><button class="btn" id="bPrev">◀ Zpět</button><button class="btn primary" id="bNext">Další krok ▶</button><button class="btn" id="bAll">Přehrát vše</button></div>
+    <p class="note">Takto buňky vylučují např. protilátky (B-lymfocyty), trávicí enzymy, bílkoviny krevní plazmy nebo mateřského mléka.</p>
+  </div>
+</section>
+
+<!-- 4 pH -->
+<section class="stage" id="p-ph" role="tabpanel" hidden>
+  <div class="panel"><svg id="phSvg" viewBox="0 0 600 380" role="img" aria-label="Barva antokyanů podle pH"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Legráčky s červeným zelím</h2>
+      <p>Výluh z červeného zelí obsahuje <b>antokyany</b> z vakuol. Fungují jako <b>acidobazický indikátor</b> – mění barvu podle pH.</p>
+    </div>
+    <div><p class="lab">pH: <b id="phVal">7</b></p><input type="range" id="ph" min="1" max="13" step="1" value="7" style="width:100%"></div>
+    <div class="row" id="phBtns"></div>
+    <p class="status" id="phStatus"></p>
+    <p class="note">Lat. <i>acidus</i> = kyselý, <i>basis</i> = zásada, <i>indico</i> = ukazovat. Některé rostliny mění barvu květů během vývoje – hmyz se brzy naučí, která barva slibuje nejvíc nektaru.</p>
+  </div>
+</section>
+
+<!-- 5 DNA -->
+<section class="stage" id="p-dna" role="tabpanel" hidden>
+  <div class="panel"><svg id="dnaSvg" viewBox="0 0 600 360" role="img" aria-label="Komplementarita bází"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Doplň komplementární vlákno</h2>
+      <p>Klepni na prázdné políčko dole a pak na bázi. Páry drží <b>vodíkové můstky</b>: <b>A–T dva</b>, <b>C–G tři</b>.</p>
+    </div>
+    <div class="row" id="baseBtns"></div>
+    <div class="row"><button class="btn primary" id="dCheck">Zkontrolovat</button><button class="btn" id="dShow">Ukázat řešení</button><button class="btn" id="dNew">Nová sekvence</button><button class="btn" id="dRna" aria-pressed="false">Párovat s RNA (U)</button></div>
+    <p class="status" id="dStatus"></p>
+    <p class="note"><b>Purinové</b> báze (2 cykly): adenin, guanin · <b>pyrimidinové</b> (1 cyklus): cytozin, tymin, v RNA uracil. Vodíkové můstky jsou slabé – přeruší je např. zahřátí.</p>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const C=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,"font-size":13,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+const lerp=(a,b,t)=>a+(b-a)*t, ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+const mix=(a,b,t)=>{const h=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));const A=h(a),B=h(b);return "#"+A.map((v,i)=>Math.round(lerp(v,B[i],t)).toString(16).padStart(2,"0")).join("")};
+function rng(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646}}
+
+let tab="p-gram";
+$$("nav button").forEach(b=>b.onclick=()=>{$$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});tab=b.dataset.p;redrawAll()});
+
+/* stepper */
+function stepper(pre,S,draw){
+  const o={s:0,t0:performance.now(),timer:null};
+  const upd=()=>{$("#"+pre+"Steps").innerHTML=S.map((_,i)=>`<span class="${i===o.s?"cur":i<o.s?"done":""}">${i+1}</span>`).join("");
+    $("#"+pre+"Status").textContent=(o.s+1)+". "+S[o.s][0];$("#"+pre+"Text").innerHTML=S[o.s][1];
+    $("#"+pre+"Prev").disabled=o.s===0;$("#"+pre+"Next").disabled=o.s===S.length-1;draw(performance.now())};
+  $("#"+pre+"Next").onclick=()=>{o.s=Math.min(S.length-1,o.s+1);o.t0=performance.now();upd()};
+  $("#"+pre+"Prev").onclick=()=>{o.s=Math.max(0,o.s-1);o.t0=performance.now()-5000;upd()};
+  $("#"+pre+"All").onclick=()=>{clearInterval(o.timer);o.s=0;o.t0=performance.now();upd();o.timer=setInterval(()=>{if(o.s>=S.length-1){clearInterval(o.timer);return}o.s++;o.t0=performance.now();upd()},reduce?10:2400)};
+  o.upd=upd;return o;
+}
+
+/* ===== 1 GRAM ===== */
+const GS=[
+  ["Bakterie před barvením","Pod mikroskopem jsou bakterie skoro průhledné. Vlevo <b>G+</b> (silná vrstva peptidoglykanu), vpravo <b>G−</b> (tenká vrstva + vnější membrána)."],
+  ["Krystalová violeť","<b>Krystalová violeť</b> pronikne do všech buněk a obarví je <b>fialově</b> – G+ i G−."],
+  ["Lugolův roztok","<b>Jód</b> z Lugolova roztoku pospojuje molekuly violeti do <b>větších komplexů</b>."],
+  ["Odbarvení alkoholem","<b>Alkohol (aceton)</b>: komplexy neprojdou hustou sítí <b>silného peptidoglykanu G+</b> – zůstanou fialové. <b>Tenká vrstva G−</b> odbarvení nezabrání – buňky se odbarví."],
+  ["Safranin / karbolfuchsin","Dobarvení <b>růžovým</b> barvivem: G− zrůžoví, G+ zůstanou fialové. Výsledek: <b>G+ fialové, G− růžové</b> (jako na obr. 7/6)."],
+];
+const g=stepper("g",GS,drawGram);
+function cellCol(gp,s,p){const pale="#e9e4ef",vio="#6a2a9a",dark="#4b1c73",pink="#e2558f";
+  if(s===0)return pale; if(s===1)return mix(pale,vio,p); if(s===2)return mix(vio,dark,p);
+  if(s===3)return gp?dark:mix(dark,pale,p); return gp?dark:mix(pale,pink,p)}
+function drawGram(now){
+  const s=$("#gramSvg");s.innerHTML="";const p=reduce?1:ease(Math.min(1,(now-g.t0)/1400));
+  [[150,"G+ bakterie (koky)",true],[450,"G− bakterie (tyčinky)",false]].forEach(([cx,lab,gp])=>{
+    txt(s,cx,24,lab,{"text-anchor":"middle","font-weight":700,"font-size":15});
+    const col=cellCol(gp,g.s,p);
+    el("rect",{x:cx-130,y:36,width:260,height:150,rx:12,fill:"#fff",stroke:C("--line")},s);
+    const r=rng(gp?5:9);
+    for(let i=0;i<9;i++){const x=cx-95+r()*190,y=60+r()*105;
+      if(gp)el("circle",{cx:x,cy:y,r:13,fill:col,stroke:mix(col,"#000000",.25),"stroke-width":1.5},s);
+      else{const a=r()*180;el("rect",{x:x-20,y:y-8,width:40,height:16,rx:8,fill:col,stroke:mix(col,"#000000",.25),"stroke-width":1.5,transform:`rotate(${a} ${x} ${y})`},s)}}
+    // stěna v řezu
+    const y0=220;txt(s,cx,y0-24,"stěna v řezu",{"text-anchor":"middle","font-size":12,fill:C("--muted")});
+    const L=cx-125,W=170;
+    // membrána cytoplazmatická
+    const mem=(y)=>{for(let x=L+4;x<L+W;x+=12){el("circle",{cx:x,cy:y,r:4,fill:C("--mem")},s);el("circle",{cx:x,cy:y+16,r:4,fill:C("--mem")},s);el("line",{x1:x,y1:y+4,x2:x,y2:y+12,stroke:C("--muted"),"stroke-width":1},s)}};
+    const pg=(y,h)=>{el("rect",{x:L,y,width:W,height:h,fill:C("--wall"),opacity:.75},s);for(let x=L+6;x<L+W;x+=14)el("line",{x1:x,y1:y,x2:x+7,y2:y+h,stroke:"#fff","stroke-width":1,opacity:.6},s)};
+    let ytop;
+    if(gp){pg(y0+8,70);mem(y0+84);ytop=y0+8;txt(s,L+W+6,y0+46,"peptidoglykan",{"font-size":11,fill:C("--ink")});txt(s,L+W+6,y0+96,"membrána",{"font-size":11,fill:C("--ink")})}
+    else{mem(y0+8);for(let x=L+30;x<L+W;x+=60)el("rect",{x:x-5,y:y0+2,width:10,height:28,rx:3,fill:C("--ga")},s);
+      for(let x=L+10;x<L+W;x+=20)el("path",{d:`M${x} ${y0+4} q4 -10 0 -18`,fill:"none",stroke:C("--glu"),"stroke-width":1.5},s);
+      pg(y0+44,14);mem(y0+70);ytop=y0+44;
+      txt(s,L+W+6,y0+22,"vnější membrána",{"font-size":11,fill:C("--ink")});txt(s,L+W+6,y0+55,"peptidoglykan",{"font-size":11,fill:C("--ink")});txt(s,L+W+6,y0+82,"membrána",{"font-size":11,fill:C("--ink")});
+      txt(s,L+W+6,y0+2,"lipopolysacharidy",{"font-size":10,fill:C("--muted")});txt(s,L+W/2,y0+130,"modře: poriny ve vnější membráně",{"text-anchor":"middle","font-size":10,fill:C("--muted")})}
+    // komplexy barviva
+    if(g.s>=1){const rr=rng(gp?3:4);const n=gp?26:8, h=gp?70:14;
+      for(let i=0;i<n;i++){let x=L+8+rr()*(W-16),y=ytop+4+rr()*(h-8);
+        let a=1;if(g.s>=3&&!gp){y=lerp(y,y-90,g.s===3?p:1);a=g.s===3?1-p:0}
+        if(g.s===4&&!gp){}
+        el("circle",{cx:x,cy:y,r:g.s>=2?4.5:3,fill:"#5a1f88",opacity:a},s)}
+      if(g.s===4&&!gp){const rr2=rng(8);for(let i=0;i<8;i++)el("circle",{cx:L+8+rr2()*(W-16),cy:ytop+4+rr2()*6,r:3.5,fill:"#e2558f",opacity:p},s)}}
+    const res=g.s<1?"":g.s===4?(gp?"fialové = G+":"růžové = G−"):"";
+    if(res)txt(s,cx,412,res,{"text-anchor":"middle","font-weight":700,"font-size":16,fill:gp?"#5a1f88":"#c2306f"});
+  });
+  return now-g.t0<1500;
+}
+
+/* ===== 2 ORGANELY ===== */
+const ORG={
+  nuc:{n:"Jádro",t:"Dvojitá jaderná membrána s póry, uvnitř DNA jako <b>chromatin</b>. Řídí chod celé buňky.",z:1,r:1},
+  nucl:{n:"Jadérko",t:"Struktura bez membrány v jádře – tvoří se v něm <b>ribozomální RNA</b> a skládají <b>podjednotky ribozómů</b>.",z:1,r:1},
+  rer:{n:"Drsné ER",t:"Síť cisteren s <b>ribozómy</b> – „továrna na bílkoviny“ (membránové, enzymy lysozómů, bílkoviny na sekreci). Napojené na jaderný obal.",z:1,r:1},
+  ser:{n:"Hladké ER",t:"Bez ribozómů – syntéza <b>cholesterolu, steroidních hormonů, fosfolipidů</b>, zásobárna <b>Ca²⁺</b>.",z:1,r:1},
+  ga:{n:"Golgiho aparát",t:"Ploché cisterny – <b>upravuje bílkoviny</b> z drsného ER (např. glykosylace) a balí je do váčků. U rostlin <b>diktyozómy</b> – tvorba polysacharidů stěny.",z:1,r:1},
+  lys:{n:"Lysozóm",t:"Váček s <b>hydrolytickými enzymy</b> – rozkládá látky přijaté cytózou. Organela typická pro <b>živočišné</b> buňky.",z:1,r:0},
+  mito:{n:"Mitochondrie",t:"<b>Dvoumembránová</b>, vnitřní membrána tvoří <b>kristy</b>, uvnitř <b>matrix</b>. Vzniká v ní <b>ATP</b> – „energetická továrna“. Vznikla endosymbiózou.",z:1,r:1},
+  chl:{n:"Chloroplast",t:"Dvě membrány, uvnitř <b>tylakoidy</b> (primární děje fotosyntézy) a <b>stroma</b> (Calvinův cyklus). Vznikl endosymbiózou <b>sinice</b>.",z:0,r:1},
+  vac:{n:"Vakuola",t:"Membrána <b>tonoplast</b>, uvnitř <b>buněčná šťáva</b>. V dospělé rostlinné buňce jedna centrální vakuola až 90 % objemu; plnění vodou → <b>turgor</b>.",z:0,r:1},
+  wall:{n:"Buněčná stěna",t:"U rostlin z <b>celulózy</b>, hemicelulóz a pektinu; sousední buňky spojuje <b>střední lamela</b> a <b>plazmodezmy</b>. Živočišné buňky stěnu nemají – mají <b>glykokalyx</b>.",z:0,r:1},
+  cen:{n:"Centrioly",t:"Dva válečky z 9 trojic mikrotubulů v <b>centrozómu</b> – organizují dělicí vřeténko. Rostliny a houby centrioly nemají.",z:1,r:0},
+  mem:{n:"Membrána",t:"Cytoplazmatická membrána – fosfolipidová dvojvrstva, polopropustná. Mají ji <b>všechny</b> buňky.",z:1,r:1},
+};
+let cell="ziv",osel=null,oT0=0;
+$("#orgBtns").innerHTML=Object.entries(ORG).map(([k,v])=>`<button class="btn" data-o="${k}" aria-pressed="false">${v.n}</button>`).join("");
+$$("[data-o]").forEach(b=>b.onclick=()=>{osel=b.dataset.o;oT0=performance.now();updOrg()});
+$$("[data-cell]").forEach(b=>b.onclick=()=>{cell=b.dataset.cell;press("[data-cell]",b);updOrg()});
+function updOrg(){
+  $$("[data-o]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.o===osel));
+  if(!osel){$("#oStatus").textContent="";$("#oText").innerHTML="";$("#oTbl").innerHTML="";drawOrg(performance.now());return}
+  const v=ORG[osel],has=cell==="ziv"?v.z:v.r;
+  $("#oStatus").className="status "+(has?"ok":"bad");
+  $("#oStatus").textContent=v.n+(has?" – v této buňce je":" – v této buňce není");
+  $("#oText").innerHTML=v.t;
+  const f=a=>`<span class="${a?"yes":"no"}">${a?"✔":"✘"}</span>`;
+  $("#oTbl").innerHTML=`<tr><th>Živočišná buňka</th><th>Rostlinná buňka</th></tr><tr><td>${f(v.z)}</td><td>${f(v.r)}</td></tr>`;
+  drawOrg(performance.now());
+}
+function drawOrg(now){
+  const s=$("#orgSvg");s.innerHTML="";const plant=cell==="rost";
+  const pulse=osel?(0.5+0.5*Math.sin((now-oT0)/220)):0;
+  const hl=k=>osel===k, op=k=>!osel||osel===k?1:.3;
+  const G=(k,fn)=>{const g=el("g",{style:"cursor:pointer",opacity:op(k)},s);g.addEventListener("click",e=>{e.stopPropagation();osel=k;oT0=performance.now();updOrg()});fn(g);if(hl(k))g.setAttribute("style",`cursor:pointer;filter:drop-shadow(0 0 ${3+4*pulse}px ${C("--hl")}) drop-shadow(0 0 2px ${C("--hl")})`)};
+  const cx=300,cy=225;
+  if(plant){
+    G("wall",g=>{el("rect",{x:40,y:30,width:520,height:390,rx:18,fill:"none",stroke:C("--wall"),"stroke-width":14},g)});
+    G("mem",g=>{el("rect",{x:52,y:42,width:496,height:366,rx:12,fill:C("--cyto"),stroke:C("--mem"),"stroke-width":4},g)});
+    G("vac",g=>{el("rect",{x:232,y:60,width:300,height:235,rx:40,fill:C("--water"),opacity:.28,stroke:C("--water"),"stroke-width":2.5},g);txt(g,382,182,"vakuola",{"text-anchor":"middle",fill:C("--muted")})});
+  }else{
+    G("mem",g=>{el("ellipse",{cx,cy,rx:265,ry:195,fill:C("--cyto"),stroke:C("--mem"),"stroke-width":5},g)});
+  }
+  const nx=plant?140:235, ny=plant?300:225;
+  const A1=plant?0.25:2.5, A2=plant?1.55:3.9;
+  G("rer",g=>{for(let i=0;i<3;i++){const r=72+i*13;el("path",{d:`M${nx+r*Math.cos(A1)} ${ny+r*Math.sin(A1)} A${r} ${r} 0 0 1 ${nx+r*Math.cos(A2)} ${ny+r*Math.sin(A2)}`,fill:"none",stroke:C("--er"),"stroke-width":5,"stroke-linecap":"round"},g);
+    for(let a=A1+.1;a<A2-.05;a+=.2)el("circle",{cx:nx+(r+5)*Math.cos(a),cy:ny+(r+5)*Math.sin(a),r:2.3,fill:C("--rib")},g)}});
+  if(!plant)G("ser",g=>{for(let i=0;i<3;i++)el("path",{d:`M${nx-30+i*14} ${ny+95} q12 22 0 44`,fill:"none",stroke:C("--er"),"stroke-width":5,"stroke-linecap":"round",opacity:.85},g)});
+  else G("ser",g=>{for(let i=0;i<3;i++)el("path",{d:`M${nx+60+i*14} ${ny-110} q12 22 0 44`,fill:"none",stroke:C("--er"),"stroke-width":5,"stroke-linecap":"round",opacity:.85},g)});
+  G("nuc",g=>{el("circle",{cx:nx,cy:ny,r:55,fill:C("--nuc"),stroke:C("--dna"),"stroke-width":3.5,"stroke-dasharray":"28 6"},g);
+    el("path",{d:`M${nx-34} ${ny+20} q8 -14 16 0 t16 0 t16 0 M${nx-30} ${ny-18} q6 -10 12 0 t12 0`,fill:"none",stroke:C("--dna"),"stroke-width":2},g)});
+  G("nucl",g=>{el("circle",{cx:nx+12,cy:ny-6,r:15,fill:C("--dna"),opacity:.85},g)});
+  const gx=plant?72:400, gy=plant?78:175;
+  G("ga",g=>{for(let i=0;i<4;i++)el("path",{d:`M${gx} ${gy+i*12} q34 -${14-i*2} 68 0`,fill:"none",stroke:C("--ga"),"stroke-width":6,"stroke-linecap":"round"},g);el("circle",{cx:gx+76,cy:gy+2,r:6,fill:C("--ga")},g)});
+  if(!plant){G("lys",g=>{[[420,300],[455,265]].forEach(([x,y])=>{el("circle",{cx:x,cy:y,r:13,fill:C("--lys"),opacity:.9},g);for(let k=0;k<4;k++)el("circle",{cx:x-4+k%2*8,cy:y-4+(k>1)*8,r:1.8,fill:"#fff"},g)})});
+    G("cen",g=>{[[380,110,0],[398,104,90]].forEach(([x,y,a])=>{const gg=el("g",{transform:`rotate(${a} ${x} ${y})`},g);el("rect",{x:x-6,y:y-14,width:12,height:28,rx:4,fill:C("--muted")},gg);for(let k=0;k<3;k++)el("line",{x1:x-4+k*4,y1:y-12,x2:x-4+k*4,y2:y+12,stroke:"#fff","stroke-width":1},gg)})})}
+  G("mito",g=>{(plant?[[420,362,10],[195,85,0]]:[[470,200,-20],[300,355,15],[160,120,35]]).forEach(([x,y,a])=>{const gg=el("g",{transform:`rotate(${a} ${x} ${y})`},g);el("ellipse",{cx:x,cy:y,rx:32,ry:15,fill:C("--mito")},gg);el("path",{d:`M${x-24} ${y} q4 -9 8 0 t8 0 t8 0 t8 0 t8 0 t8 0`,fill:"none",stroke:"#fff","stroke-width":1.7},gg)})});
+  if(plant)G("chl",g=>{[[110,175,80],[292,372,-10],[515,335,70]].forEach(([x,y,a])=>{const gg=el("g",{transform:`rotate(${a} ${x} ${y})`},g);el("ellipse",{cx:x,cy:y,rx:30,ry:15,fill:"#3f9a3a"},gg);for(let k=-2;k<=2;k++)el("rect",{x:x+k*10-3,y:y-7,width:6,height:14,rx:2,fill:"#1f6b1d"},gg)})});
+  txt(s,300,18,plant?"Rostlinná buňka":"Živočišná buňka",{"text-anchor":"middle","font-weight":700,"font-size":15});
+  return true;
+}
+
+/* ===== 3 CESTA BÍLKOVINY ===== */
+const BS=[
+  ["Ribozóm na drsném ER","<b>Ribozóm</b> přisedlý na membráně drsného ER skládá řetězec bílkoviny."],
+  ["Bílkovina v ER","Řetězec vstupuje do <b>dutiny ER</b>, kde se bílkovina sbalí."],
+  ["Transportní váček","Z ER se odškrtí <b>transportní váček</b> a míří ke <b>Golgiho aparátu</b>."],
+  ["Úpravy v Golgiho aparátu","V cisternách GA proběhnou <b>posttranslační úpravy</b> – např. <b>glykosylace</b> (navázání cukrů, žluté kroužky)."],
+  ["Sekreční váček","Upravená bílkovina se zabalí do <b>sekrečního váčku</b>, který putuje k membráně."],
+  ["Exocytóza","Váček splyne s cytoplazmatickou membránou a vylije obsah ven – <b>exocytóza</b>."],
+];
+const bb=stepper("b",BS,drawBil);
+function drawBil(now){
+  const s=$("#bilSvg");s.innerHTML="";const p=reduce?1:ease(Math.min(1,(now-bb.t0)/1600));const st=bb.s;
+  el("rect",{x:0,y:0,width:600,height:400,fill:C("--cyto")},s);
+  el("rect",{x:540,y:0,width:60,height:400,fill:C("--water"),opacity:.12},s);
+  el("line",{x1:540,y1:0,x2:540,y2:400,stroke:C("--mem"),"stroke-width":8},s);
+  txt(s,570,20,"VNĚ",{"text-anchor":"middle","font-size":11,"font-weight":700,fill:C("--muted")});
+  el("circle",{cx:-20,cy:200,r:110,fill:C("--nuc"),stroke:C("--dna"),"stroke-width":4},s);txt(s,30,205,"jádro",{"font-size":12,fill:C("--muted")});
+  // ER
+  for(let i=0;i<3;i++){const y=110+i*70;el("path",{d:`M110 ${y} q60 -20 120 0 q20 8 0 22 q-60 -16 -120 0 z`,fill:"#bfe6d2",stroke:C("--er"),"stroke-width":3},s);
+    for(let x=118;x<228;x+=12)el("circle",{cx:x,cy:y-4-Math.sin((x-110)/120*Math.PI)*8,r:3,fill:C("--rib")},s)}
+  txt(s,170,330,"drsné ER",{"text-anchor":"middle","font-weight":600,fill:C("--er")});
+  // GA
+  for(let i=0;i<4;i++)el("path",{d:`M330 ${150+i*22} q50 -18 100 0`,fill:"none",stroke:C("--ga"),"stroke-width":9,"stroke-linecap":"round"},s);
+  txt(s,380,265,"Golgiho aparát",{"text-anchor":"middle","font-weight":600,fill:C("--ga")});
+  // prvky podle kroku
+  const prot=(x,y,sug=false)=>{el("path",{d:`M${x-12} ${y} q4 -8 8 0 t8 0 t8 0`,fill:"none",stroke:C("--acc"),"stroke-width":3},s);if(sug)[[x-8,y-9],[x+6,y-10],[x+12,y+6]].forEach(([a,b])=>el("circle",{cx:a,cy:b,r:3.5,fill:"none",stroke:C("--glu"),"stroke-width":2},s))};
+  const ves=(x,y,sug)=>{el("circle",{cx:x,cy:y,r:16,fill:"#fff",opacity:.7,stroke:st>=4?C("--ga"):C("--er"),"stroke-width":3},s);prot(x,y,sug)};
+  if(st===0){const n=Math.floor(lerp(2,8,p));el("circle",{cx:200,cy:178,r:7,fill:C("--rib"),stroke:C("--hl"),"stroke-width":3},s);
+    let d=`M200 178`;for(let i=0;i<n;i++)d+=` l${i%2?6:-6} -6`;el("path",{d,fill:"none",stroke:C("--acc"),"stroke-width":3},s)}
+  if(st===1){el("circle",{cx:200,cy:178,r:7,fill:C("--rib")},s);prot(185,lerp(178,186,p))}
+  if(st===2){ves(lerp(235,320,p),lerp(186,175,p),false)}
+  if(st===3){ves(lerp(320,380,p),lerp(175,200,p),p>.5)}
+  if(st===4){ves(lerp(435,515,p),lerp(220,230,p),true)}
+  if(st===5){const op=p;el("path",{d:`M540 ${230-22*op} q${-30*(1-op)} 22 0 ${44*op}`,fill:"none",stroke:C("--ga"),"stroke-width":3},s);
+    for(let k=0;k<3;k++)prot(lerp(530,560+k*12,p),220+k*14,true)}
+}
+
+/* ===== 4 pH ===== */
+const PHC=[[1,"#d6153c"],[3,"#e0306a"],[5,"#b23a9a"],[7,"#7b3fa0"],[8,"#4a55c8"],[9,"#2f6fd6"],[10,"#1e9aa0"],[11,"#25a35a"],[12,"#8cbf26"],[13,"#d8c21a"]];
+function phCol(v){for(let i=1;i<PHC.length;i++)if(v<=PHC[i][0]){const[a,ca]=PHC[i-1],[b,cb]=PHC[i];return mix(ca,cb,(v-a)/(b-a))}return PHC[PHC.length-1][1]}
+const PRE=[["citron",2],["ocet",3],["čistá voda",7],["jedlá soda",9],["silně zásadité",13]];
+$("#phBtns").innerHTML=PRE.map(([n,v])=>`<button class="btn" data-ph="${v}">${n}</button>`).join("");
+$$("[data-ph]").forEach(b=>b.onclick=()=>{$("#ph").value=b.dataset.ph;updPh()});
+$("#ph").oninput=updPh;
+function updPh(){const v=+$("#ph").value;$("#phVal").textContent=v;
+  const t=v<7?"Kyselé prostředí → antokyany jsou červené":v===7?"Neutrální prostředí → fialová":v<=10?"Zásadité prostředí → modrá":"Extrémně zásadité → zelená až žlutá";
+  $("#phStatus").textContent=t;drawPh()}
+function drawPh(){
+  const s=$("#phSvg");s.innerHTML="";const v=+$("#ph").value,col=phCol(v);
+  // kádinka
+  el("path",{d:"M60 60 L60 320 Q60 340 80 340 L220 340 Q240 340 240 320 L240 60",fill:"none",stroke:C("--muted"),"stroke-width":4},s);
+  el("path",{d:"M64 140 L64 318 Q64 336 82 336 L218 336 Q236 336 236 318 L236 140 Z",fill:col,opacity:.9},s);
+  txt(s,150,372,"výluh z červeného zelí",{"text-anchor":"middle",fill:C("--muted")});
+  // rostlinná buňka s vakuolou
+  el("rect",{x:300,y:70,width:250,height:200,rx:14,fill:"none",stroke:C("--wall"),"stroke-width":10},s);
+  el("rect",{x:310,y:80,width:230,height:180,rx:10,fill:C("--cyto"),stroke:C("--mem"),"stroke-width":3},s);
+  el("rect",{x:335,y:100,width:185,height:140,rx:30,fill:col,opacity:.85},s);
+  txt(s,427,175,"vakuola",{"text-anchor":"middle",fill:"#fff","font-weight":700});
+  txt(s,425,300,"antokyany jsou v buněčné šťávě vakuoly",{"text-anchor":"middle",fill:C("--muted")});
+  // stupnice
+  for(let i=1;i<=13;i++){el("rect",{x:300+(i-1)*19,y:318,width:19,height:16,fill:phCol(i),stroke:i===v?C("--ink"):"none","stroke-width":2.5},s);txt(s,309.5+(i-1)*19,350,String(i),{"text-anchor":"middle","font-size":10,fill:C("--muted")})}
+}
+
+/* ===== 5 KOMPLEMENTARITA ===== */
+const BC={A:"#e0403a",T:"#e6a817",G:"#3a6fc4",C:"#1e9a8a",U:"#8e5bb5"};
+let rna=false,seq=[],ans=[],dsel=0,checked=false;
+const PAIR=b=>({A:rna?"U":"T",T:"A",G:"C",C:"G"}[b]);
+function newSeq(){const r=Math.random;seq=Array.from({length:10},()=>"ATGC"[Math.floor(r()*4)]);ans=Array(10).fill(null);dsel=0;checked=false;updDna()}
+function baseBtns(){$("#baseBtns").innerHTML=(rna?["A","U","G","C"]:["A","T","G","C"]).map(b=>`<button class="btn" data-b="${b}" style="color:${BC[b]};min-width:3em">${b}</button>`).join("");
+  $$("[data-b]").forEach(x=>x.onclick=()=>{ans[dsel]=x.dataset.b;checked=false;dsel=Math.min(9,dsel+1);updDna()})}
+$("#dNew").onclick=newSeq;
+$("#dShow").onclick=()=>{ans=seq.map(PAIR);checked=true;updDna()};
+$("#dCheck").onclick=()=>{checked=true;updDna()};
+$("#dRna").onclick=()=>{rna=!rna;$("#dRna").setAttribute("aria-pressed",rna);ans=Array(10).fill(null);checked=false;baseBtns();updDna()};
+function updDna(){
+  const st=$("#dStatus");
+  if(checked){const bad=ans.filter((a,i)=>a!==PAIR(seq[i])).length;
+    const hb=seq.reduce((n,b)=>n+(b==="G"||b==="C"?3:2),0);
+    st.className="status "+(bad?"bad":"ok");st.textContent=bad?`Chyb: ${bad}`:`Správně! Vodíkových můstků celkem: ${hb}`}
+  else{st.className="status";st.textContent=""}
+  drawDna()}
+function drawDna(){
+  const s=$("#dnaSvg");s.innerHTML="";const x0=40,dx=54;
+  txt(s,20,74,"5′",{"font-size":12,fill:C("--muted")});txt(s,20,284,"3′",{"font-size":12,fill:C("--muted")});
+  txt(s,300,24,"vlákno DNA",{"text-anchor":"middle","font-weight":700});
+  txt(s,300,344,rna?"komplementární vlákno RNA":"komplementární vlákno DNA",{"text-anchor":"middle","font-weight":700});
+  el("line",{x1:x0,y1:50,x2:x0+dx*9+30,y2:50,stroke:C("--muted"),"stroke-width":5},s);
+  el("line",{x1:x0,y1:310,x2:x0+dx*9+30,y2:310,stroke:C("--muted"),"stroke-width":5},s);
+  seq.forEach((b,i)=>{const x=x0+15+i*dx;
+    el("rect",{x:x-18,y:55,width:36,height:60,rx:6,fill:BC[b]},s);txt(s,x,93,b,{"text-anchor":"middle","font-size":20,"font-weight":700,fill:"#fff"});
+    const a=ans[i],ok=a&&a===PAIR(b);
+    const g=el("g",{style:"cursor:pointer"},s);g.addEventListener("click",()=>{dsel=i;drawDna()});
+    el("rect",{x:x-18,y:245,width:36,height:60,rx:6,fill:a?BC[a]:C("--panel"),stroke:i===dsel?C("--hl"):checked&&a&&!ok?C("--bad"):C("--line"),"stroke-width":i===dsel?4:2,"stroke-dasharray":a?"":"5 4"},g);
+    if(a)txt(g,x,283,a,{"text-anchor":"middle","font-size":20,"font-weight":700,fill:"#fff"});
+    if(a&&ok){const n=(b==="G"||b==="C")?3:2;for(let k=0;k<n;k++){const xx=x-8+k*(16/(n-1||1));el("line",{x1:xx,y1:122,x2:xx,y2:238,stroke:C("--muted"),"stroke-width":2,"stroke-dasharray":"5 5"},s)}}
+    if(checked&&a&&!ok)txt(s,x,180,"✘",{"text-anchor":"middle","font-size":20,fill:C("--bad")});
+  });
+}
+
+/* smyčka */
+function frame(now){
+  if(tab==="p-gram")drawGram(now);
+  else if(tab==="p-org"&&osel)drawOrg(now);
+  else if(tab==="p-bil")drawBil(now);
+  requestAnimationFrame(frame);
+}
+function redrawAll(){g.upd();updOrg();bb.upd();updPh();baseBtns();if(!seq.length)newSeq();else updDna()}
+redrawAll();requestAnimationFrame(frame);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redrawAll);
+</script>
+</body>
+</html>
