@@ -94,12 +94,13 @@ svg.dim .part:not(.sel){opacity:.3}
     <div class="row" role="group" aria-label="Režim">
       <button class="btn" data-mode="exp" aria-pressed="true">Prozkoumat</button>
       <button class="btn" data-mode="find">Najdi část</button>
+      <button class="btn" id="stHalves" aria-pressed="true">Rozdělení srdce</button>
     </div>
     <p class="status" id="stStatus">Vyber část srdce</p>
     <p id="stText">Odkysličená krev je modrá, okysličená červená.</p>
     <p class="score" id="stScore" hidden></p>
     <div class="row" id="stFindRow" hidden><button class="btn primary" id="stNext">Další úkol ▶</button><button class="btn" id="stReset">Začít znovu</button></div>
-    <p class="note">Srdce (lat. <b>cor</b>, řec. <b>kardia</b>) je svalová pumpa velká asi jako pěst, váží <b>250–350 g</b>. Je uloženo v <b>osrdečníku (perikardu)</b> ze dvou listů; mezi nimi je trocha tekutiny, takže po sobě listy kloužou. Stěnu tvoří <b>myokard</b>, zevnitř ji vystýlá <b>endokard</b>.</p>
+    <p class="note">Srdce (lat. <b>cor</b>, řec. <b>kardia</b>) je svalová pumpa velká asi jako pěst, váží <b>250–350 g</b>. Je uloženo v <b>osrdečníku (perikardu)</b> ze dvou listů; mezi nimi je trocha tekutiny, takže po sobě listy kloužou. Stěnu tvoří <b>myokard</b>, zevnitř ji vystýlá <b>endokard</b>.<br><b>Rozdělení srdce:</b> podélně přepážka dělí srdce na <b>pravou polovinu</b> (odkysličená krev → plíce) a <b>levou polovinu</b> (okysličená krev → tělo); napříč je hranice mezi <b>předsíněmi</b> nahoře a <b>komorami</b> dole – leží v ní cípaté chlopně.</p>
   </div>
 </section>
 
@@ -214,6 +215,15 @@ function drawHeart(s,o={}){
   g=part("ven");el("path",{d:"M316 236 Q 446 236 432 320 Q 418 384 352 424",fill:"none",stroke:A,"stroke-width":5},g);el("path",{d:"M316 236 Q 446 236 432 320 Q 418 384 352 424",fill:"none",stroke:"transparent","stroke-width":16},g);
   // hrot
   g=part("hrot");el("circle",{cx:292,cy:446,r:9,fill:M2,stroke:ink,"stroke-width":1.5},g);el("circle",{cx:292,cy:446,r:16,fill:"transparent"},g);
+  if(o.halves){
+    const K=css("--ink");
+    el("line",{x1:276,y1:104,x2:276,y2:452,stroke:K,"stroke-width":3,"stroke-dasharray":"10 6",opacity:.85},s);
+    el("line",{x1:100,y1:232,x2:450,y2:232,stroke:K,"stroke-width":3,"stroke-dasharray":"10 6",opacity:.85},s);
+    const tag=(x,y,t,col,a="middle")=>{const g=el("g",{},s);const r=el("rect",{rx:6,fill:css("--panel"),opacity:.92},g);const tt=txt(g,x,y,t,{"font-size":11.5,"font-weight":700,fill:col,"text-anchor":a});
+      const bb=tt.getBBox();r.setAttribute("x",bb.x-5);r.setAttribute("y",bb.y-2);r.setAttribute("width",bb.width+10);r.setAttribute("height",bb.height+4)};
+    tag(206,108,"PRAVÁ POLOVINA",css("--vein"));tag(372,108,"LEVÁ POLOVINA",css("--art"));
+    tag(442,226,"předsíně ↑",K,"end");tag(442,248,"komory ↓",K,"end");
+  }
   return P;
 }
 
@@ -239,10 +249,10 @@ const PARTS={
   hrot:["Srdeční hrot","Hrot srdce míří nejčastěji <b>doleva pod 5. žebro</b>. U <b>situs inversus</b> je srdce i orgány břišní dutiny zrcadlově obrácené."],
   per:["Osrdečník (perikard)","Vak ze <b>dvou listů</b>. Vnitřní list srůstá s povrchem srdce, mezi listy je <b>osrdečníková dutina</b> s trochou tekutiny – listy po sobě kloužou."],
 };
-let stMode="exp",stSel=null,stTarget=null,stOk=0,stTot=0,stQueue=[];
+let stHalves=true,stMode="exp",stSel=null,stTarget=null,stOk=0,stTot=0,stQueue=[];
 function drawSt(){
   const s=$("#stSvg");s.innerHTML="";
-  const P=drawHeart(s,{click:true,valves:{tri:false,pul:false,mit:false,aor:false}});
+  const P=drawHeart(s,{click:true,halves:stHalves,valves:{tri:false,pul:false,mit:false,aor:false}});
   s.classList.toggle("dim",!!stSel);
   if(stSel&&P[stSel])P[stSel].classList.add("sel");
   Object.entries(P).forEach(([id,g])=>g.addEventListener("click",e=>{e.stopPropagation();pick(id)}));
@@ -284,6 +294,7 @@ $$("[data-mode]").forEach(b=>b.onclick=()=>{stMode=b.dataset.mode;press("[data-m
   if(f){stOk=0;stTot=0;stQueue=[];$("#stScore").textContent="Skóre: 0 správně z 0 pokusů";nextTask()}
   else{stTarget=null;$("#stStatus").className="status";$("#stStatus").textContent="Vyber část srdce";$("#stText").textContent="Odkysličená krev je modrá, okysličená červená.";drawSt()}});
 $("#stNext").onclick=nextTask;
+$("#stHalves").onclick=e=>{e.stopPropagation();stHalves=!stHalves;$("#stHalves").setAttribute("aria-pressed",stHalves);drawSt()};
 $("#stReset").onclick=()=>{stOk=0;stTot=0;stQueue=[];$("#stScore").textContent="Skóre: 0 správně z 0 pokusů";nextTask()};
 $("#stSvg").addEventListener("click",()=>{if(stMode==="exp"&&stSel){stSel=null;$("#stStatus").textContent="Vyber část srdce";$("#stText").textContent="Odkysličená krev je modrá, okysličená červená.";drawSt()}});
 
