@@ -164,7 +164,7 @@ function drawHeart(s,o={}){
   const tube=(g,d,col,w=24)=>{el("path",{d,fill:"none",stroke:col,"stroke-width":w,"stroke-linecap":"butt","stroke-linejoin":"round"},g);el("path",{d,fill:"none",stroke:"rgba(0,0,0,.12)","stroke-width":w,"stroke-linecap":"butt","stroke-linejoin":"round","stroke-dasharray":"0"},g).setAttribute("stroke-opacity","0")};
   if(vessels){
     // plíce a tělo
-    el("rect",{x:350,y:34,width:122,height:56,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,416,68,"plíce",{"text-anchor":"middle","font-size":15,"font-weight":700});
+    el("rect",{x:350,y:34,width:122,height:56,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,411,62,"plíce",{"text-anchor":"middle","font-size":15,"font-weight":700});
     el("rect",{x:6,y:412,width:96,height:58,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,54,446,"tělo",{"text-anchor":"middle","font-size":15,"font-weight":700});
     el("rect",{x:420,y:412,width:96,height:58,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,468,446,"tělo",{"text-anchor":"middle","font-size":15,"font-weight":700});
     el("path",{d:"M102 466 H 420",stroke:css("--muted"),"stroke-width":2,"stroke-dasharray":"5 5",fill:"none"},s);txt(s,190,458,"vlásečnice v tkáních těla",{"text-anchor":"middle","font-size":11,fill:css("--muted")});
@@ -174,7 +174,7 @@ function drawHeart(s,o={}){
     g=part("hdz");tube(g,"M163 40 V 140",V)
     g=part("ddz");tube(g,"M72 412 V 200 H 132",V,22);
     // plicní žíly
-    g=part("plz");tube(g,"M440 90 V 150 H 420",A,16);tube(g,"M462 90 V 196 H 420",A,16);
+    g=part("plz");tube(g,"M372 90 V 132",A,14);tube(g,"M402 90 V 132",A,14);tube(g,"M440 90 V 150 H 420",A,14);tube(g,"M462 90 V 196 H 420",A,14);
     // plicnice
     g=part("plc");tube(g,"M249 240 V 92 Q 249 78 262 78 H 352",V);
   }
@@ -300,7 +300,7 @@ function drawCe(now){
   // popisky
   const lab=(x,y,t,a="start",c=css("--muted"))=>txt(s,x,y,t,{"font-size":11.5,"font-weight":600,"text-anchor":a,fill:c});
   lab(175,96,"horní dutá žíla");lab(84,300,"dolní dutá",'start');lab(258,140,"plicnice","start",css("--vein"));lab(314,140,"aorta","start",css("--art"));
-  lab(432,122,"plicní žíly","end",css("--art"));
+  txt(s,411,84,"↓ 4 plicní žíly ↓",{"text-anchor":"middle","font-size":10.5,"font-weight":600,fill:css("--art")});
   txt(s,175,206,"PS",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});txt(s,376,206,"LS",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});
   txt(s,205,282,"PK",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});txt(s,360,282,"LK",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});
   txt(s,10,22,sys?"SYSTOLA KOMOR":"DIASTOLA KOMOR",{"text-anchor":"start","font-size":13,"font-weight":700,fill:sys?css("--accent"):css("--muted")});
