@@ -246,7 +246,19 @@ function drawSt(){
   s.classList.toggle("dim",!!stSel);
   if(stSel&&P[stSel])P[stSel].classList.add("sel");
   Object.entries(P).forEach(([id,g])=>g.addEventListener("click",e=>{e.stopPropagation();pick(id)}));
-  if(stMode==="exp"&&stSel){const n=PARTS[stSel][0];const t=txt(s,260,474,n,{"text-anchor":"middle","font-size":15,"font-weight":700,fill:css("--accent")});}
+  if(stMode==="exp"){
+    const pill=(id,x,y,t,col)=>{const g=el("g",{class:"lbl","data-id":id,style:"cursor:pointer"},s);
+      const r=el("rect",{rx:8,fill:css("--panel"),stroke:col,"stroke-width":stSel===id?3:1.5},g);
+      const tt=txt(g,x,y,t,{"font-size":12,"font-weight":700,fill:col,"text-anchor":"middle"});
+      const bb=tt.getBBox();r.setAttribute("x",bb.x-7);r.setAttribute("y",bb.y-3);r.setAttribute("width",bb.width+14);r.setAttribute("height",bb.height+6);
+      g.addEventListener("click",e=>{e.stopPropagation();pick(id)});};
+    const V=css("--vein"),A=css("--art");
+    pill("hdz",225,54,"horní dutá žíla",V);
+    pill("ddz",62,176,"dolní dutá žíla",V);
+    pill("plc",296,140,"plicnice",V);
+    pill("plz",411,82,"4 plicní žíly",A);
+  }
+  if(stMode==="exp"&&stSel){const n=PARTS[stSel][0];const t=txt(s,10,24,n,{"text-anchor":"start","font-size":15,"font-weight":700,fill:css("--accent")});}
 }
 function pick(id){
   if(stMode==="exp"){stSel=id;$("#stStatus").className="status";$("#stStatus").textContent=PARTS[id][0];$("#stText").innerHTML=PARTS[id][1];drawSt();return}
