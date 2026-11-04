@@ -164,17 +164,19 @@ function drawHeart(s,o={}){
   const tube=(g,d,col,w=24)=>{el("path",{d,fill:"none",stroke:col,"stroke-width":w,"stroke-linecap":"butt","stroke-linejoin":"round"},g);el("path",{d,fill:"none",stroke:"rgba(0,0,0,.12)","stroke-width":w,"stroke-linecap":"butt","stroke-linejoin":"round","stroke-dasharray":"0"},g).setAttribute("stroke-opacity","0")};
   if(vessels){
     // plíce a tělo
-    el("rect",{x:360,y:12,width:150,height:56,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,435,46,"plíce",{"text-anchor":"middle","font-size":15,"font-weight":700});
-    el("rect",{x:6,y:404,width:96,height:62,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,54,440,"tělo",{"text-anchor":"middle","font-size":15,"font-weight":700});
+    el("rect",{x:350,y:34,width:122,height:56,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,416,68,"plíce",{"text-anchor":"middle","font-size":15,"font-weight":700});
+    el("rect",{x:6,y:412,width:96,height:58,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,54,446,"tělo",{"text-anchor":"middle","font-size":15,"font-weight":700});
+    el("rect",{x:420,y:412,width:96,height:58,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,468,446,"tělo",{"text-anchor":"middle","font-size":15,"font-weight":700});
+    el("path",{d:"M102 466 H 420",stroke:css("--muted"),"stroke-width":2,"stroke-dasharray":"5 5",fill:"none"},s);txt(s,190,458,"vlásečnice v tkáních těla",{"text-anchor":"middle","font-size":11,fill:css("--muted")});
     // aorta (vzestupná → oblouk → sestupná) – kreslí se před plicnicí, ta ji kříží zepředu
-    let g=part("ao");tube(g,"M303 236 V 70 Q 303 22 255 22 H 40 V 410",A);
+    let g=part("ao");tube(g,"M303 236 V 40 Q 303 14 329 14 H 480 Q 504 14 504 40 V 412",A);
     // horní a dolní dutá žíla
     g=part("hdz");tube(g,"M163 40 V 140",V)
-    g=part("ddz");tube(g,"M72 410 V 200 H 132",V,22);
+    g=part("ddz");tube(g,"M72 412 V 200 H 132",V,22);
     // plicní žíly
-    g=part("plz");tube(g,"M470 68 V 150 H 420",A,18);tube(g,"M488 68 V 196 H 420",A,18);
+    g=part("plz");tube(g,"M440 90 V 150 H 420",A,16);tube(g,"M462 90 V 196 H 420",A,16);
     // plicnice
-    g=part("plc");tube(g,"M249 240 V 92 Q 249 78 262 78 H 360",V);
+    g=part("plc");tube(g,"M249 240 V 92 Q 249 78 262 78 H 352",V);
   }
   // osrdečník
   let g=part("per");
@@ -272,12 +274,12 @@ const CE=[
   {n:"duté žíly → pravá předsíň",o:false,v:SYS,p:[[163,44],[163,175]],t:"Odkysličená krev z těla přitéká <b>horní a dolní dutou žílou</b> do <b>pravé předsíně</b>. Komory se právě stahují, cípaté chlopně jsou zavřené – předsíně se zatím plní."},
   {n:"trojcípá chlopeň → pravá komora",o:false,v:DIA,p:[[163,175],[180,236],[190,305]],t:"Komory ochably, <b>trojcípá chlopeň</b> se otevřela a krev proudí do <b>pravé komory</b>. Stah obou předsíní (systola síní) komory dopustí."},
   {n:"plicnicová chlopeň → plicnice",o:false,v:SYS,p:[[190,305],[240,282],[249,240],[249,96]],t:"<b>Systola komor:</b> trojcípá chlopeň se zavřela (drží ji šlašinky a bradavčité svaly), otevřela se <b>plicnicová poloměsíčitá chlopeň</b> a krev míří <b>plicnicí</b> k plicím."},
-  {n:"plíce",o:false,chg:true,v:DIA,p:[[249,96],[262,78],[360,52],[455,40]],t:"V <b>plicích</b> se krev okysličí. Poloměsíčité chlopně se mezitím zavřely, krev z plicnice nemůže zpět do komory."},
-  {n:"plicní žíly → levá předsíň",o:true,v:SYS,p:[[470,66],[470,150],[400,168]],t:"Okysličená krev se vrací obvykle <b>čtyřmi plicními žilami</b> do <b>levé předsíně</b>."},
+  {n:"plíce",o:false,chg:true,v:DIA,p:[[249,96],[262,78],[352,78],[410,64]],t:"V <b>plicích</b> se krev okysličí. Poloměsíčité chlopně se mezitím zavřely, krev z plicnice nemůže zpět do komory."},
+  {n:"plicní žíly → levá předsíň",o:true,v:SYS,p:[[440,88],[440,150],[400,168]],t:"Okysličená krev se vrací obvykle <b>čtyřmi plicními žilami</b> do <b>levé předsíně</b>."},
   {n:"dvojcípá chlopeň → levá komora",o:true,v:DIA,p:[[400,168],[372,236],[360,305]],t:"Přes <b>dvojcípou (mitrální) chlopeň</b> do <b>levé komory</b> – ta má nejsilnější stěnu."},
-  {n:"aortální chlopeň → aorta",o:true,v:SYS,p:[[360,305],[312,282],[303,240],[303,70]],t:"<b>Systola komor:</b> mitrální chlopeň se zavřela, otevřela se <b>aortální poloměsíčitá chlopeň</b> a krev vtéká do <b>aorty</b>. Ze vzestupné aorty hned odbočují <b>věnčité tepny</b> k srdečnímu svalu."},
-  {n:"aortální oblouk → tělo",o:true,chg:true,v:DIA,p:[[303,70],[292,28],[255,22],[40,22],[40,400],[54,430]],t:"<b>Aortálním obloukem</b> a <b>sestupnou aortou</b> do těla. Ve vlásečnicích tkání krev předá kyslík – stane se odkysličenou."},
-  {n:"dolní dutá žíla → pravá předsíň",o:false,v:SYS,p:[[60,430],[72,410],[72,200],[150,200]],t:"Odkysličená krev se vrací <b>dolní dutou žílou</b> do pravé předsíně. Kruh se uzavřel."},
+  {n:"aortální chlopeň → aorta",o:true,v:SYS,p:[[360,305],[312,282],[303,240],[303,60]],t:"<b>Systola komor:</b> mitrální chlopeň se zavřela, otevřela se <b>aortální poloměsíčitá chlopeň</b> a krev vtéká do <b>aorty</b>. Ze vzestupné aorty hned odbočují <b>věnčité tepny</b> k srdečnímu svalu."},
+  {n:"aortální oblouk → tělo",o:true,chg:true,v:DIA,p:[[303,60],[303,30],[329,14],[480,14],[504,40],[504,412],[474,440]],t:"<b>Aortálním obloukem</b> a <b>sestupnou aortou</b> do těla. Ve vlásečnicích tkání krev předá kyslík – stane se odkysličenou."},
+  {n:"dolní dutá žíla → pravá předsíň",o:false,v:SYS,p:[[474,446],[420,466],[102,466],[72,440],[72,200],[150,200]],t:"Z vlásečnic v tkáních se odkysličená krev vrací <b>dolní dutou žílou</b> do pravé předsíně. Kruh se uzavřel."},
 ];
 let ceS=-1,ceP=0,ceAnim=null,cePlay=null,ceLeak=false,ceV=SYS;
 function lerpPath(pts,f){if(pts.length<2)return pts[0];const L=[];let tot=0;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);L.push(d);tot+=d}
@@ -298,10 +300,10 @@ function drawCe(now){
   // popisky
   const lab=(x,y,t,a="start",c=css("--muted"))=>txt(s,x,y,t,{"font-size":11.5,"font-weight":600,"text-anchor":a,fill:c});
   lab(175,96,"horní dutá žíla");lab(84,300,"dolní dutá",'start');lab(258,140,"plicnice","start",css("--vein"));lab(314,140,"aorta","start",css("--art"));
-  lab(462,112,"plicní žíly","end",css("--art"));
+  lab(432,122,"plicní žíly","end",css("--art"));
   txt(s,175,206,"PS",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});txt(s,376,206,"LS",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});
   txt(s,205,282,"PK",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});txt(s,360,282,"LK",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});
-  txt(s,512,474,sys?"SYSTOLA KOMOR":"DIASTOLA KOMOR",{"text-anchor":"end","font-size":13,"font-weight":700,fill:sys?css("--accent"):css("--muted")});
+  txt(s,10,22,sys?"SYSTOLA KOMOR":"DIASTOLA KOMOR",{"text-anchor":"start","font-size":13,"font-weight":700,fill:sys?css("--accent"):css("--muted")});
 }
 function updCe(){
   if(ceS<0){$("#ceStatus").className="status";$("#ceStatus").textContent="Krvinka čeká v horní duté žíle";$("#ceText").innerHTML="Začínáme odkysličenou krví, která se vrací z těla.";$("#ceOzva").textContent="";}
