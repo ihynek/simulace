@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nemoci srdce a cév</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --myo:#e9aaa0; --myo2:#d98b80; --wall:#e6a596; --plaque:#f2c94c; --ldl:#e0a21b; --hdl:#2e9e5b;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --warn:#c97a00; --dead:#8a8f96; --ekg:#1e8a3c;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --myo:#7a4540; --myo2:#94544d; --wall:#8a5246; --plaque:#d9b23a; --ldl:#e8b03a; --hdl:#4cc47e;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --dead:#6b7178; --ekg:#4cc46d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --myo:#7a4540; --myo2:#94544d; --wall:#8a5246; --plaque:#d9b23a; --ldl:#e8b03a; --hdl:#4cc47e;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --dead:#6b7178; --ekg:#4cc46d; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)} .status.warn{color:var(--warn)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.2rem;font-variant-numeric:tabular-nums;margin:0}
+.chk{display:flex;flex-wrap:wrap;gap:6px}
+.chk label{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:.92rem;background:var(--bg)}
+.chk input{accent-color:var(--accent)}
+table.bp{border-collapse:collapse;width:100%;font-size:.92rem}
+table.bp td,table.bp th{border:1px solid var(--line);padding:5px 8px;text-align:left}
+table.bp th{background:var(--bg)}
+table.bp tr.on td{background:var(--accent);color:#fff;font-weight:700}
+.aed{border:2px solid var(--ok);border-radius:10px;padding:10px 12px}
+.aed .msg{font-family:var(--f-mono);font-size:1rem;margin:0 0 8px}
+.big{font-family:var(--f-display);font-size:2.2rem;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
+#tap{touch-action:manipulation;user-select:none}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Nemoci <span>srdce a cév</span></h1>
+  <p class="sub">Interaktivní pokusy k 6. hodině · Oběhová soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-at" aria-selected="true" data-p="p-at">1 · Ateroskleróza a infarkt</button>
+  <button role="tab" id="t-bp" aria-selected="false" data-p="p-bp">2 · Zařaď tlak</button>
+  <button role="tab" id="t-ek" aria-selected="false" data-p="p-ek">3 · Křivky EKG a AED</button>
+  <button role="tab" id="t-kp" aria-selected="false" data-p="p-kp">4 · Masáž srdce</button>
+</nav>
+
+<!-- 1 ATEROSKLERÓZA -->
+<section class="stage" id="p-at" role="tabpanel" aria-labelledby="t-at">
+  <div class="panel"><svg id="atSvg" viewBox="0 0 520 470" role="img" aria-label="Věnčitá tepna s aterosklerózou a srdce"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Kornatění věnčité tepny</h2>
+      <p>Zapni rizikové faktory a posouvej věk. Žluté částice <b>LDL</b> vozí tuky a cholesterol do tkání a usazují se ve stěně tepny, zelené <b>HDL</b> odvádějí cholesterol do jater.</p>
+    </div>
+    <div class="chk" role="group" aria-label="Rizikové faktory">
+      <label><input type="checkbox" data-r="tlak">vysoký krevní tlak</label>
+      <label><input type="checkbox" data-r="kour">kouření</label>
+      <label><input type="checkbox" data-r="obez">obezita</label>
+      <label><input type="checkbox" data-r="pohyb">málo pohybu</label>
+      <label><input type="checkbox" data-r="cukr">cukrovka</label>
+    </div>
+    <label class="sl">Věk <output id="ageOut">20 let</output><input type="range" id="age" min="20" max="80" value="20"></label>
+    <p class="read" id="atRead"></p>
+    <p class="status" id="atStatus"></p>
+    <p id="atText"></p>
+    <div class="row">
+      <button class="btn" id="atRupt">Plak praskne</button>
+      <button class="btn" id="atStent" disabled>Zavést stent</button>
+      <button class="btn" id="atBypass" disabled>Bypass</button>
+      <button class="btn" id="atReset">Od začátku</button>
+    </div>
+    <p class="note"><b>Ateroskleróza</b> (řec. athere = kaše, skleros = tvrdý): ve stěně tepen se usazují kašovité plaky – <b>ateromy</b>, prorůstá je vazivo a tepny tvrdnou i usazováním vápenatých solí (<b>kornatění tepen</b>). „Zlý“ (v LDL) a „hodný“ (v HDL) cholesterol je přitom stejná molekula – záleží jen na tom, kam je doručována.</p>
+  </div>
+</section>
+
+<!-- 2 TLAK -->
+<section class="stage" id="p-bp" role="tabpanel" aria-labelledby="t-bp" hidden>
+  <div class="panel">
+    <svg id="bpSvg" viewBox="0 0 520 210" role="img" aria-label="Zařazení krevního tlaku"></svg>
+    <table class="bp" id="bpTab" aria-label="Hodnoty krevního tlaku">
+      <tr><th>Tlak</th><th>systolický</th><th>diastolický</th></tr>
+      <tr data-c="-1"><td>nízký (hypotenze)</td><td>&lt; 90</td><td>&lt; 60</td></tr>
+      <tr data-c="0"><td>optimální</td><td>120</td><td>80</td></tr>
+      <tr data-c="1"><td>normální</td><td>&lt; 130</td><td>&lt; 85</td></tr>
+      <tr data-c="2"><td>zvýšený</td><td>130–139</td><td>85–89</td></tr>
+      <tr data-c="3"><td>vysoký (hypertenze), úroveň 1</td><td>140–159</td><td>90–99</td></tr>
+      <tr data-c="4"><td>vysoký (hypertenze), úroveň 2</td><td>160–179</td><td>100–109</td></tr>
+      <tr data-c="5"><td>vysoký (hypertenze), úroveň 3</td><td>&gt; 180</td><td>&gt; 110</td></tr>
+    </table>
+  </div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Jaký má pacient tlak?</h2>
+      <p>Nastav systolický a diastolický tlak nebo vyber pacienta. Zvýrazní se řádek tabulky z učebnice.</p>
+    </div>
+    <label class="sl">Systolický tlak <output id="sysOut"></output><input type="range" id="sys" min="70" max="210" value="120"></label>
+    <label class="sl">Diastolický tlak <output id="diaOut"></output><input type="range" id="dia" min="40" max="130" value="80"></label>
+    <div class="row" role="group" aria-label="Pacienti">
+      <button class="btn" data-bp="120,80">pacient A</button><button class="btn" data-bp="150,95">pacient B</button>
+      <button class="btn" data-bp="95,58">pacient C</button><button class="btn" data-bp="135,87">pacient D</button><button class="btn" data-bp="185,115">pacient E</button>
+    </div>
+    <p class="big" id="bpBig"></p>
+    <p class="status" id="bpStatus"></p>
+    <p id="bpText"></p>
+    <p class="note"><b>Hypertenze</b> = tlak dlouhodobě nad <b>140/90</b>. Příčiny: zvýšený příjem soli, poruchy odvádění vody močí v ledvinách, hormonální poruchy, dědičné predispozice. Zvyšuje riziko aterosklerózy i srdečních a mozkových cévních příhod. Když systolický a diastolický tlak patří do různých řádků, animace použije ten vyšší (obecné pravidlo, v učebnici není).</p>
+  </div>
+</section>
+
+<!-- 3 EKG -->
+<section class="stage" id="p-ek" role="tabpanel" aria-labelledby="t-ek" hidden>
+  <div class="panel">
+    <svg id="ekSvg" viewBox="0 0 520 220" role="img" aria-label="Záznam EKG"></svg>
+    <div class="aed" style="margin-top:12px">
+      <p class="msg" id="aedMsg">AED není připojeno.</p>
+      <div class="row"><button class="btn" id="aedOn">Připojit AED</button><button class="btn primary" id="aedShock" disabled>⚡ Výboj</button></div>
+    </div>
+  </div>
+  <div class="panel ctrl">
+    <div class="row" role="group" aria-label="Křivka">
+      <button class="btn" data-rh="norm" aria-pressed="true">fyziologické EKG</button>
+      <button class="btn" data-rh="tachy">tachykardie</button>
+      <button class="btn" data-rh="brady">bradykardie</button>
+      <button class="btn" data-rh="fib">fibrilace komor</button>
+      <button class="btn" data-rh="asy">asystolie</button>
+      <button class="btn" data-rh="inf">infarkt myokardu</button>
+    </div>
+    <p class="read" id="ekRead"></p>
+    <p class="status" id="ekStatus"></p>
+    <p id="ekText"></p>
+    <div class="row"><button class="btn" id="pace" hidden>Voperovat kardiostimulátor</button></div>
+    <p class="note">AED (automatizovaný externí defibrilátor) si samo podle EKG určí, jestli je výboj vhodný, a hlasem navede, jak postupovat. Najdeš ho na veřejných místech podle <b>zelené informační tabulky</b>.</p>
+  </div>
+</section>
+
+<!-- 4 MASÁŽ -->
+<section class="stage" id="p-kp" role="tabpanel" aria-labelledby="t-kp" hidden>
+  <div class="panel"><svg id="kpSvg" viewBox="0 0 520 380" role="img" aria-label="Nepřímá srdeční masáž – stlačování hrudníku do rytmu"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Stlačuj do rytmu</h2>
+      <p>Pusť metronom a klepej na obrázek (nebo mačkej mezerník) přesně do rytmu. Animace měří tvoje tempo.</p>
+    </div>
+    <label class="sl">Tempo metronomu <output id="bpmOut">110 /min</output><input type="range" id="bpm" min="80" max="140" value="110"></label>
+    <div class="row"><button class="btn primary" id="metro">Spustit metronom</button><button class="btn" id="snd" aria-pressed="true">Zvuk</button><button class="btn" id="kpReset">Vynulovat</button></div>
+    <p class="big" id="kpTempo">– /min</p>
+    <p class="status" id="kpStatus">Klepni do rytmu alespoň čtyřikrát.</p>
+    <p class="read" id="kpCount">Stlačení: 0</p>
+    <p class="note"><b>Nepřímá srdeční masáž</b> u dospělého: stlačuj <b>kolmo hrudní kost mezi bradavkami</b> do hloubky <b>5–6 cm</b>, <b>100–120 stlačení za minutu</b> (rytmus písniček Rolničky, rolničky nebo Stayin’ Alive od Bee Gees). Při zástavě srdce je výhodné použít <b>AED</b>. Záchrannou službu voláš na lince <b>155</b>.</p>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+let tab="p-at";
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});tab=b.dataset.p;drawBp();}));
+
+/* ===== 1 ATEROSKLERÓZA ===== */
+let age=20,risks=new Set(),phase="norm",stentP=0,bypassP=0,ruptT=0;
+const plaque=()=>{const rate=.006*(1+.6*risks.size);return Math.min(.82,Math.max(0,(age-20)*rate))};
+const parts=Array.from({length:22},(_,i)=>({x:Math.random(),y:Math.random()*2-1,v:.5+Math.random()*.5}));
+const ldl=Array.from({length:10},(_,i)=>({p:Math.random(),side:i%2?1:-1,x:.25+Math.random()*.5}));
+function drawAt(now){
+  const s=$("#atSvg");s.innerHTML="";const t=reduce?0:now/1000;
+  const A=css("--art"),W=css("--wall"),PL=css("--plaque");
+  const cy=130,R=58,x0=20,x1=500,mid=260;
+  const p=plaque();const blocked=phase==="rupt";const open=phase==="stent"||phase==="bypass";
+  txt(s,20,26,"věnčitá (koronární) tepna – podélný řez",{"font-size":13,"font-weight":700});
+  // stěna
+  el("rect",{x:x0,y:cy-R-16,width:x1-x0,height:16,fill:W},s);el("rect",{x:x0,y:cy+R,width:x1-x0,height:16,fill:W},s);
+  // lumen
+  el("rect",{x:x0,y:cy-R,width:x1-x0,height:2*R,fill:A,opacity:.18},s);
+  // plaky (horní a dolní) – tvar podle p
+  const ph=p*R*(phase==="stent"?Math.max(.15,1-stentP*.85):1);
+  if(ph>1){const w=170;
+    [-1,1].forEach(sg=>{const yb=sg<0?cy-R:cy+R;const d=`M${mid-w/2} ${yb} Q ${mid-w/4} ${yb-sg*ph} ${mid} ${yb-sg*ph} Q ${mid+w/4} ${yb-sg*ph} ${mid+w/2} ${yb} Z`;
+      el("path",{d,fill:PL,stroke:"#b88a10","stroke-width":1.5},s);
+      if(p>.35&&phase!=="stent")for(let i=0;i<5;i++)el("circle",{cx:mid-50+i*25,cy:yb-sg*ph*.45,r:3,fill:"#fff",opacity:.8},s);});
+    txt(s,mid,cy-R-24,"aterom (plak)",{"text-anchor":"middle","font-size":12.5,"font-weight":700,fill:"#b88a10"});}
+  // trombus
+  if(blocked){const g=Math.min(1,(now-ruptT)/1200);el("ellipse",{cx:mid+6,cy,rx:30*g+4,ry:(R-ph)*g+2,fill:"#7a0f1f"},s);
+    txt(s,mid,cy+R+38,"krevní sraženina (trombus) ucpala tepnu",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:css("--bad")});}
+  // stent
+  if(phase==="stent"){const k=Math.min(1,stentP);const sx=mid-95,sw=190,top=cy-R+ (R-ph)*0+ (1-k)*R*.8,bot=cy+R-(1-k)*R*.8;
+    el("line",{x1:x0,y1:cy,x2:sx,y2:cy,stroke:css("--muted"),"stroke-width":3},s);
+    for(let i=0;i<=12;i++){const x=sx+i*sw/12;el("line",{x1:x,y1:top+ph*k*0,x2:x+sw/24,y2:bot,stroke:"#8a939c","stroke-width":2},s);el("line",{x1:x+sw/24,y1:top,x2:x,y2:bot,stroke:"#8a939c","stroke-width":2},s)}
+    if(k<1){el("rect",{x:sx+10,y:cy-(R*.8*k+6),width:sw-20,height:2*(R*.8*k+6),rx:10,fill:"#9fc3ff",opacity:.55},s);txt(s,mid,cy+4,"balonek",{"text-anchor":"middle","font-size":12,"font-weight":700})}
+    else txt(s,mid,cy+R+38,"stent (nitinol) drží tepnu otevřenou",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:css("--ok")});}
+  // bypass
+  if(phase==="bypass"){const k=Math.min(1,bypassP);const d=`M ${mid-150} ${cy-R-16} C ${mid-120} ${cy-R-110}, ${mid+120} ${cy-R-110}, ${mid+150} ${cy-R-16}`;
+    const len=520;el("path",{d,fill:"none",stroke:css("--vein"),"stroke-width":18,"stroke-dasharray":`${len*k} ${len}`,"stroke-linecap":"round",opacity:.85},s);
+    if(k>=1)txt(s,mid,cy-R-92,"bypass – podkožní žíla (vena saphena)",{"text-anchor":"middle","font-size":12.5,"font-weight":700,fill:css("--vein")});}
+  // tok krve – krvinky
+  const lumen=Math.max(.04,1-p),speedBase=blocked?0:(open?1:Math.max(.08,lumen));
+  parts.forEach(q=>{const sp=reduce?0:(.06+.12*q.v)*speedBase;let x=(q.x+t*sp)%1;const X=x0+x*(x1-x0);
+    const inSten=Math.abs(X-mid)<85;let lim=R-8;if(inSten&&!open)lim=Math.max(3,(R-ph)-6);
+    if(blocked&&X>mid-40)return;
+    let Y=cy+q.y*lim;
+    if(phase==="bypass"&&bypassP>=1&&Math.abs(X-mid)<150&&q.v>.75){const u=(X-(mid-150))/300;Y=cy-R-16-Math.sin(u*Math.PI)*78}
+    el("ellipse",{cx:X,cy:Y,rx:7,ry:4,fill:A,opacity:.85},s)});
+  // LDL a HDL částice ve stěně
+  ldl.forEach((q,i)=>{const pp=reduce?.5:(q.p+t*.15)%1;const X=x0+80+q.x*300;
+    if(i%3===2){const Y=q.side<0?cy-R+pp*0-4-pp*12:cy+R+4+pp*12;el("circle",{cx:X+pp*60,cy:Y,r:4,fill:css("--hdl")},s)}
+    else{const Y=q.side<0?cy-R*0.6-pp*(R*.4):cy+R*0.6+pp*(R*.4);el("circle",{cx:X,cy:Y,r:6,fill:css("--ldl"),opacity:1-pp*.5},s)}});
+  // legenda
+  el("circle",{cx:30,cy:245,r:6,fill:css("--ldl")},s);txt(s,42,249,"LDL – „zlý“ cholesterol do tkání",{"font-size":12});
+  el("circle",{cx:270,cy:245,r:4,fill:css("--hdl")},s);txt(s,280,249,"HDL – „hodný“ cholesterol do jater",{"font-size":12});
+  // srdce s věnčitou tepnou
+  const hx=260,hy=360;
+  el("path",{d:`M${hx} ${hy+95} Q ${hx-120} ${hy+20} ${hx-110} ${hy-45} Q ${hx-95} ${hy-90} ${hx-40} ${hy-80} Q ${hx-10} ${hy-75} ${hx} ${hy-55} Q ${hx+10} ${hy-75} ${hx+40} ${hy-80} Q ${hx+95} ${hy-90} ${hx+110} ${hy-45} Q ${hx+120} ${hy+20} ${hx} ${hy+95} Z`,fill:css("--myo"),stroke:css("--myo2"),"stroke-width":2},s);
+  const isch=!blocked&&!open&&p>.55;
+  if(blocked){const g=Math.min(1,(now-ruptT)/2500);el("path",{d:`M${hx+20} ${hy-10} Q ${hx+90} ${hy} ${hx+70} ${hy+40} Q ${hx+40} ${hy+70} ${hx+10} ${hy+60} Q ${hx-5} ${hy+20} ${hx+20} ${hy-10} Z`,fill:css("--dead"),opacity:g},s);
+    txt(s,hx+150,hy+20,"odumírá myokard",{"font-size":12.5,"font-weight":700,fill:css("--bad")});txt(s,hx+150,hy+36,"= infarkt",{"font-size":12.5,"font-weight":700,fill:css("--bad")});}
+  if(isch){el("path",{d:`M${hx+20} ${hy-10} Q ${hx+90} ${hy} ${hx+70} ${hy+40} Q ${hx+40} ${hy+70} ${hx+10} ${hy+60} Q ${hx-5} ${hy+20} ${hx+20} ${hy-10} Z`,fill:"#7a5ad6",opacity:.35+.2*Math.sin(t*3)},s);
+    txt(s,hx+150,hy+20,"nedokrvení",{"font-size":12.5,"font-weight":700,fill:"#7a5ad6"});txt(s,hx+150,hy+36,"(ischemie)",{"font-size":12.5,"font-weight":700,fill:"#7a5ad6"});}
+  el("path",{d:`M${hx-6} ${hy-62} Q ${hx+40} ${hy-40} ${hx+50} ${hy+10} Q ${hx+50} ${hy+50} ${hx+20} ${hy+80}`,fill:"none",stroke:A,"stroke-width":5},s);
+  el("circle",{cx:hx+48,cy:hy-14,r:7,fill:"none",stroke:css("--ink"),"stroke-width":2},s);
+  txt(s,hx-150,hy-20,"srdce –",{"font-size":12.5,"font-weight":600,"text-anchor":"middle"});txt(s,hx-150,hy-4,"kroužek = místo zúžení",{"font-size":12,"text-anchor":"middle",fill:css("--muted")});
+}
+function updAt(){
+  const p=plaque();$("#ageOut").textContent=age+" let";
+  const lum=Math.round((1-p)*100);
+  $("#atRead").textContent=phase==="rupt"?"průsvit tepny: 0 %":(phase==="stent"||phase==="bypass")?"průtok krve obnoven":`průsvit tepny: ${lum} %`;
+  const S=$("#atStatus"),T=$("#atText");
+  $("#atStent").disabled=$("#atBypass").disabled=phase!=="rupt";
+  $("#atRupt").disabled=phase!=="norm"||p<.2;
+  if(phase==="rupt"){S.className="status bad";S.textContent="Infarkt myokardu";
+    T.innerHTML="Aterom praskl a porušil nesmáčivý povrch tepny → aktivovaly se <b>destičky</b> a vznikla <b>krevní sraženina (trombus)</b>, která věnčitou tepnu ucpala. Část srdečního svalu za ní <b>odumírá</b>; neřešený odumřelý myokard nahradí <b>vazivo</b>, které se nestahuje. Příznak: svíravá bolest na hrudi, často do zad, čelisti nebo levé paže → volat záchrannou službu. Nejdřív se natočí <b>EKG</b> a z krve se změří např. <b>srdeční troponin</b>.";return}
+  if(phase==="stent"){S.className="status ok";S.textContent="Angioplastika se stentem";
+    T.innerHTML="<b>Angioplastika</b> (řec. angeion = céva) = rekonstrukce zúžené cévy. Přes vřetenní tepnu na zápěstí se <b>katetrem</b> zavede <b>stent</b> – drobná kovová pružinka ze slitiny s tvarovou pamětí (<b>nitinol</b> = nikl + titan), kterou rozšíří <b>nafouknutý balonek</b>.";return}
+  if(phase==="bypass"){S.className="status ok";S.textContent="Bypass";
+    T.innerHTML="<b>Bypass</b> = přemostění zúžené cévy jinou cévou, typicky <b>povrchovou podkožní žílou (vena saphena)</b> z vnitřní strany dolní končetiny.";return}
+  if(p<.2){S.className="status ok";S.textContent="Tepna je průchodná";T.innerHTML="Stěna tepny je zatím čistá. LDL vozí tuky a cholesterol do buněk jako zdroj živin a stavebního materiálu, HDL odvádí cholesterol z tkání do jater.";}
+  else if(p<.55){S.className="status warn";S.textContent="Ateroskleróza – tepna se zužuje";T.innerHTML="LDL jsou málo stálé, rozpadají se a produkty rozpadu se <b>usazují na stěnách cév</b>. Vznikají <b>ateromy</b>, průsvit se zužuje."+(risks.size?" Zapnuté rizikové faktory průběh zrychlují"+(risks.has("kour")?" – kouření způsobuje v cévách oxidační stres a trvalé záněty":"")+".":" Bez rizikových faktorů jde zužování pomalu.");}
+  else{S.className="status bad";S.textContent="Ischemická choroba srdeční";T.innerHTML="Zúžená věnčitá tepna nestačí přivádět krev → <b>nedokrvení srdečního svalu</b>. Při zátěži, rozčílení nebo jídle se ozve bolest a tlak za hrudní kostí = <b>angina pectoris</b>. Uleví <b>nitroglycerin</b> (uvolní oxid dusnatý, ten rozšíří cévy). Plak může kdykoli prasknout – zkus tlačítko <b>Plak praskne</b>.";}
+}
+$("#age").oninput=e=>{age=+e.target.value;updAt()};
+$$("[data-r]").forEach(c=>c.onchange=()=>{c.checked?risks.add(c.dataset.r):risks.delete(c.dataset.r);updAt()});
+$("#atRupt").onclick=()=>{phase="rupt";ruptT=performance.now();updAt()};
+const anim=(set,dur)=>{const st=performance.now();const f=n=>{const k=Math.min(1,(n-st)/(reduce?1:dur));set(k);if(k<1)requestAnimationFrame(f)};requestAnimationFrame(f)};
+$("#atStent").onclick=()=>{phase="stent";stentP=0;updAt();anim(k=>stentP=k,2200)};
+$("#atBypass").onclick=()=>{phase="bypass";bypassP=0;updAt();anim(k=>bypassP=k,1800)};
+$("#atReset").onclick=()=>{phase="norm";age=20;$("#age").value=20;risks.clear();$$("[data-r]").forEach(c=>c.checked=false);updAt()};
+
+/* ===== 2 TLAK ===== */
+const CAT=["optimální","normální","zvýšený","vysoký (hypertenze), úroveň 1","vysoký (hypertenze), úroveň 2","vysoký (hypertenze), úroveň 3"];
+function bpCat(s,d){if(s<90||d<60)return -1;
+  const cs=s<=120?0:s<130?1:s<140?2:s<160?3:s<180?4:5, cd=d<=80?0:d<85?1:d<90?2:d<100?3:d<110?4:5;return Math.max(cs,cd)}
+function drawBp(){
+  const s=$("#bpSvg");if(!s)return;s.innerHTML="";const sy=+$("#sys").value,di=+$("#dia").value;const c=bpCat(sy,di);
+  $("#sysOut").textContent=sy+" mm Hg";$("#diaOut").textContent=di+" mm Hg";$("#bpBig").textContent=sy+"/"+di;
+  const cols=["#6aa2ff","#2e9e5b","#7cc47e","#e0b23a","#e8873a","#d9553a","#b3122b"];
+  const W=470,x0=25;const segs=7;
+  for(let i=0;i<segs;i++){el("rect",{x:x0+i*W/segs,y:70,width:W/segs-3,height:46,rx:6,fill:cols[i],opacity:c+1===i?1:.35},s)}
+  ["nízký","optim.","norm.","zvýš.","hyp. 1","hyp. 2","hyp. 3"].forEach((n,i)=>txt(s,x0+i*W/segs+W/segs/2-1.5,99,n,{"text-anchor":"middle","font-size":12.5,"font-weight":700,fill:"#fff"}));
+  const px=x0+(c+1)*W/segs+W/segs/2-1.5;el("path",{d:`M${px} 62 l-9 -16 h18 z`,fill:css("--ink")},s);
+  txt(s,px,38,sy+"/"+di,{"text-anchor":"middle","font-size":16,"font-weight":700});
+  txt(s,x0,150,"Hranice hypertenze: 140/90",{"font-size":13,fill:css("--muted")});
+  el("line",{x1:x0+4*W/segs-1.5,y1:124,x2:x0+4*W/segs-1.5,y2:160,stroke:css("--bad"),"stroke-width":2,"stroke-dasharray":"4 3"},s);
+  $$("#bpTab tr[data-c]").forEach(r=>r.classList.toggle("on",+r.dataset.c===c));
+  const S=$("#bpStatus");const name=c<0?"nízký tlak (hypotenze)":CAT[c];S.textContent=name;S.className="status "+(c>=3?"bad":c===2||c<0?"warn":"ok");
+  $("#bpText").innerHTML=c>=3?"Je-li tlak takto vysoko <b>dlouhodobě</b>, jde o <b>hypertenzi</b>: roste riziko aterosklerózy a srdečních i mozkových cévních příhod.":c===2?"Tlak je zvýšený, ale ještě to není hypertenze (ta začíná dlouhodobě nad 140/90).":c<0?"Systolický tlak pod 90 nebo diastolický pod 60 = nízký tlak (hypotenze).":"Tlak je v pořádku.";
+}
+$("#sys").oninput=drawBp;$("#dia").oninput=drawBp;
+$$("[data-bp]").forEach(b=>b.onclick=()=>{const [a,d]=b.dataset.bp.split(",");$("#sys").value=a;$("#dia").value=d;drawBp()});
+
+/* ===== 3 EKG A AED ===== */
+const RH={
+  norm:{n:"Fyziologické EKG",hr:72,st:"ok",t:"Pravidelný rytmus, klidová frekvence 60–90 /min."},
+  tachy:{n:"Tachykardie",hr:130,st:"warn",t:"<b>Tachykardie</b> (řec. tachys = rychlý): klidová frekvence <b>nad 90 /min</b>. Bez fyziologické příčiny (zátěž) bývá projevem nemoci – např. při <b>horečce</b>, <b>anémii</b> nebo <b>zvýšené činnosti štítné žlázy</b>."},
+  brady:{n:"Bradykardie",hr:42,st:"warn",t:"<b>Bradykardie</b> (řec. bradys = pomalý): klidová frekvence <b>pod 60 /min</b>. Fyziologická je u <b>vytrvalostních sportovců</b> a ve spánku. Je-li frekvence příliš pomalá, lze voperovat <b>kardiostimulátor</b>."},
+  fib:{n:"Fibrilace komor",hr:0,st:"bad",t:"Srdce <b>chaoticky</b> a nedostatečně aktivuje srdeční sval – komory nepumpují krev. Pomůže <b>elektrický výboj</b>, který srdeční rytmus „restartuje“; poskytnout ho může i laik pomocí <b>AED</b>. Do té doby nepřímá srdeční masáž."},
+  asy:{n:"Asystolie (srdeční zástava)",hr:0,st:"bad",t:"„<b>Rovná čára</b>“ – srdce nepracuje. <b>Výboj nepomůže</b>, i když to tak v seriálech často vypadá. Tyto zástavy tvoří asi <b>70 %</b> případů; jedinou možností je <b>kardiopulmonální resuscitace</b>, která zachová alespoň částečné zásobení mozku kyslíkem. Lékař pak podá injekci <b>adrenalinu</b>."},
+  inf:{n:"Infarkt myokardu",hr:80,st:"bad",t:"Při infarktu se nejprve natočí <b>EKG</b> – křivka se změní (na obrázku zvednutý úsek mezi komplexem QRS a vlnou T). Pak biochemické testy (např. <b>srdeční troponin</b>) a obvykle <b>angioplastika se stentem</b>."},
+};
+let rh="norm",ekPh=0,ekT=0,ekLast=0,paced=false,aed="off",aedT=0;const EK=[];const WIN=4;
+const noise=t=>.05*Math.sin(t*37)+.03*Math.sin(t*91)+.02*Math.sin(t*13);
+function wave(ph,t){const g=(c,w,a)=>a*Math.exp(-((ph-c)**2)/(2*w*w));
+  if(rh==="asy")return noise(t)*.3;
+  if(rh==="fib")return .35*Math.sin(t*31)+.25*Math.sin(t*47+1)+.2*Math.sin(t*23+2)+.1*Math.sin(t*71);
+  let v=g(.11,.025,.16)+g(.215,.008,-.12)+g(.24,.009,1)+g(.265,.009,-.22)+g(.45,.04,.3);
+  if(rh==="inf"){v=g(.11,.025,.16)+g(.215,.008,-.12)+g(.24,.009,.85)+(ph>.26&&ph<.5?.32*Math.sin((ph-.26)/.24*Math.PI*.9)+.1:0)+g(.47,.04,.25)}
+  if(paced&&rh==="brady")v+=g(.2,.002,1.2);
+  return v}
+function curHr(){return rh==="brady"&&paced?70:RH[rh].hr}
+function drawEk(){
+  const s=$("#ekSvg");s.innerHTML="";const W=520,H=220,base=135,amp=95;
+  for(let x=0;x<=W;x+=20)el("line",{x1:x,y1:0,x2:x,y2:H,stroke:css("--line"),"stroke-width":x%100?.6:1.2},s);
+  for(let y=0;y<=H;y+=20)el("line",{x1:0,y1:y,x2:W,y2:y,stroke:css("--line"),"stroke-width":.6},s);
+  let d="",px=-1;EK.forEach(([t,v])=>{if(ekT-t>WIN*.94)return;const x=(t%WIN)/WIN*W,y=base-v*amp;d+=(px<0||x<px?"M":"L")+x.toFixed(1)+" "+y.toFixed(1);px=x});
+  el("path",{d,fill:"none",stroke:css("--ekg"),"stroke-width":2.4,"stroke-linejoin":"round"},s);
+  const xn=(ekT%WIN)/WIN*W;el("rect",{x:xn+2,y:0,width:18,height:H,fill:css("--panel"),opacity:.9},s);
+  txt(s,10,20,RH[rh].n+(paced&&rh==="brady"?" + kardiostimulátor":""),{"font-size":13,"font-weight":700,fill:css("--muted")});
+  if(paced&&rh==="brady")txt(s,510,20,"špičky = impulzy kardiostimulátoru",{"font-size":11.5,"text-anchor":"end",fill:css("--muted")});
+}
+function updEk(){const R=RH[rh];const hr=curHr();
+  $("#ekRead").textContent=rh==="fib"?"frekvence: nelze určit – chaos":rh==="asy"?"frekvence: 0 /min":`frekvence: ${hr} /min`;
+  $("#ekStatus").className="status "+(rh==="brady"&&paced?"ok":R.st);$("#ekStatus").textContent=R.n;
+  $("#ekText").innerHTML=R.t+(rh==="brady"&&paced?" <b>Kardiostimulátor</b> pod kůží pod klíční kostí elektrodou udává myokardu rychlejší impulzy k systole – frekvence je teď 70 /min.":"");
+  $("#pace").hidden=rh!=="brady";$("#pace").textContent=paced?"Vypnout kardiostimulátor":"Voperovat kardiostimulátor";
+}
+function setAed(m){aed=m;const M=$("#aedMsg"),B=$("#aedShock");
+  if(m==="off"){M.textContent="AED není připojeno.";B.disabled=true;$("#aedOn").disabled=false}
+  if(m==="an"){M.textContent="AED: Analyzuji srdeční rytmus. Nedotýkejte se pacienta…";B.disabled=true;$("#aedOn").disabled=true;aedT=performance.now();
+    setTimeout(()=>{if(aed!=="an")return;if(rh==="fib"){M.textContent="AED: Doporučen výboj. Nikdo se nedotýkejte pacienta. Stiskněte blikající tlačítko.";B.disabled=false;aed="shock"}
+      else if(rh==="asy"){M.textContent="AED: Výboj nedoporučen. Pokračujte v resuscitaci (nepřímá srdeční masáž).";aed="no"}
+      else{M.textContent="AED: Výboj nedoporučen.";aed="no"}
+      $("#aedOn").disabled=false},reduce?50:2200)}
+}
+$("#aedOn").onclick=()=>setAed("an");
+$("#aedShock").onclick=()=>{if(aed!=="shock")return;$("#aedMsg").textContent="AED: Výboj podán. Srdeční rytmus se obnovil – pokračujte podle pokynů.";$("#aedShock").disabled=true;aed="done";
+  rh="norm";press("[data-rh]",$('[data-rh="norm"]'));updEk()};
+$$("[data-rh]").forEach(b=>b.onclick=()=>{rh=b.dataset.rh;paced=false;press("[data-rh]",b);setAed("off");updEk()});
+$("#pace").onclick=()=>{paced=!paced;updEk()};
+
+/* ===== 4 MASÁŽ ===== */
+let bpm=110,metOn=false,sound=true,lastBeat=0,taps=[],count=0,push=0,ac=null,beatFlash=0;
+function click(hi){if(!sound)return;try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=hi?1400:900;g.gain.setValueAtTime(.25,ac.currentTime);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.06);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+.07)}catch(e){}}
+function drawKp(){
+  const s=$("#kpSvg");s.innerHTML="";const d=push*22;
+  // tělo
+  el("ellipse",{cx:260,cy:300+d*.3,rx:200,ry:70,fill:css("--myo"),opacity:.55},s);
+  el("path",{d:`M70 ${300+d*.3} Q 260 ${196+d} 450 ${300+d*.3}`,fill:css("--panel"),stroke:css("--ink"),"stroke-width":2},s);
+  txt(s,260,350,"hrudník – hrudní kost mezi bradavkami",{"text-anchor":"middle","font-size":13,"font-weight":600});
+  el("circle",{cx:180,cy:268+d*.6,r:5,fill:css("--myo2")},s);el("circle",{cx:340,cy:268+d*.6,r:5,fill:css("--myo2")},s);
+  // ruce: natažené paže a dlaně položené na sobě
+  const sk="#e8c4a8",ol="#a07a5a";
+  el("path",{d:`M150 ${28+d} L 232 ${188+d} L 262 ${188+d} L 200 ${28+d} Z`,fill:sk,stroke:ol,"stroke-width":2},s);
+  el("path",{d:`M370 ${28+d} L 288 ${188+d} L 258 ${188+d} L 320 ${28+d} Z`,fill:sk,stroke:ol,"stroke-width":2},s);
+  el("ellipse",{cx:260,cy:218+d,rx:52,ry:30,fill:sk,stroke:ol,"stroke-width":2},s);
+  el("ellipse",{cx:260,cy:206+d,rx:46,ry:24,fill:"#f0d2bb",stroke:ol,"stroke-width":2},s);
+  [-24,-8,8,24].forEach(dx=>el("line",{x1:260+dx,y1:188+d,x2:260+dx*1.1,y2:222+d,stroke:ol,"stroke-width":1.2,opacity:.6},s));
+  txt(s,360,110,"natažené paže,",{"font-size":11.5,fill:css("--muted")});txt(s,360,125,"dlaně na sobě",{"font-size":11.5,fill:css("--muted")});
+  // hloubka
+  el("line",{x1:440,y1:205,x2:440,y2:205+44,stroke:css("--muted"),"stroke-width":2},s);el("rect",{x:432,y:205,width:16,height:d*2,fill:css("--accent")},s);
+  txt(s,452,214,"0 cm",{"font-size":11,fill:css("--muted")});txt(s,452,252,"5–6 cm",{"font-size":11,"font-weight":700});
+  // metronom
+  el("circle",{cx:60,cy:60,r:22,fill:beatFlash>.05?css("--accent"):css("--line"),opacity:.4+beatFlash*.6},s);txt(s,60,100,"metronom",{"text-anchor":"middle","font-size":12,fill:css("--muted")});
+  txt(s,505,28,"klepni sem do rytmu",{"text-anchor":"end","font-size":12,fill:css("--muted")});
+}
+function tap(){const now=performance.now();taps.push(now);taps=taps.filter(x=>now-x<6000).slice(-8);count++;push=1;
+  $("#kpCount").textContent="Stlačení: "+count;
+  if(taps.length>=4){const iv=(taps[taps.length-1]-taps[0])/(taps.length-1);const t=Math.round(60000/iv);$("#kpTempo").textContent=t+" /min";
+    const S=$("#kpStatus");if(t<100){S.className="status warn";S.textContent="Moc pomalu – zrychli (100–120 /min)."}else if(t>120){S.className="status warn";S.textContent="Moc rychle – zpomal (100–120 /min)."}else{S.className="status ok";S.textContent="Výborně – tempo je správné."}}}
+$("#kpSvg").addEventListener("pointerdown",e=>{e.preventDefault();tap()});
+document.addEventListener("keydown",e=>{if(e.code==="Space"&&tab==="p-kp"&&!/INPUT|BUTTON/.test(document.activeElement.tagName)){e.preventDefault();tap()}});
+$("#bpm").oninput=e=>{bpm=+e.target.value;$("#bpmOut").textContent=bpm+" /min"};
+$("#metro").onclick=()=>{metOn=!metOn;$("#metro").textContent=metOn?"Zastavit metronom":"Spustit metronom";lastBeat=performance.now()};
+$("#snd").onclick=()=>{sound=!sound;$("#snd").setAttribute("aria-pressed",sound)};
+$("#kpReset").onclick=()=>{taps=[];count=0;$("#kpCount").textContent="Stlačení: 0";$("#kpTempo").textContent="– /min";$("#kpStatus").className="status";$("#kpStatus").textContent="Klepni do rytmu alespoň čtyřikrát."};
+
+/* ===== SMYČKA ===== */
+let beatN=0;
+function loop(now){
+  const dt=Math.min(.05,(now-(ekLast||now))/1000);ekLast=now;
+  if(tab==="p-at")drawAt(now);
+  if(tab==="p-ek"){ekT+=dt;const hr=curHr()||72;ekPh=(ekPh+dt*hr/60)%1;EK.push([ekT,wave(ekPh,ekT)]);while(EK.length&&ekT-EK[0][0]>WIN)EK.shift();drawEk()}
+  if(metOn&&now-lastBeat>=60000/bpm){lastBeat+=60000/bpm;if(now-lastBeat>200)lastBeat=now;beatN++;beatFlash=1;click(beatN%4===0)}
+  beatFlash*=.88;push*=.8;
+  if(tab==="p-kp")drawKp();
+  requestAnimationFrame(loop)}
+updAt();drawBp();updEk();requestAnimationFrame(loop);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{drawBp()});
+</script>
+</body>
+</html>
