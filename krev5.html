@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Srdce</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --myo:#e9aaa0; --myo2:#d98b80; --valve:#f4efe6; --tissue:#f6e3d6;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --cond:#f2b705; --hi:#f2b705;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --myo:#7a4540; --myo2:#94544d; --valve:#e9e2d6; --tissue:#3a2e28;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --cond:#ffd23f; --hi:#ffd23f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --myo:#7a4540; --myo2:#94544d; --valve:#e9e2d6; --tissue:#3a2e28;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --cond:#ffd23f; --hi:#ffd23f; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;margin:0}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=number]{font:500 1rem var(--f-mono);width:5.5em;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.read{font-family:var(--f-mono);font-size:1.25rem;font-variant-numeric:tabular-nums;margin:0}
+.path{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.9rem}
+.path span{border:1px solid var(--line);border-radius:999px;padding:3px 10px}
+.path span.o{border-color:var(--art);color:var(--art)} .path span.d{border-color:var(--vein);color:var(--vein)}
+.path span.cur{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.part{cursor:pointer;transition:opacity .2s}
+svg.dim .part:not(.sel){opacity:.3}
+.part.sel{filter:drop-shadow(0 0 5px var(--hi)) drop-shadow(0 0 2px var(--hi))}
+.score{font-family:var(--f-mono);font-size:1rem;color:var(--muted)}
+.ozva{font-family:var(--f-display);font-size:1.4rem;font-weight:700;color:var(--accent);min-height:1.6em;margin:0}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Srdce <span>a jeho činnost</span></h1>
+  <p class="sub">Interaktivní pokusy k 5. hodině · Oběhová soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-st" aria-selected="true" data-p="p-st">1 · Stavba srdce</button>
+  <button role="tab" id="t-ce" aria-selected="false" data-p="p-ce">2 · Cesta krve a chlopně</button>
+  <button role="tab" id="t-pr" aria-selected="false" data-p="p-pr">3 · Převodní systém a EKG</button>
+</nav>
+
+<!-- 1 STAVBA -->
+<section class="stage" id="p-st" role="tabpanel" aria-labelledby="t-st">
+  <div class="panel"><svg id="stSvg" viewBox="0 0 520 480" role="img" aria-label="Schéma srdce v řezu – klikni na část srdce"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Prozkoumej srdce</h2>
+      <p>Klikni na kteroukoli část srdce nebo cévu a dozvíš se, co je zač. Schéma je srdce <b>pacienta</b> zepředu – jeho <b>pravá strana je vlevo</b>.</p>
+    </div>
+    <div class="row" role="group" aria-label="Režim">
+      <button class="btn" data-mode="exp" aria-pressed="true">Prozkoumat</button>
+      <button class="btn" data-mode="find">Najdi část</button>
+    </div>
+    <p class="status" id="stStatus">Vyber část srdce</p>
+    <p id="stText">Odkysličená krev je modrá, okysličená červená.</p>
+    <p class="score" id="stScore" hidden></p>
+    <div class="row" id="stFindRow" hidden><button class="btn primary" id="stNext">Další úkol ▶</button><button class="btn" id="stReset">Začít znovu</button></div>
+    <p class="note">Srdce (lat. <b>cor</b>, řec. <b>kardia</b>) je svalová pumpa velká asi jako pěst, váží <b>250–350 g</b>. Je uloženo v <b>osrdečníku (perikardu)</b> ze dvou listů; mezi nimi je trocha tekutiny, takže po sobě listy kloužou. Stěnu tvoří <b>myokard</b>, zevnitř ji vystýlá <b>endokard</b>.</p>
+  </div>
+</section>
+
+<!-- 2 CESTA KRVE -->
+<section class="stage" id="p-ce" role="tabpanel" aria-labelledby="t-ce" hidden>
+  <div class="panel"><svg id="ceSvg" viewBox="0 0 520 480" role="img" aria-label="Cesta krve srdcem a činnost chlopní"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Jednosměrná cesta krve</h2>
+      <p>Klikni na <b>Další krok</b> a sleduj krvinku. Všimni si, které chlopně jsou zrovna otevřené.</p>
+    </div>
+    <div class="row"><button class="btn primary" id="ceNext">Další krok ▶</button><button class="btn" id="ceAuto">Přehrát celou cestu</button><button class="btn" id="ceReset">Od začátku</button></div>
+    <p class="status" id="ceStatus"></p>
+    <p class="ozva" id="ceOzva" aria-live="polite"></p>
+    <p id="ceText"></p>
+    <div class="row"><button class="btn" id="ceLeak" aria-pressed="false">Co když chlopeň nedoléhá?</button></div>
+    <div class="path" id="cePath"></div>
+    <p class="note"><b>Cípaté chlopně</b> (trojcípá, dvojcípá) jsou mezi předsíněmi a komorami, drží je <b>šlašinky</b> a <b>bradavčité svaly</b>. <b>Poloměsíčité chlopně</b> jsou na začátku plicnice a aorty – vypadají jako tři kapsičky vlaštovčího hnízda. Srdeční ozvy „buch buch“: silnější ozva = uzavření cípatých, slabší = uzavření poloměsíčitých chlopní.</p>
+  </div>
+</section>
+
+<!-- 3 PŘEVODNÍ SYSTÉM -->
+<section class="stage" id="p-pr" role="tabpanel" aria-labelledby="t-pr" hidden>
+  <div class="panel">
+    <svg id="prSvg" viewBox="0 20 520 455" role="img" aria-label="Převodní systém srdeční"></svg>
+    <svg id="ekgSvg" viewBox="0 0 520 170" role="img" aria-label="Záznam EKG" style="margin-top:8px"></svg>
+  </div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Metronom v srdci</h2>
+      <p>Vzruch vzniká v <b>síňovém (SA) uzlíku</b> a putuje převodním systémem. Zároveň se kreslí <b>EKG</b> – záznam elektrického napětí na povrchu těla.</p>
+    </div>
+    <p class="status" id="prStatus"></p>
+    <p class="ozva" id="prOzva" aria-live="off"></p>
+    <label class="sl">Srdeční frekvence <output id="hfOut">72 /min</output><input type="range" id="hf" min="40" max="200" value="72" step="1"></label>
+    <div class="row"><button class="btn" id="prSlow" aria-pressed="false">Zpomalit 4×</button><button class="btn" id="prPause" aria-pressed="false">Pauza</button></div>
+    <p class="read" id="prRead"></p>
+    <div class="row"><label for="age" style="font-weight:500">Tvůj věk:</label><input type="number" id="age" min="5" max="99" value="16"><span id="maxTf"></span></div>
+    <p class="note">Převodní systém = přeměněné myokardové buňky. Elektrická aktivita trvá i po přerušení nervů (<b>srdeční automacie</b>), proto srdce tepe i po transplantaci. Zrychlení či zpomalení řídí <b>kardiomotorické centrum v prodloužené míše</b> podle aortálních a karotidových tělísek a centrálních chemoreceptorů (O₂, CO₂, H⁺).</p>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});drawStatic();}));
+const marker=(s,id,col)=>{let d=s.querySelector("defs")||el("defs",{},s);const m=el("marker",{id,viewBox:"0 0 10 10",refX:8,refY:5,markerWidth:5,markerHeight:5,orient:"auto"},d);el("path",{d:"M0 0 L10 5 L0 10 z",fill:col},m)};
+
+/* ===== SPOLEČNÉ SCHÉMA SRDCE ===== */
+// valves: {tri,pul,mit,aor} true = otevřená
+function drawHeart(s,o={}){
+  const A=css("--art"),V=css("--vein"),M=css("--myo"),M2=css("--myo2"),VL=css("--valve"),ink=css("--ink");
+  const vessels=o.vessels!==false, v=o.valves||{tri:false,pul:false,mit:false,aor:false};
+  const P={};const part=(id)=>{const g=el("g",{class:o.click?"part":"","data-id":id},s);P[id]=g;return g};
+  const tube=(g,d,col,w=24)=>{el("path",{d,fill:"none",stroke:col,"stroke-width":w,"stroke-linecap":"butt","stroke-linejoin":"round"},g);el("path",{d,fill:"none",stroke:"rgba(0,0,0,.12)","stroke-width":w,"stroke-linecap":"butt","stroke-linejoin":"round","stroke-dasharray":"0"},g).setAttribute("stroke-opacity","0")};
+  if(vessels){
+    // plíce a tělo
+    el("rect",{x:360,y:12,width:150,height:56,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,435,46,"plíce",{"text-anchor":"middle","font-size":15,"font-weight":700});
+    el("rect",{x:6,y:404,width:96,height:62,rx:14,fill:css("--tissue"),stroke:css("--line")},s);txt(s,54,440,"tělo",{"text-anchor":"middle","font-size":15,"font-weight":700});
+    // aorta (vzestupná → oblouk → sestupná) – kreslí se před plicnicí, ta ji kříží zepředu
+    let g=part("ao");tube(g,"M303 236 V 70 Q 303 22 255 22 H 40 V 410",A);
+    // horní a dolní dutá žíla
+    g=part("hdz");tube(g,"M163 40 V 140",V)
+    g=part("ddz");tube(g,"M72 410 V 200 H 132",V,22);
+    // plicní žíly
+    g=part("plz");tube(g,"M470 68 V 150 H 420",A,18);tube(g,"M488 68 V 196 H 420",A,18);
+    // plicnice
+    g=part("plc");tube(g,"M249 240 V 92 Q 249 78 262 78 H 360",V);
+  }
+  // osrdečník
+  let g=part("per");
+  el("path",{d:"M98 128 Q98 102 124 102 H 428 Q 452 102 452 128 V 264 Q 452 362 292 464 Q 98 362 98 264 Z",fill:"none",stroke:css("--muted"),"stroke-width":2,"stroke-dasharray":"6 5"},g);
+  el("path",{d:"M98 128 Q98 102 124 102 H 428 Q 452 102 452 128 V 264 Q 452 362 292 464 Q 98 362 98 264 Z",fill:"none",stroke:"transparent","stroke-width":12},g);
+  // myokard (stěna)
+  g=part("myo");el("path",{d:"M108 132 Q108 112 128 112 H 422 Q 442 112 442 132 V 262 Q 442 352 292 452 Q 108 352 108 262 Z",fill:M,stroke:M2,"stroke-width":2},g);
+  // předsíně
+  g=part("ps");el("rect",{x:124,y:128,width:102,height:92,rx:16,fill:V,opacity:.9},g);
+  g=part("ls");el("rect",{x:326,y:128,width:100,height:92,rx:16,fill:A,opacity:.9},g);
+  // komory
+  g=part("pk");el("path",{d:"M124 244 H 262 V 392 Q 230 392 180 346 Q 124 300 124 268 Z",fill:V,opacity:.9},g);
+  g=part("lk");el("path",{d:"M290 244 H 414 V 272 Q 410 326 300 398 Q 290 400 290 388 Z",fill:A,opacity:.9},g);
+  // komorová přepážka
+  g=part("sep");el("path",{d:"M262 244 H 290 V 392 Q 280 410 270 402 Q 262 398 262 388 Z",fill:M2},g);
+  // šlašinky a bradavčité svaly
+  g=part("slas");
+  const flap=(x1,x2,y,open)=>open?[[x1,y,x1+16,y+40],[x2,y,x2-16,y+40]]:[[x1,y,(x1+x2)/2-2,y+3],[x2,y,(x1+x2)/2+2,y+3]];
+  const triF=flap(134,224,232,v.tri),mitF=flap(330,412,232,v.mit);
+  [[triF,[[165,338],[215,356]]],[mitF,[[345,330],[392,300]]]].forEach(([F,pap])=>{
+    pap.forEach(([x,y])=>el("ellipse",{cx:x,cy:y,rx:11,ry:16,fill:M2},g));
+    F.forEach((f,i)=>{el("line",{x1:f[2],y1:f[3],x2:pap[i][0],y2:pap[i][1]-14,stroke:"transparent","stroke-width":10},g);el("line",{x1:f[2],y1:f[3],x2:pap[i][0],y2:pap[i][1]-14,stroke:VL,"stroke-width":2},g);el("line",{x1:f[2]-6,y1:f[3],x2:pap[i][0],y2:pap[i][1]-14,stroke:VL,"stroke-width":1.4},g)});
+  });
+  // cípaté chlopně
+  const drawFlaps=(id,F)=>{const g=part(id);F.forEach(f=>el("line",{x1:f[0],y1:f[1],x2:f[2],y2:f[3],stroke:VL,"stroke-width":6,"stroke-linecap":"round"},g));
+    el("rect",{x:F[0][0]-4,y:F[0][1]-8,width:F[1][0]-F[0][0]+8,height:48,fill:"transparent"},g)};
+  drawFlaps("tri",triF);drawFlaps("mit",mitF);
+  // poloměsíčité chlopně
+  const semi=(id,x,open)=>{const g=part(id);
+    if(open){el("line",{x1:x-12,y1:240,x2:x-10,y2:222,stroke:VL,"stroke-width":5,"stroke-linecap":"round"},g);el("line",{x1:x+12,y1:240,x2:x+10,y2:222,stroke:VL,"stroke-width":5,"stroke-linecap":"round"},g)}
+    else el("path",{d:`M${x-13} 240 q 6.5 9 13 0 q 6.5 9 13 0`,fill:"none",stroke:VL,"stroke-width":5,"stroke-linecap":"round"},g);
+    el("rect",{x:x-16,y:216,width:32,height:34,fill:"transparent"},g)};
+  if(vessels){semi("pul",249,v.pul);semi("aov",303,v.aor);}
+  // věnčitá tepna
+  g=part("ven");el("path",{d:"M316 236 Q 446 236 432 320 Q 418 384 352 424",fill:"none",stroke:A,"stroke-width":5},g);el("path",{d:"M316 236 Q 446 236 432 320 Q 418 384 352 424",fill:"none",stroke:"transparent","stroke-width":16},g);
+  // hrot
+  g=part("hrot");el("circle",{cx:292,cy:446,r:9,fill:M2,stroke:ink,"stroke-width":1.5},g);el("circle",{cx:292,cy:446,r:16,fill:"transparent"},g);
+  return P;
+}
+
+/* ===== 1 STAVBA ===== */
+const PARTS={
+  hdz:["Horní dutá žíla","Přivádí <b>odkysličenou</b> krev z <b>hlavy, horních končetin a hrudníku</b> do pravé předsíně (vena cava superior)."],
+  ddz:["Dolní dutá žíla","Přivádí odkysličenou krev z <b>břišní dutiny a dolních končetin</b> do pravé předsíně (vena cava inferior)."],
+  ps:["Pravá předsíň (síň)","<b>Atrium dextrum.</b> Přijímá odkysličenou krev z obou dutých žil a z <b>věnčitého žilního splavu</b> (krev, která zásobovala srdeční sval). Ve stěně je <b>síňový (SA) uzlík</b> – udavač tempa."],
+  tri:["Trojcípá chlopeň","<b>Cípatá chlopeň</b> mezi pravou předsíní a pravou komorou. Propouští krev jen ze síně do komory."],
+  pk:["Pravá komora","<b>Ventriculus dexter.</b> Pumpuje odkysličenou krev přes plicnicovou chlopeň do plicnice – do <b>malého (plicního) oběhu</b>."],
+  pul:["Plicnicová poloměsíčitá chlopeň","Na začátku plicnice. Poloměsíčité chlopně vypadají jako <b>tři kapsičky vlaštovčího hnízda</b> a nepustí krev zpět do komory."],
+  plc:["Plicnice (plicní kmen)","Tepna, která vede <b>odkysličenou</b> krev z pravé komory do plicních tepen a k okysličení do plic."],
+  plz:["Plicní žíly","Obvykle <b>čtyři</b>; vedou <b>okysličenou</b> krev z plic do levé předsíně."],
+  ls:["Levá předsíň (síň)","<b>Atrium sinistrum.</b> Přijímá okysličenou krev z plicních žil."],
+  mit:["Dvojcípá (mitrální) chlopeň","Cípatá chlopeň mezi levou předsíní a levou komorou. Jméno má podle <b>mitry</b> – vysoké čepice církevních hodnostářů (mikulášský kostým)."],
+  lk:["Levá komora","<b>Ventriculus sinister.</b> Má <b>nejsilnější vrstvu myokardu</b> – pumpuje okysličenou krev do aorty a celého těla (velký oběh)."],
+  aov:["Aortální poloměsíčitá chlopeň","Na začátku aorty; brání návratu krve z aorty do levé komory."],
+  ao:["Aorta (srdečnice)","<b>Největší tepna.</b> Vzestupná aorta se stáčí dozadu doleva <b>aortálním obloukem</b> a jako <b>sestupná aorta</b> vede při páteři a bránicí do břišní dutiny."],
+  sep:["Komorová přepážka","Odděluje pravou a levou komoru, takže se okysličená a odkysličená krev nemísí. Vede jí <b>Hisův svazek</b> převodního systému."],
+  slas:["Šlašinky a bradavčité svaly","<b>Šlašinky</b> (zdrobnělina od slova šlacha) drží cípaté chlopně směrem do komor. <b>Bradavčité (papilární) svaly</b> šlašinky stahují a brání provalení chlopní do síní."],
+  ven:["Věnčitá (koronární) tepna","Odstupuje ze <b>vzestupné aorty</b> a zásobuje krví samotný <b>srdeční sval</b>."],
+  myo:["Myokard","<b>Srdeční sval</b> – buňky jsou 1–2jaderné a příčně pruhované, propojené <b>příčnými můstky</b> a <b>interkalárními disky</b>. Nejsilnější je u levé komory."],
+  hrot:["Srdeční hrot","Hrot srdce míří nejčastěji <b>doleva pod 5. žebro</b>. U <b>situs inversus</b> je srdce i orgány břišní dutiny zrcadlově obrácené."],
+  per:["Osrdečník (perikard)","Vak ze <b>dvou listů</b>. Vnitřní list srůstá s povrchem srdce, mezi listy je <b>osrdečníková dutina</b> s trochou tekutiny – listy po sobě kloužou."],
+};
+let stMode="exp",stSel=null,stTarget=null,stOk=0,stTot=0,stQueue=[];
+function drawSt(){
+  const s=$("#stSvg");s.innerHTML="";
+  const P=drawHeart(s,{click:true,valves:{tri:false,pul:false,mit:false,aor:false}});
+  s.classList.toggle("dim",!!stSel);
+  if(stSel&&P[stSel])P[stSel].classList.add("sel");
+  Object.entries(P).forEach(([id,g])=>g.addEventListener("click",e=>{e.stopPropagation();pick(id)}));
+  if(stMode==="exp"&&stSel){const n=PARTS[stSel][0];const t=txt(s,260,474,n,{"text-anchor":"middle","font-size":15,"font-weight":700,fill:css("--accent")});}
+}
+function pick(id){
+  if(stMode==="exp"){stSel=id;$("#stStatus").className="status";$("#stStatus").textContent=PARTS[id][0];$("#stText").innerHTML=PARTS[id][1];drawSt();return}
+  if(!stTarget)return;
+  stTot++;
+  if(id===stTarget){stOk++;stSel=id;$("#stStatus").className="status ok";$("#stStatus").textContent="Správně: "+PARTS[id][0];$("#stText").innerHTML=PARTS[id][1];stTarget=null}
+  else{stSel=id;$("#stStatus").className="status bad";$("#stStatus").textContent="To je "+PARTS[id][0].toLowerCase()+". Zkus to znovu.";}
+  $("#stScore").textContent=`Skóre: ${stOk} správně z ${stTot} pokusů`;drawSt();
+}
+function nextTask(){
+  if(!stQueue.length)stQueue=Object.keys(PARTS).sort(()=>Math.random()-.5);
+  stTarget=stQueue.pop();stSel=null;$("#stStatus").className="status";$("#stStatus").textContent="Najdi: "+PARTS[stTarget][0];$("#stText").textContent="Klikni na správnou část schématu.";drawSt();
+}
+$$("[data-mode]").forEach(b=>b.onclick=()=>{stMode=b.dataset.mode;press("[data-mode]",b);stSel=null;
+  const f=stMode==="find";$("#stScore").hidden=!f;$("#stFindRow").hidden=!f;
+  if(f){stOk=0;stTot=0;stQueue=[];$("#stScore").textContent="Skóre: 0 správně z 0 pokusů";nextTask()}
+  else{stTarget=null;$("#stStatus").className="status";$("#stStatus").textContent="Vyber část srdce";$("#stText").textContent="Odkysličená krev je modrá, okysličená červená.";drawSt()}});
+$("#stNext").onclick=nextTask;
+$("#stReset").onclick=()=>{stOk=0;stTot=0;stQueue=[];$("#stScore").textContent="Skóre: 0 správně z 0 pokusů";nextTask()};
+$("#stSvg").addEventListener("click",()=>{if(stMode==="exp"&&stSel){stSel=null;$("#stStatus").textContent="Vyber část srdce";$("#stText").textContent="Odkysličená krev je modrá, okysličená červená.";drawSt()}});
+
+/* ===== 2 CESTA KRVE ===== */
+const SYS={tri:false,mit:false,pul:true,aor:true}, DIA={tri:true,mit:true,pul:false,aor:false};
+const CE=[
+  {n:"duté žíly → pravá předsíň",o:false,v:SYS,p:[[163,44],[163,175]],t:"Odkysličená krev z těla přitéká <b>horní a dolní dutou žílou</b> do <b>pravé předsíně</b>. Komory se právě stahují, cípaté chlopně jsou zavřené – předsíně se zatím plní."},
+  {n:"trojcípá chlopeň → pravá komora",o:false,v:DIA,p:[[163,175],[180,236],[190,305]],t:"Komory ochably, <b>trojcípá chlopeň</b> se otevřela a krev proudí do <b>pravé komory</b>. Stah obou předsíní (systola síní) komory dopustí."},
+  {n:"plicnicová chlopeň → plicnice",o:false,v:SYS,p:[[190,305],[240,282],[249,240],[249,96]],t:"<b>Systola komor:</b> trojcípá chlopeň se zavřela (drží ji šlašinky a bradavčité svaly), otevřela se <b>plicnicová poloměsíčitá chlopeň</b> a krev míří <b>plicnicí</b> k plicím."},
+  {n:"plíce",o:false,chg:true,v:DIA,p:[[249,96],[262,78],[360,52],[455,40]],t:"V <b>plicích</b> se krev okysličí. Poloměsíčité chlopně se mezitím zavřely, krev z plicnice nemůže zpět do komory."},
+  {n:"plicní žíly → levá předsíň",o:true,v:SYS,p:[[470,66],[470,150],[400,168]],t:"Okysličená krev se vrací obvykle <b>čtyřmi plicními žilami</b> do <b>levé předsíně</b>."},
+  {n:"dvojcípá chlopeň → levá komora",o:true,v:DIA,p:[[400,168],[372,236],[360,305]],t:"Přes <b>dvojcípou (mitrální) chlopeň</b> do <b>levé komory</b> – ta má nejsilnější stěnu."},
+  {n:"aortální chlopeň → aorta",o:true,v:SYS,p:[[360,305],[312,282],[303,240],[303,70]],t:"<b>Systola komor:</b> mitrální chlopeň se zavřela, otevřela se <b>aortální poloměsíčitá chlopeň</b> a krev vtéká do <b>aorty</b>. Ze vzestupné aorty hned odbočují <b>věnčité tepny</b> k srdečnímu svalu."},
+  {n:"aortální oblouk → tělo",o:true,chg:true,v:DIA,p:[[303,70],[292,28],[255,22],[40,22],[40,400],[54,430]],t:"<b>Aortálním obloukem</b> a <b>sestupnou aortou</b> do těla. Ve vlásečnicích tkání krev předá kyslík – stane se odkysličenou."},
+  {n:"dolní dutá žíla → pravá předsíň",o:false,v:SYS,p:[[60,430],[72,410],[72,200],[150,200]],t:"Odkysličená krev se vrací <b>dolní dutou žílou</b> do pravé předsíně. Kruh se uzavřel."},
+];
+let ceS=-1,ceP=0,ceAnim=null,cePlay=null,ceLeak=false,ceV=SYS;
+function lerpPath(pts,f){if(pts.length<2)return pts[0];const L=[];let tot=0;for(let i=1;i<pts.length;i++){const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);L.push(d);tot+=d}
+  let x=f*tot;for(let i=0;i<L.length;i++){if(x<=L[i]){const r=x/L[i];return[pts[i][0]+(pts[i+1][0]-pts[i][0])*r,pts[i][1]+(pts[i+1][1]-pts[i][1])*r]}x-=L[i]}return pts[pts.length-1]}
+function drawCe(now){
+  const s=$("#ceSvg");s.innerHTML="";marker(s,"aBack",css("--art"));
+  const v={...ceV};const sys=!v.tri;
+  if(ceLeak&&sys)v.mit=true;
+  drawHeart(s,{valves:v});
+  // nedoléhající chlopeň: zpětný tok z LK do LS
+  if(ceLeak&&sys){const t=(now||0)/1000;for(let i=0;i<3;i++){const ph=reduce?.5:((t*1.2+i/3)%1);const y=300-ph*110;
+      el("path",{d:`M${350+i*18} ${y+20} V ${y}`,stroke:css("--bad"),"stroke-width":4,"marker-end":"url(#aBack)",opacity:1-ph*.6},s)}
+    txt(s,356,372,"zpětný tok do LS!",{"text-anchor":"middle","font-size":12.5,"font-weight":700,fill:"#fff"});}
+  // krvinka
+  if(ceS>=0){const st=CE[ceS];const [x,y]=lerpPath(st.p,ceP);let col=st.o?css("--art"):css("--vein");
+    if(st.chg&&ceP>.6)col=st.o?css("--vein"):css("--art");
+    el("circle",{cx:x,cy:y,r:12,fill:col,stroke:"#fff","stroke-width":3},s);}
+  // popisky
+  const lab=(x,y,t,a="start",c=css("--muted"))=>txt(s,x,y,t,{"font-size":11.5,"font-weight":600,"text-anchor":a,fill:c});
+  lab(175,96,"horní dutá žíla");lab(84,300,"dolní dutá",'start');lab(258,140,"plicnice","start",css("--vein"));lab(314,140,"aorta","start",css("--art"));
+  lab(462,112,"plicní žíly","end",css("--art"));
+  txt(s,175,206,"PS",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});txt(s,376,206,"LS",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});
+  txt(s,205,282,"PK",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});txt(s,360,282,"LK",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:"#fff"});
+  txt(s,512,474,sys?"SYSTOLA KOMOR":"DIASTOLA KOMOR",{"text-anchor":"end","font-size":13,"font-weight":700,fill:sys?css("--accent"):css("--muted")});
+}
+function updCe(){
+  if(ceS<0){$("#ceStatus").className="status";$("#ceStatus").textContent="Krvinka čeká v horní duté žíle";$("#ceText").innerHTML="Začínáme odkysličenou krví, která se vrací z těla.";$("#ceOzva").textContent="";}
+  else{const st=CE[ceS];$("#ceStatus").className="status";$("#ceStatus").textContent=(ceS+1)+". "+st.n;
+    const prev=ceS>0?CE[ceS-1].v:DIA;let oz="";
+    if(prev===DIA&&st.v===SYS)oz="BUCH! – zavřely se cípaté chlopně (silnější ozva)";
+    if(prev===SYS&&st.v===DIA)oz="buch – zavřely se poloměsíčité chlopně (slabší ozva)";
+    $("#ceOzva").textContent=oz;
+    $("#ceText").innerHTML=st.t+(ceLeak&&st.v===SYS?" <b style='color:var(--bad)'>Mitrální chlopeň nedoléhá: při stahu komory teče část krve zpět do levé předsíně.</b> Normálně tomu brání šlašinky s bradavčitými svaly.":"");}
+  $("#cePath").innerHTML=CE.map((s,i)=>`<span class="${s.o?"o":"d"}${i===ceS?" cur":""}">${s.n}</span>`).join("→");
+}
+function stepCe(){if(ceAnim)cancelAnimationFrame(ceAnim);ceS=(ceS+1)%CE.length;ceP=0;ceV=CE[ceS].v;updCe();const st=performance.now(),dur=reduce?1:1500;
+  const f=t=>{ceP=Math.min(1,(t-st)/dur);drawCe(t);if(ceP<1)ceAnim=requestAnimationFrame(f);else ceAnim=null};ceAnim=requestAnimationFrame(f)}
+$("#ceNext").onclick=()=>{clearInterval(cePlay);stepCe()};
+$("#ceAuto").onclick=()=>{clearInterval(cePlay);ceS=-1;stepCe();cePlay=setInterval(()=>{if(ceS>=CE.length-1){clearInterval(cePlay);return}stepCe()},reduce?60:2100)};
+$("#ceReset").onclick=()=>{clearInterval(cePlay);if(ceAnim)cancelAnimationFrame(ceAnim);ceAnim=null;ceS=-1;ceP=0;ceV=SYS;updCe();drawCe()};
+$("#ceLeak").onclick=()=>{ceLeak=!ceLeak;$("#ceLeak").setAttribute("aria-pressed",ceLeak);updCe();drawCe(performance.now())};
+
+/* ===== 3 PŘEVODNÍ SYSTÉM A EKG ===== */
+let hf=72,slow=false,paused=false,phase=0,lastT=0,simT=0;
+const EKG=[];const WIN=3; // sekund na šířku záznamu
+function ecg(ph){const g=(c,w,a)=>a*Math.exp(-((ph-c)**2)/(2*w*w));
+  return g(.11,.025,.16)+g(.215,.008,-.12)+g(.24,.009,1)+g(.265,.009,-.22)+g(.45,.04,.3);}
+const PHASES=[
+  [0,.06,"plnění síní","Síňový (SA) uzlík vysílá vzruch",["sa"]],
+  [.06,.17,"vlna P – systola síní, plnění komor","Vzruch se šíří oběma předsíněmi – předsíně se stahují",["sa","atria"]],
+  [.17,.22,"plnění komor","Síňokomorový (AV) uzlík vzruch krátce zdrží",["av"]],
+  [.22,.30,"komplex QRS – zavření chlopní, růst tlaku v komorách","Hisův svazek → Tawarova raménka → Purkyňova vlákna",["his","taw","pur"]],
+  [.30,.52,"systola komor","Komory se odspoda stahují a vypuzují krev",["vent"]],
+  [.52,1,"vlna T, pak zavřené chlopně a plnění síní","Klid – předsíně se plní, čeká se na další vzruch ze SA uzlíku",[]],
+];
+function curPhase(ph){return PHASES.find(p=>ph>=p[0]&&ph<p[1])||PHASES[5]}
+function drawPr(){
+  const s=$("#prSvg");s.innerHTML="";
+  const ph=phase,P=curPhase(ph),act=P[4];
+  drawHeart(s,{vessels:false,valves:ph>.22&&ph<.52?{tri:false,mit:false}:{tri:true,mit:true}});
+  // stah: ztmavení dutin
+  const sq=(a,b)=>ph>a&&ph<b?Math.sin((ph-a)/(b-a)*Math.PI):0;
+  const at=sq(.08,.2),ve=sq(.25,.52);
+  if(at>0){el("rect",{x:124,y:128,width:102,height:92,rx:16,fill:"#000",opacity:at*.25},s);el("rect",{x:326,y:128,width:100,height:92,rx:16,fill:"#000",opacity:at*.25},s);}
+  if(ve>0){el("path",{d:"M124 244 H 262 V 392 Q 230 392 180 346 Q 124 300 124 268 Z",fill:"#000",opacity:ve*.25},s);el("path",{d:"M290 244 H 414 V 272 Q 410 326 300 398 Q 290 400 290 388 Z",fill:"#000",opacity:ve*.25},s);}
+  const C=css("--cond"),off=css("--muted");
+  const on=k=>act.includes(k);
+  // vlna vzruchu v předsíních
+  if(on("atria")){const r=(ph-.06)/.11*120;el("circle",{cx:150,cy:150,r,fill:"none",stroke:C,"stroke-width":4,opacity:.8},s);}
+  // dráhy
+  const line=(d,k,w=4)=>el("path",{d,fill:"none",stroke:on(k)?C:off,"stroke-width":on(k)?w+2:w,"stroke-linecap":"round",opacity:on(k)?1:.55},s);
+  line("M150 150 Q 190 190 232 226","atria",2);
+  line("M236 232 Q 262 236 276 262","his",5);
+  line("M272 262 V 392","taw",4);line("M282 262 V 392","taw",4);
+  line("M272 392 Q 240 400 196 360 Q 140 310 132 262","pur",3);line("M282 392 Q 330 396 380 340 Q 414 300 416 262","pur",3);
+  ["M190 352 l -14 -8","M150 300 l -14 2","M350 368 l 12 -10","M405 300 l 12 2"].forEach(d=>el("path",{d,fill:"none",stroke:on("pur")?C:off,"stroke-width":2.5,opacity:on("pur")?1:.55},s));
+  el("circle",{cx:150,cy:150,r:on("sa")?12:9,fill:on("sa")?C:off,stroke:"#fff","stroke-width":2},s);
+  el("circle",{cx:234,cy:228,r:on("av")?11:8,fill:on("av")?C:off,stroke:"#fff","stroke-width":2},s);
+  // popisky
+  const lab=(x,y,lx,ly,t,k,a="start")=>{el("line",{x1:x,y1:y,x2:lx,y2:ly,stroke:css("--ink"),"stroke-width":1},s);txt(s,lx,ly-6,t,{"font-size":12.5,"font-weight":on(k)?700:500,"text-anchor":a,fill:on(k)?css("--accent"):css("--ink")})};
+  lab(150,150,20,40,"síňový (SA) uzlík","sa");
+  lab(234,228,330,40,"síňokomorový (AV) uzlík","av");
+  lab(262,250,330,62,"Hisův svazek","his");
+  lab(282,340,512,430,"Tawarova raménka","taw","end");
+  lab(140,300,8,350,"Purkyňova vlákna","pur");
+  if(ve>.05)txt(s,420,466,"",{});
+  $("#prStatus").textContent=P[3];
+  // ozvy
+  $("#prOzva").textContent=ph>.22&&ph<.34?"BUCH (cípaté chlopně)":ph>.52&&ph<.62?"buch (poloměsíčité chlopně)":"";
+}
+function drawEkg(){
+  const s=$("#ekgSvg");s.innerHTML="";const W=520,H=170,base=120,amp=90;
+  for(let x=0;x<=W;x+=20)el("line",{x1:x,y1:0,x2:x,y2:H,stroke:css("--line"),"stroke-width":x%100?0.6:1.2},s);
+  for(let y=0;y<=H;y+=20)el("line",{x1:0,y1:y,x2:W,y2:y,stroke:css("--line"),"stroke-width":0.6},s);
+  const xNow=(simT%WIN)/WIN*W;
+  // stopa: body uložené jako [simT, y]
+  let d="",prevX=-1;
+  EKG.forEach(([t,v])=>{if(simT-t>WIN*0.94)return;const x=(t%WIN)/WIN*W;const y=base-v*amp;if(prevX<0||x<prevX)d+=`M${x.toFixed(1)} ${y.toFixed(1)}`;else d+=`L${x.toFixed(1)} ${y.toFixed(1)}`;prevX=x});
+  el("path",{d,fill:"none",stroke:css("--ok"),"stroke-width":2.4,"stroke-linejoin":"round"},s);
+  el("rect",{x:xNow+2,y:0,width:18,height:H,fill:css("--panel"),opacity:.9},s);
+  el("circle",{cx:xNow,cy:base-ecg(phase)*amp,r:4,fill:css("--ok")},s);
+  // značky P, QRS, T u posledního úplného cyklu
+  const T=60/hf;const c0=simT-phase*T;
+  [[.11,"P",.16],[.24,"QRS",1],[.45,"T",.3]].forEach(([p,l,v])=>{for(const c of[c0,c0-T]){const t=c+p*T;if(t>simT||simT-t>WIN*0.9)continue;const x=(t%WIN)/WIN*W;txt(s,x,base-v*amp-8,l,{"text-anchor":"middle","font-size":13,"font-weight":700,fill:css("--accent")});break}});
+  txt(s,512,16,curPhase(phase)[2],{"text-anchor":"end","font-size":12.5,"font-weight":600,fill:css("--muted")});
+}
+function updRead(){const T=60/hf;$("#hfOut").textContent=hf+" /min";
+  $("#prRead").innerHTML=`1 srdeční revoluce: ${T.toFixed(2).replace(".",",")} s<br>komora za minutu (při 70 ml): ≈ ${(hf*70/1000).toFixed(1).replace(".",",")} l`;
+  const a=+$("#age").value;$("#maxTf").innerHTML=a>0?`max. tepová frekvence ≈ 220 − ${a} = <b>${220-a} /min</b>`:"";}
+$("#hf").oninput=e=>{hf=+e.target.value;updRead()};
+$("#age").oninput=updRead;
+$("#prSlow").onclick=()=>{slow=!slow;$("#prSlow").setAttribute("aria-pressed",slow)};
+$("#prPause").onclick=()=>{paused=!paused;$("#prPause").setAttribute("aria-pressed",paused);$("#prPause").textContent=paused?"Pokračovat":"Pauza"};
+function prTick(now){const dt=Math.min(.05,(now-(lastT||now))/1000);lastT=now;
+  if(!paused&&!$("#p-pr").hidden){const sp=slow?.25:1;const ddt=dt*sp;simT+=ddt;phase=(phase+ddt*hf/60)%1;
+    EKG.push([simT,ecg(phase)]);while(EKG.length&&simT-EKG[0][0]>WIN)EKG.shift();
+    drawPr();drawEkg();}
+  requestAnimationFrame(prTick)}
+
+function loop(now){if(!$("#p-ce").hidden&&ceLeak&&!ceAnim)drawCe(now);requestAnimationFrame(loop)}
+function drawStatic(){drawSt();drawCe(performance.now());drawPr();drawEkg()}
+updCe();updRead();drawStatic();requestAnimationFrame(loop);requestAnimationFrame(prTick);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",drawStatic);
+</script>
+</body>
+</html>
