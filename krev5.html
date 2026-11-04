@@ -257,6 +257,13 @@ function drawSt(){
     pill("ddz",62,176,"dolní dutá žíla",V);
     pill("plc",296,140,"plicnice",V);
     pill("plz",411,82,"4 plicní žíly",A);
+    const K=css("--ink");
+    pill("ps",175,160,"pravá předsíň",V);pill("ls",376,160,"levá předsíň",A);
+    el("line",{x1:179,y1:214,x2:179,y2:234,stroke:K,"stroke-width":1.2},s);el("line",{x1:371,y1:214,x2:371,y2:234,stroke:K,"stroke-width":1.2},s);
+    pill("tri",175,206,"trojcípá chlopeň",K);pill("mit",376,206,"dvojcípá chlopeň",K);
+    pill("pk",192,334,"pravá komora",V);pill("lk",352,334,"levá komora",A);
+    el("line",{x1:249,y1:248,x2:249,y2:260,stroke:K,"stroke-width":1.2},s);el("line",{x1:303,y1:248,x2:303,y2:284,stroke:K,"stroke-width":1.2},s);
+    pill("pul",228,270,"plicnicová chlopeň",K);pill("aov",322,294,"aortální chlopeň",K);
   }
   if(stMode==="exp"&&stSel){const n=PARTS[stSel][0];const t=txt(s,10,24,n,{"text-anchor":"start","font-size":15,"font-weight":700,fill:css("--accent")});}
 }
