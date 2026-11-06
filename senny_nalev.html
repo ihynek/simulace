@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Senný nálev — život v kapce vody</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Spectral:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#1A2430; --muted:#5C6978; --line:#CBD5E0;
+  --akcent:#1B4F86; --ok:#3C7A3A; --chyba:#B5452F; --znacka:#C2410C;
+  --poleBg:#F3F8FA; --voda:#E4F0F4;
+  --trepka:#4E8C6A; --trepka-tm:#2B5C44;
+  --bobovka:#B5832F; --bobovka-tm:#7A5718;
+  --prisedly:#7A5CA8; --prisedly-tm:#50397A;
+  --seno:#A98A5F; --seno-tm:#7A6240;
+  --bakterie:#8FA6B5;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+    --akcent:#6FA8DC; --ok:#7FBC7B; --chyba:#E8736A; --znacka:#E8794A;
+    --poleBg:#101922; --voda:#16222C;
+    --trepka:#6FB890; --trepka-tm:#A8DCC0;
+    --bobovka:#D9A94F; --bobovka-tm:#F0CE8A;
+    --prisedly:#A78BD0; --prisedly-tm:#C9B4E8;
+    --seno:#C0A074; --seno-tm:#DCC49A;
+    --bakterie:#5E7284;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+  --akcent:#6FA8DC; --ok:#7FBC7B; --chyba:#E8736A; --znacka:#E8794A;
+  --poleBg:#101922; --voda:#16222C;
+  --trepka:#6FB890; --trepka-tm:#A8DCC0;
+  --bobovka:#D9A94F; --bobovka-tm:#F0CE8A;
+  --prisedly:#A78BD0; --prisedly-tm:#C9B4E8;
+  --seno:#C0A074; --seno-tm:#DCC49A;
+  --bakterie:#5E7284;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+h1{font-family:"Spectral",Georgia,serif;font-weight:700;font-size:clamp(1.65rem,3.3vw,2.3rem);line-height:1.12;margin:0 0 .3rem}
+.lead{color:var(--muted);max-width:66ch;margin:0 0 1.3rem}
+h2{font-family:"Spectral",Georgia,serif;font-size:1.08rem;margin:0 0 .55rem}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.72fr);gap:1.1rem;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.stage{background:var(--panel);border:2px solid var(--line);border-radius:16px;overflow:hidden}
+canvas#pole{display:block;width:100%;height:auto;aspect-ratio:1/1;touch-action:manipulation}
+canvas#pole.pocitani{cursor:crosshair}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.95rem 1.05rem}
+.side{display:flex;flex-direction:column;gap:.85rem}
+.volby{display:flex;gap:.45rem;flex-wrap:wrap}
+.volby button{flex:1 1 auto;font:inherit;border:1px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:9px;padding:.42rem .7rem;cursor:pointer}
+.volby button:hover{border-color:var(--akcent)}
+.volby button[aria-pressed="true"]{background:var(--akcent);border-color:var(--akcent);color:#fff}
+input[type=range]{width:100%;accent-color:var(--akcent);margin:.3rem 0 .1rem}
+.den{font-family:"Spectral",Georgia,serif;font-size:1.5rem;font-weight:700;color:var(--akcent)}
+.faze{color:var(--muted);font-size:.92rem;min-height:3.1em;margin:.35rem 0 0}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+th,td{text-align:left;padding:.3rem .25rem;border-bottom:1px solid var(--line)}
+th{font-weight:700;color:var(--muted);font-size:.84rem;text-transform:uppercase;letter-spacing:.03em}
+td.c,th.c{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+.swatch{display:inline-block;width:.78rem;height:.78rem;border-radius:3px;margin-right:.45rem;vertical-align:-1px}
+.pozn{color:var(--muted);font-size:.88rem;margin:.55rem 0 0}
+.vysl{margin:.6rem 0 0;font-size:.95rem}
+.vysl b{font-size:1.05rem}
+.ok{color:var(--ok)} .chyba{color:var(--chyba)}
+canvas#graf{display:block;width:100%;height:auto;aspect-ratio:2.5/1}
+.grafbox{margin-top:1.1rem}
+footer{color:var(--muted);font-size:.86rem;margin-top:1.6rem;border-top:1px solid var(--line);padding-top:.8rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Senný nálev — život v kapce vody</h1>
+<p class="lead">Zorné pole mikroskopu při zvětšení 100×. Posuvníkem nastav stáří nálevu a sleduj, jak se společenstvo mění.
+Průměr pole je 1,8 mm, organismy jsou ve správném poměru velikostí.</p>
+
+<div class="grid">
+  <div class="stage"><canvas id="pole" width="760" height="760"></canvas></div>
+
+  <div class="side">
+    <div class="box">
+      <h2>Stáří nálevu</h2>
+      <div class="den"><span id="denCislo">10</span>. den</div>
+      <input type="range" id="den" min="0" max="30" value="10" step="1" aria-label="stáří nálevu ve dnech">
+      <p class="faze" id="faze"></p>
+    </div>
+
+    <div class="box">
+      <h2>Počítání</h2>
+      <div class="volby">
+        <button id="bStop">Zastavit a počítat</button>
+        <button id="bNove">Nové zorné pole</button>
+      </div>
+      <div class="volby" style="margin-top:.45rem">
+        <button id="bKontrola">Zkontrolovat</button>
+        <button id="bReset">Smazat značky</button>
+      </div>
+      <p class="pozn" id="navod">Zastav obraz a klikáním označ jednotlivé organismy. Pak si počty zkontroluj.</p>
+      <div class="vysl" id="vysledek"></div>
+    </div>
+
+    <div class="box">
+      <h2>Co v poli najdeš</h2>
+      <table>
+        <tr><td><span class="swatch" style="background:var(--trepka)"></span>trepka velká</td><td class="c">180–300 µm</td></tr>
+        <tr><td><span class="swatch" style="background:var(--bobovka)"></span>bobovka velká</td><td class="c">50–150 µm</td></tr>
+        <tr><td><span class="swatch" style="background:var(--prisedly)"></span>přisedlí nálevníci</td><td class="c">zvonek 50–100 µm</td></tr>
+        <tr><td><span class="swatch" style="background:var(--seno)"></span>kousky sena</td><td class="c">—</td></tr>
+      </table>
+      <p class="pozn">Přisedlí sedí na seně. Jeden zvonek na vlastní stopce je <b>vířenka</b>, několik zvonků na větvené stopce je <b>keřenka</b>. Počítej jednotlivé zvonky.</p>
+    </div>
+  </div>
+</div>
+
+<div class="box grafbox">
+  <h2>Vývoj společenstva v čase</h2>
+  <canvas id="graf" width="1000" height="400"></canvas>
+  <table style="margin-top:.7rem">
+    <tr><th>organismus</th><th class="c">počet v zorném poli</th><th class="c">odhad na 1 ml</th></tr>
+    <tr><td><span class="swatch" style="background:var(--trepka)"></span>trepka velká</td><td class="c" id="tT">–</td><td class="c" id="mT">–</td></tr>
+    <tr><td><span class="swatch" style="background:var(--bobovka)"></span>bobovka velká</td><td class="c" id="tB">–</td><td class="c" id="mB">–</td></tr>
+    <tr><td><span class="swatch" style="background:var(--prisedly)"></span>přisedlí (zvonky)</td><td class="c" id="tP">–</td><td class="c" id="mP">–</td></tr>
+  </table>
+  <p class="pozn">Přepočet na 1 ml: počet v poli × 127 zorných polí pod krycím sklíčkem ÷ 0,05 ml kapky, tedy zhruba <b>× 2 540</b>.
+  U přisedlých nálevníků je takový přepočet jen orientační — nejsou ve vodě rozptýlení, ale nahloučení na seně.</p>
+</div>
+
+<footer>Gymnázium Joachima Barranda, Beroun — seminář z biologie. Model je zjednodušený: skutečné nálevy se liší podle sena, vody i teploty, počty mohou kolísat o řád.</footer>
+</div>
+
+<script>
+"use strict";
+var TAU = Math.PI * 2;
+
+/* ---------- barvy z CSS ---------- */
+var B = {};
+function nactiBarvy(){
+  var s = getComputedStyle(document.documentElement);
+  ["poleBg","voda","trepka","trepka-tm","bobovka","bobovka-tm","prisedly","prisedly-tm",
+   "seno","seno-tm","bakterie","ink","muted","line","akcent","znacka","ok","chyba"].forEach(function(k){
+    B[k] = s.getPropertyValue("--" + k).trim();
+  });
+}
+nactiBarvy();
+if (window.matchMedia) {
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  if (mq.addEventListener) mq.addEventListener("change", function(){ nactiBarvy(); kresliGraf(); });
+}
+
+/* ---------- model sukcese ---------- */
+var DEN_MAX = 30;
+function puls(d, t0, a){ if (d <= 0) return 0; return Math.pow(d / t0, a) * Math.exp(a * (1 - d / t0)); }
+function model(d){
+  return {
+    trepka:   5 * puls(d, 14, 4),
+    bobovka: 22 * puls(d, 7, 3) + 1.8 / (1 + Math.exp(-(d - 4) / 2)),
+    prisedly: 6 / (1 + Math.exp(-(d - 14) / 2.6)),
+    zakal:   10 + 70 * puls(d, 3, 2)
+  };
+}
+var NA_ML = 2540;
+
+var FAZE = [
+  [2,  "Sklenice je čerstvě založená. Ve vodě jsou zatím skoro jen bakterie, které začínají rozkládat seno."],
+  [5,  "Bakterií je nejvíc a voda se kalí. Objevují se první drobní nálevníci."],
+  [9,  "Bobovky se rychle množí a spásají bakterie. Zákal ustupuje."],
+  [15, "Přibývají trepky. Na kouscích sena se usazují první přisedlí nálevníci."],
+  [22, "Trepky vrcholí, bobovek ubývá — jsou menší, ale potravu už mají snědenou."],
+  [30, "Bakterií je málo, počty volně plovoucích klesají. Přisedlí na seně přetrvávají nejdéle."]
+];
+function faze(d){ for (var i = 0; i < FAZE.length; i++) if (d <= FAZE[i][0]) return FAZE[i][1]; return ""; }
+
+/* ---------- deterministický šum ---------- */
+function hash(a, b, c){
+  var h = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453;
+  return h - Math.floor(h);
+}
+function RNG(seed){
+  var s = seed >>> 0 || 1;
+  return function(){ s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+}
+/* zlomkový počet -> celé číslo, ale deterministicky podle pole a druhu */
+function pocet(x, seed, druh){ return Math.floor(x) + (hash(seed, druh, 1) < (x - Math.floor(x)) ? 1 : 0); }
+
+/* ---------- scéna ---------- */
+var plat = document.getElementById("pole");
+var ctx = plat.getContext("2d");
+var VEL = 760, STRED = VEL / 2, R = VEL * 0.47;
+var POLE_UM = 1800;                 // průměr zorného pole při 100× (FN 18 / objektiv 10×)
+var PXUM = (2 * R) / POLE_UM;       // px na mikrometr
+
+var den = 10, seed = 7, bezi = true, rezim = false;
+var trepky = [], bobovky = [], kolonie = [], seno = [], bakterie = [];
+var cile = [];                      // klikatelné objekty {x,y,r,druh,oznaceno}
+
+function uvnitr(x, y, m){ var dx = x - STRED, dy = y - STRED; return Math.sqrt(dx*dx + dy*dy) < R - m; }
+
+function nahodneUvnitr(rnd, m){
+  var a = rnd() * TAU, r = Math.sqrt(rnd()) * (R - m);
+  return { x: STRED + r * Math.cos(a), y: STRED + r * Math.sin(a) };
+}
+
+function postavScenu(){
+  var m = model(den), rnd = RNG(seed * 7919 + den * 13);
+  trepky = []; bobovky = []; kolonie = []; seno = []; bakterie = [];
+
+  // kousky sena (detritus) — na nich sedí přisedlí
+  var nSeno = 3 + Math.floor(rnd() * 3);
+  for (var i = 0; i < nSeno; i++){
+    var p = nahodneUvnitr(rnd, 150);
+    var dl = (120 + rnd() * 260) * PXUM, sir = (18 + rnd() * 26) * PXUM;
+    var uhel = rnd() * TAU, vrch = [], nv = 9;
+    for (var k = 0; k < nv; k++){
+      var t = k / (nv - 1);
+      vrch.push([(t - 0.5) * dl, (0.5 + 0.5 * Math.sin(t * 5.1 + rnd() * 2)) * sir * (0.5 + 0.5 * Math.sin(t * Math.PI))]);
+    }
+    for (var k2 = nv - 1; k2 >= 0; k2--){
+      var t2 = k2 / (nv - 1);
+      vrch.push([(t2 - 0.5) * dl, -(0.5 + 0.5 * Math.sin(t2 * 4.3 + rnd() * 2)) * sir * (0.5 + 0.5 * Math.sin(t2 * Math.PI))]);
+    }
+    seno.push({ x: p.x, y: p.y, uhel: uhel, vrch: vrch, dl: dl });
+  }
+
+  // trepky
+  var nT = pocet(m.trepka, seed, 1);
+  for (var i2 = 0; i2 < nT; i2++){
+    var dlT = (190 + rnd() * 110) * PXUM;
+    var p2 = nahodneUvnitr(rnd, dlT * 0.6);
+    trepky.push({ x: p2.x, y: p2.y, uhel: rnd() * TAU, dl: dlT, sir: dlT * 0.30,
+      v: (380 + rnd() * 260) * PXUM, faze: rnd() * TAU, otoc: 0, couva: 0, puls: rnd() * TAU });
+  }
+
+  // bobovky
+  var nB = pocet(m.bobovka, seed, 2);
+  for (var i3 = 0; i3 < nB; i3++){
+    var dlB = (60 + rnd() * 70) * PXUM;
+    var p3 = nahodneUvnitr(rnd, dlB * 0.7);
+    bobovky.push({ x: p3.x, y: p3.y, uhel: rnd() * TAU, dl: dlB, sir: dlB * 0.56,
+      v: (140 + rnd() * 120) * PXUM, faze: rnd() * TAU, otoc: 0 });
+  }
+
+  // přisedlí — zvonky rozdělené do skupin (samotářské vířenky, větvené keřenky);
+  // drží se nahloučeně na jednom dvou kouscích sena, ne rozptýleně po celém poli
+  var nP = pocet(m.prisedly, seed, 3), zbyva = nP;
+  var obsazene = seno.slice(0, Math.max(1, Math.min(2, seno.length)));
+  var poradiSena = 0;
+  while (zbyva > 0){
+    var kolonialni = rnd() < 0.5 && zbyva >= 2;
+    var pocetZvonku = kolonialni ? Math.min(zbyva, 2 + Math.floor(rnd() * 2)) : 1;
+    zbyva -= pocetZvonku;
+    var s = obsazene[poradiSena % obsazene.length]; poradiSena++;
+    var stopka = (190 + rnd() * 130) * PXUM, zvonek = (70 + rnd() * 35) * PXUM;
+    var t3 = rnd(), smer = rnd() < 0.5 ? 1 : -1;
+    var lx = (t3 - 0.5) * s.dl * 0.8, ly = smer * 14 * PXUM;
+    var zakl = {
+      x: s.x + lx * Math.cos(s.uhel) - ly * Math.sin(s.uhel),
+      y: s.y + lx * Math.sin(s.uhel) + ly * Math.cos(s.uhel)
+    };
+    var ven = Math.atan2(zakl.y - s.y, zakl.x - s.x) + (rnd() - 0.5) * 0.7;
+    // pokud by stopka mířila ven ze zorného pole, otoč ji dovnitř
+    var dosah = stopka + zvonek;
+    if (!uvnitr(zakl.x + Math.cos(ven) * dosah, zakl.y + Math.sin(ven) * dosah, 6)){
+      ven = Math.atan2(STRED - zakl.y, STRED - zakl.x) + (rnd() - 0.5) * 0.6;
+    }
+    kolonie.push({ x: zakl.x, y: zakl.y, uhel: ven, n: pocetZvonku,
+      stopka: stopka, zvonek: zvonek,
+      vetve: pocetZvonku > 1, stah: 0, dalsiStah: 2 + rnd() * 9, cas: rnd() * 5, faze: rnd() * TAU });
+  }
+
+  // bakterie jako jemný zákal
+  var nBa = Math.round(m.zakal * 9);
+  for (var i4 = 0; i4 < nBa; i4++){
+    var p4 = nahodneUvnitr(rnd, 4);
+    bakterie.push({ x: p4.x, y: p4.y, r: (0.7 + rnd() * 1.1) * 2.2, a: 0.1 + rnd() * 0.22 });
+  }
+  smazZnacky();
+}
+
+function smazZnacky(){
+  cile = [];
+  trepky.forEach(function(o){ cile.push({ o: o, druh: "trepka", oznaceno: false }); });
+  bobovky.forEach(function(o){ cile.push({ o: o, druh: "bobovka", oznaceno: false }); });
+  kolonie.forEach(function(k){
+    for (var i = 0; i < k.n; i++) cile.push({ o: k, idx: i, druh: "prisedly", oznaceno: false });
+  });
+  document.getElementById("vysledek").innerHTML = "";
+}
+
+/* ---------- pohyb ---------- */
+function krok(dt){
+  trepky.forEach(function(o){
+    o.faze += dt * 9; o.puls += dt * 0.55;
+    if (o.couva > 0){
+      o.couva -= dt;
+      o.x -= Math.cos(o.uhel) * o.v * 0.45 * dt;
+      o.y -= Math.sin(o.uhel) * o.v * 0.45 * dt;
+      o.uhel += dt * 2.6 * o.otoc;
+    } else {
+      o.uhel += (hash(o.x, o.y, o.faze * 0.08) - 0.5) * dt * 1.6;
+      o.x += Math.cos(o.uhel) * o.v * dt;
+      o.y += Math.sin(o.uhel) * o.v * dt;
+      if (!uvnitr(o.x, o.y, o.dl * 0.62)){            // úniková reakce u okraje
+        o.couva = 0.35; o.otoc = hash(o.x, 1, o.y) < 0.5 ? -1 : 1;
+      }
+    }
+    if (!uvnitr(o.x, o.y, o.dl * 0.55)){              // pojistka, aby nevyjela z pole
+      var a = Math.atan2(o.y - STRED, o.x - STRED);
+      o.x = STRED + (R - o.dl * 0.56) * Math.cos(a);
+      o.y = STRED + (R - o.dl * 0.56) * Math.sin(a);
+      o.uhel = a + Math.PI + (hash(o.x, o.y, 3) - 0.5);
+      o.couva = 0;
+    }
+  });
+  bobovky.forEach(function(o){
+    o.faze += dt * 13;
+    o.uhel += (hash(o.x, o.y, o.faze * 0.05) - 0.5) * dt * 3.4;
+    o.x += Math.cos(o.uhel) * o.v * dt;
+    o.y += Math.sin(o.uhel) * o.v * dt;
+    if (!uvnitr(o.x, o.y, o.dl * 0.65)){
+      var a2 = Math.atan2(o.y - STRED, o.x - STRED);
+      o.x = STRED + (R - o.dl * 0.66) * Math.cos(a2);
+      o.y = STRED + (R - o.dl * 0.66) * Math.sin(a2);
+      o.uhel = a2 + Math.PI + (hash(o.x, o.y, 5) - 0.5) * 1.4;
+    }
+  });
+  kolonie.forEach(function(k){
+    k.cas += dt; k.faze += dt * 11;
+    if (k.stah > 0){ k.stah -= dt * 1.1; if (k.stah < 0) k.stah = 0; }
+    else if (k.cas > k.dalsiStah){ k.stah = 1; k.cas = 0; k.dalsiStah = 3 + hash(k.x, k.y, k.cas) * 10; }
+  });
+}
+
+/* ---------- kresba organismů ---------- */
+function kresliTrepku(o){
+  var L = o.dl, W = o.sir;
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.uhel);
+
+  // brvy
+  ctx.strokeStyle = B["trepka-tm"]; ctx.globalAlpha = 0.55; ctx.lineWidth = Math.max(1, L * 0.016);
+  for (var i = 0; i < 34; i++){
+    var t = i / 34, a = t * TAU;
+    var ex = Math.cos(a) * L * 0.5, ey = Math.sin(a) * W * 0.5;
+    var vl = L * 0.07 * (1 + 0.45 * Math.sin(o.faze + t * TAU * 2));
+    var nx = Math.cos(a), ny = Math.sin(a) * (W / L) * 1.6;
+    var nl = Math.sqrt(nx * nx + ny * ny);
+    ctx.beginPath(); ctx.moveTo(ex, ey);
+    ctx.lineTo(ex + nx / nl * vl, ey + ny / nl * vl); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // tělo
+  ctx.beginPath();
+  ctx.moveTo(-L * 0.5, 0);
+  ctx.bezierCurveTo(-L * 0.34, -W * 0.52, L * 0.12, -W * 0.52, L * 0.40, -W * 0.30);
+  ctx.bezierCurveTo(L * 0.51, -W * 0.14, L * 0.51, W * 0.14, L * 0.40, W * 0.30);
+  ctx.bezierCurveTo(L * 0.12, W * 0.52, -L * 0.34, W * 0.52, -L * 0.5, 0);
+  ctx.closePath();
+  ctx.fillStyle = B.trepka; ctx.globalAlpha = 0.42; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = B["trepka-tm"]; ctx.lineWidth = Math.max(1.2, L * 0.022); ctx.stroke();
+
+  // ústní brázda
+  ctx.beginPath();
+  ctx.moveTo(L * 0.40, W * 0.16);
+  ctx.quadraticCurveTo(L * 0.10, W * 0.30, -L * 0.04, W * 0.05);
+  ctx.strokeStyle = B["trepka-tm"]; ctx.lineWidth = Math.max(1, L * 0.018); ctx.stroke();
+
+  // makronukleus
+  ctx.beginPath(); ctx.ellipse(0, 0, L * 0.13, W * 0.26, 0, 0, TAU);
+  ctx.fillStyle = B["trepka-tm"]; ctx.globalAlpha = 0.5; ctx.fill(); ctx.globalAlpha = 1;
+
+  // potravní vakuoly
+  for (var v = 0; v < 5; v++){
+    var px = (hash(v, 1, 2) - 0.5) * L * 0.6, py = (hash(v, 2, 3) - 0.5) * W * 0.5;
+    ctx.beginPath(); ctx.arc(px, py, L * 0.035, 0, TAU);
+    ctx.strokeStyle = B["trepka-tm"]; ctx.globalAlpha = 0.45; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  // dvě pulzující vakuoly
+  for (var s = -1; s <= 1; s += 2){
+    var f = 0.5 + 0.5 * Math.sin(o.puls * TAU + (s > 0 ? 0 : Math.PI));
+    ctx.beginPath(); ctx.arc(s * L * 0.26, 0, L * 0.05 * (0.4 + f), 0, TAU);
+    ctx.fillStyle = B.poleBg; ctx.fill();
+    ctx.strokeStyle = B["trepka-tm"]; ctx.lineWidth = 1.1; ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function kresliBobovku(o){
+  var L = o.dl, W = o.sir;
+  ctx.save(); ctx.translate(o.x, o.y); ctx.rotate(o.uhel);
+
+  ctx.strokeStyle = B["bobovka-tm"]; ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
+  for (var i = 0; i < 22; i++){
+    var t = i / 22, a = t * TAU;
+    var ex = Math.cos(a) * L * 0.5, ey = Math.sin(a) * W * 0.5;
+    var vl = L * 0.09 * (1 + 0.4 * Math.sin(o.faze + t * TAU * 2));
+    ctx.beginPath(); ctx.moveTo(ex, ey);
+    ctx.lineTo(ex + Math.cos(a) * vl, ey + Math.sin(a) * vl); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // ledvinovité tělo
+  ctx.beginPath();
+  ctx.moveTo(-L * 0.46, W * 0.08);
+  ctx.bezierCurveTo(-L * 0.34, -W * 0.52, L * 0.18, -W * 0.56, L * 0.46, -W * 0.14);
+  ctx.bezierCurveTo(L * 0.52, W * 0.20, L * 0.16, W * 0.54, -L * 0.10, W * 0.42);
+  ctx.bezierCurveTo(-L * 0.26, W * 0.36, -L * 0.40, W * 0.30, -L * 0.46, W * 0.08);
+  ctx.closePath();
+  ctx.fillStyle = B.bobovka; ctx.globalAlpha = 0.40; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = B["bobovka-tm"]; ctx.lineWidth = Math.max(1.1, L * 0.035); ctx.stroke();
+
+  ctx.beginPath(); ctx.arc(-L * 0.04, 0, L * 0.12, 0, TAU);
+  ctx.fillStyle = B["bobovka-tm"]; ctx.globalAlpha = 0.5; ctx.fill(); ctx.globalAlpha = 1;
+
+  ctx.beginPath(); ctx.arc(L * 0.24, W * 0.10, L * 0.07, 0, TAU);
+  ctx.fillStyle = B.poleBg; ctx.fill();
+  ctx.strokeStyle = B["bobovka-tm"]; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore();
+}
+
+function zvonekPozice(k, i){
+  // konec stopky (případně větve) v lokálních souřadnicích kolonie
+  var dl = k.stopka * (k.stah > 0 ? 0.42 + 0.58 * (1 - k.stah) : 1);
+  if (k.n === 1) return { x: dl, y: 0, dl: dl, a: 0 };
+  var rozpeti = 1.6;
+  var a = (i / (k.n - 1) - 0.5) * rozpeti;
+  var vetev = dl * 0.82;
+  return { x: dl * 0.34 + Math.cos(a) * vetev, y: Math.sin(a) * vetev, dl: dl, a: a };
+}
+
+function kresliKolonii(k){
+  ctx.save(); ctx.translate(k.x, k.y); ctx.rotate(k.uhel);
+  var Z = k.zvonek;
+
+  // stopky
+  ctx.strokeStyle = B["prisedly-tm"]; ctx.lineWidth = Math.max(1.4, Z * 0.10); ctx.lineCap = "round";
+  var uzel = zvonekPozice(k, 0);
+  var kmen = k.n === 1 ? uzel.dl : uzel.dl * 0.34;
+  if (k.stah > 0.02){
+    // stažená stopka se stáčí do spirály
+    ctx.beginPath(); ctx.moveTo(0, 0);
+    var zavitu = 3.2 * k.stah;
+    for (var s = 0; s <= 40; s++){
+      var t = s / 40;
+      ctx.lineTo(kmen * t, Math.sin(t * TAU * zavitu) * Z * 0.26 * k.stah);
+    }
+    ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(kmen, 0); ctx.stroke();
+  }
+  if (k.n > 1){
+    for (var i = 0; i < k.n; i++){
+      var p = zvonekPozice(k, i);
+      ctx.beginPath(); ctx.moveTo(kmen, 0); ctx.lineTo(p.x, p.y); ctx.stroke();
+    }
+  }
+  // úpon na seně
+  ctx.beginPath(); ctx.arc(0, 0, Z * 0.16, 0, TAU);
+  ctx.fillStyle = B["prisedly-tm"]; ctx.fill();
+
+  // zvonky
+  for (var j = 0; j < k.n; j++){
+    var q = zvonekPozice(k, j);
+    ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(k.n === 1 ? 0 : q.a);
+    var stazeny = k.stah > 0.3;
+    var h = Z * (stazeny ? 0.78 : 1), w = Z * (stazeny ? 0.82 : 0.66);
+
+    if (!stazeny){     // věnec brv kolem ústního pole
+      ctx.strokeStyle = B["prisedly-tm"]; ctx.globalAlpha = 0.8; ctx.lineWidth = 1.4;
+      for (var c = 0; c <= 12; c++){
+        var tt = c / 12, yy = (tt - 0.5) * w * 1.1;
+        var vl = Z * 0.30 * (1 + 0.45 * Math.sin(k.faze + tt * TAU));
+        ctx.beginPath(); ctx.moveTo(h * 0.46, yy);
+        ctx.lineTo(h * 0.46 + vl, yy + vl * 0.45 * Math.sin(k.faze + tt * 5)); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    // tělo zvonku
+    ctx.beginPath();
+    ctx.moveTo(-h * 0.5, 0);
+    ctx.bezierCurveTo(-h * 0.30, -w * 0.42, h * 0.18, -w * 0.56, h * 0.5, -w * 0.52);
+    ctx.lineTo(h * 0.5, w * 0.52);
+    ctx.bezierCurveTo(h * 0.18, w * 0.56, -h * 0.30, w * 0.42, -h * 0.5, 0);
+    ctx.closePath();
+    ctx.fillStyle = B.prisedly; ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = B["prisedly-tm"]; ctx.lineWidth = Math.max(1.6, Z * 0.075); ctx.stroke();
+    // podkovovitý makronukleus
+    ctx.beginPath(); ctx.arc(0, 0, w * 0.24, -1.9, 1.9);
+    ctx.strokeStyle = B["prisedly-tm"]; ctx.globalAlpha = 0.6;
+    ctx.lineWidth = Math.max(1.2, Z * 0.09); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function kresliSeno(s){
+  ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.uhel);
+  ctx.beginPath();
+  s.vrch.forEach(function(v, i){ i ? ctx.lineTo(v[0], v[1]) : ctx.moveTo(v[0], v[1]); });
+  ctx.closePath();
+  ctx.fillStyle = B.seno; ctx.globalAlpha = 0.30; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = B["seno-tm"]; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.75; ctx.stroke();
+  // podélná vlákna
+  ctx.globalAlpha = 0.4;
+  for (var i = -1; i <= 1; i++){
+    ctx.beginPath(); ctx.moveTo(-s.dl * 0.44, i * 4); ctx.lineTo(s.dl * 0.44, i * 4); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+/* ---------- kresba pole ---------- */
+function kresli(){
+  ctx.clearRect(0, 0, VEL, VEL);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(STRED, STRED, R, 0, TAU); ctx.clip();
+  ctx.fillStyle = B.poleBg; ctx.fillRect(0, 0, VEL, VEL);
+
+  // zákal od bakterií
+  ctx.fillStyle = B.bakterie;
+  bakterie.forEach(function(b){
+    ctx.globalAlpha = b.a; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, TAU); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  seno.forEach(kresliSeno);
+  kolonie.forEach(kresliKolonii);
+  bobovky.forEach(kresliBobovku);
+  trepky.forEach(kresliTrepku);
+
+  // značky
+  cile.forEach(function(c){
+    if (!c.oznaceno) return;
+    var p = poziceCile(c);
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU);
+    ctx.strokeStyle = B.znacka; ctx.lineWidth = 2.6; ctx.stroke();
+  });
+  if (ukazatChybejici) cile.forEach(function(c){
+    if (c.oznaceno) return;
+    var p = poziceCile(c);
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, TAU);
+    ctx.strokeStyle = B.chyba; ctx.lineWidth = 2.2; ctx.setLineDash([5, 4]); ctx.stroke(); ctx.setLineDash([]);
+  });
+  ctx.restore();
+
+  ctx.beginPath(); ctx.arc(STRED, STRED, R, 0, TAU);
+  ctx.strokeStyle = B.line; ctx.lineWidth = 3; ctx.stroke();
+
+  // měřítko 200 µm
+  var dl = 200 * PXUM, x0 = STRED - dl / 2, y0 = VEL - 26;
+  ctx.strokeStyle = B.muted; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + dl, y0);
+  ctx.moveTo(x0, y0 - 5); ctx.lineTo(x0, y0 + 5);
+  ctx.moveTo(x0 + dl, y0 - 5); ctx.lineTo(x0 + dl, y0 + 5); ctx.stroke();
+  ctx.fillStyle = B.muted; ctx.font = "15px 'Atkinson Hyperlegible', sans-serif"; ctx.textAlign = "center";
+  ctx.fillText("200 µm", STRED, y0 - 11);
+}
+
+function poziceCile(c){
+  if (c.druh === "prisedly"){
+    var q = zvonekPozice(c.o, c.idx);
+    return {
+      x: c.o.x + q.x * Math.cos(c.o.uhel) - q.y * Math.sin(c.o.uhel),
+      y: c.o.y + q.x * Math.sin(c.o.uhel) + q.y * Math.cos(c.o.uhel),
+      r: c.o.zvonek * 0.72
+    };
+  }
+  return { x: c.o.x, y: c.o.y, r: c.o.dl * 0.56 };
+}
+
+/* ---------- smyčka ---------- */
+var ukazatChybejici = false, posledni = 0;
+function smycka(t){
+  var dt = Math.min(0.05, (t - posledni) / 1000); posledni = t;
+  if (bezi) krok(dt);
+  kresli();
+  requestAnimationFrame(smycka);
+}
+
+/* ---------- ovládání ---------- */
+var elDen = document.getElementById("den"), elDenC = document.getElementById("denCislo"),
+    elFaze = document.getElementById("faze"), elVysl = document.getElementById("vysledek"),
+    elNavod = document.getElementById("navod"),
+    bStop = document.getElementById("bStop"), bNove = document.getElementById("bNove"),
+    bKontrola = document.getElementById("bKontrola"), bReset = document.getElementById("bReset");
+
+function obnovTabulku(){
+  var m = model(den);
+  var p = { T: pocet(m.trepka, seed, 1), B: pocet(m.bobovka, seed, 2), P: pocet(m.prisedly, seed, 3) };
+  ["T", "B", "P"].forEach(function(k){
+    document.getElementById("t" + k).textContent = p[k];
+    document.getElementById("m" + k).textContent = (p[k] * NA_ML).toLocaleString("cs-CZ");
+  });
+}
+
+function obnov(){
+  elDenC.textContent = den;
+  elFaze.textContent = faze(den);
+  postavScenu();
+  ukazatChybejici = false;
+  obnovTabulku();
+  kresliGraf();
+}
+
+elDen.addEventListener("input", function(){ den = +elDen.value; obnov(); });
+bNove.addEventListener("click", function(){ seed = (seed * 31 + 17) % 100000; obnov(); });
+bReset.addEventListener("click", function(){ smazZnacky(); ukazatChybejici = false; });
+
+bStop.addEventListener("click", function(){
+  bezi = !bezi;
+  rezim = !bezi;
+  bStop.textContent = bezi ? "Zastavit a počítat" : "Spustit pohyb";
+  bStop.setAttribute("aria-pressed", String(!bezi));
+  plat.classList.toggle("pocitani", !bezi);
+  elNavod.textContent = bezi
+    ? "Zastav obraz a klikáním označ jednotlivé organismy. Pak si počty zkontroluj."
+    : "Klikej na organismy — označené dostanou oranžový kroužek. Přisedlé počítej po jednotlivých zvoncích.";
+});
+
+bKontrola.addEventListener("click", function(){
+  var m = { trepka: 0, bobovka: 0, prisedly: 0 }, oznac = { trepka: 0, bobovka: 0, prisedly: 0 };
+  cile.forEach(function(c){ m[c.druh]++; if (c.oznaceno) oznac[c.druh]++; });
+  ukazatChybejici = true;
+  var nazvy = { trepka: "trepky", bobovka: "bobovky", prisedly: "přisedlí (zvonky)" };
+  var html = "", vse = true;
+  ["trepka", "bobovka", "prisedly"].forEach(function(k){
+    var ok = oznac[k] === m[k]; if (!ok) vse = false;
+    html += '<div><span class="' + (ok ? "ok" : "chyba") + '">' + (ok ? "✓" : "✗") + "</span> " +
+            nazvy[k] + ": označeno <b>" + oznac[k] + "</b> z <b>" + m[k] + "</b></div>";
+  });
+  html += '<p class="pozn">' + (vse ? "Všechno sedí. " : "Chybějící jsou vyznačené čárkovaně. ") +
+          "Odhad na 1 ml: (" + m.trepka + " + " + m.bobovka + ") × 2 540 = <b>" +
+          ((m.trepka + m.bobovka) * NA_ML).toLocaleString("cs-CZ") + "</b> volně plovoucích nálevníků.</p>";
+  elVysl.innerHTML = html;
+});
+
+plat.addEventListener("click", function(e){
+  if (bezi) return;
+  var r = plat.getBoundingClientRect();
+  var x = (e.clientX - r.left) / r.width * VEL, y = (e.clientY - r.top) / r.height * VEL;
+  var nej = null, nejD = 1e9;
+  cile.forEach(function(c){
+    var p = poziceCile(c), d = Math.hypot(x - p.x, y - p.y);
+    if (d < p.r * 1.25 && d < nejD){ nejD = d; nej = c; }
+  });
+  if (nej) nej.oznaceno = !nej.oznaceno;
+});
+
+/* ---------- graf ---------- */
+var gp = document.getElementById("graf"), gc = gp.getContext("2d");
+function kresliGraf(){
+  var W = gp.width, H = gp.height, ml = 54, mr = 16, mt = 18, mb = 40;
+  var w = W - ml - mr, h = H - mt - mb;
+  gc.clearRect(0, 0, W, H);
+
+  var YMAX = 24;
+  var x = function(d){ return ml + d / DEN_MAX * w; };
+  var y = function(v){ return mt + h - Math.min(v, YMAX) / YMAX * h; };
+
+  // zákal bakterií jako pozadí
+  gc.beginPath(); gc.moveTo(x(0), mt + h);
+  for (var d0 = 0; d0 <= DEN_MAX; d0 += 0.5) gc.lineTo(x(d0), mt + h - model(d0).zakal / 100 * h * 0.92);
+  gc.lineTo(x(DEN_MAX), mt + h); gc.closePath();
+  gc.fillStyle = B.bakterie; gc.globalAlpha = 0.20; gc.fill(); gc.globalAlpha = 1;
+  gc.fillStyle = B.muted; gc.font = "14px 'Atkinson Hyperlegible', sans-serif";
+  gc.textAlign = "left"; gc.textBaseline = "middle";
+  gc.fillText("zákal (bakterie)", x(3.6), mt + h - model(3).zakal / 100 * h * 0.92 + 14);
+
+  // mřížka
+  gc.strokeStyle = B.line; gc.lineWidth = 1;
+  gc.fillStyle = B.muted; gc.font = "14px 'Atkinson Hyperlegible', sans-serif";
+  gc.textAlign = "right"; gc.textBaseline = "middle";
+  for (var v = 0; v <= YMAX; v += 6){
+    gc.beginPath(); gc.moveTo(ml, y(v)); gc.lineTo(ml + w, y(v)); gc.stroke();
+    gc.fillText(String(v), ml - 8, y(v));
+  }
+  gc.textAlign = "center"; gc.textBaseline = "top";
+  for (var dd = 0; dd <= DEN_MAX; dd += 5){
+    gc.beginPath(); gc.moveTo(x(dd), mt); gc.lineTo(x(dd), mt + h); gc.globalAlpha = 0.5; gc.stroke(); gc.globalAlpha = 1;
+    gc.fillText(String(dd), x(dd), mt + h + 8);
+  }
+  gc.fillText("den", ml + w / 2, mt + h + 24);
+  gc.save(); gc.translate(14, mt + h / 2); gc.rotate(-Math.PI / 2);
+  gc.textAlign = "center"; gc.textBaseline = "top"; gc.fillText("počet v zorném poli", 0, 0); gc.restore();
+
+  // křivky
+  [["trepka", B.trepka], ["bobovka", B.bobovka], ["prisedly", B.prisedly]].forEach(function(s){
+    gc.beginPath();
+    for (var d = 0; d <= DEN_MAX; d += 0.25){
+      var vv = model(d)[s[0]];
+      d === 0 ? gc.moveTo(x(d), y(vv)) : gc.lineTo(x(d), y(vv));
+    }
+    gc.strokeStyle = s[1]; gc.lineWidth = 3; gc.lineJoin = "round"; gc.stroke();
+  });
+
+  // značka aktuálního dne
+  gc.beginPath(); gc.moveTo(x(den), mt); gc.lineTo(x(den), mt + h);
+  gc.strokeStyle = B.znacka; gc.lineWidth = 2; gc.setLineDash([6, 4]); gc.stroke(); gc.setLineDash([]);
+  [["trepka", B.trepka], ["bobovka", B.bobovka], ["prisedly", B.prisedly]].forEach(function(s){
+    gc.beginPath(); gc.arc(x(den), y(model(den)[s[0]]), 5, 0, TAU);
+    gc.fillStyle = s[1]; gc.fill();
+    gc.strokeStyle = B.poleBg; gc.lineWidth = 2; gc.stroke();
+  });
+}
+
+/* ---------- start ---------- */
+obnov();
+requestAnimationFrame(smycka);
+</script>
+</body>
+</html>
