@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stavba dýchací soustavy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --skin:#f1d3c0; --skin2:#d9a98c; --muc:#f0a7a7; --muc2:#d77b7b; --cart:#dfe6ee; --cart2:#9fb0c2;
+  --lung:#f3b0ae; --lung2:#d9827f; --air:#d8ecfb; --mucus:#cfe3a6; --hi:#f2b705; --upper:#3b82f6; --lower:#e8873a;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --warn:#c97a00; --navic:#4b3fd0; --navicbg:#eef0ff;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --skin:#6b5446; --skin2:#8a6b58; --muc:#8a4a4a; --muc2:#a85f5f; --cart:#3a4655; --cart2:#6d8199;
+  --lung:#8a4c4b; --lung2:#a8605d; --air:#1e3346; --mucus:#5d7a2e; --hi:#ffd23f; --upper:#6aa2ff; --lower:#f0a030;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --navic:#a99cff; --navicbg:#25233d; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)} .status.warn{color:var(--warn)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.navic{font-size:.9rem;background:var(--navicbg);border-left:4px solid var(--navic);padding:8px 12px;border-radius:6px;margin:0}
+.navic b.tag{color:var(--navic);font-size:.75rem;letter-spacing:.04em;display:block;margin-bottom:2px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.1rem;font-variant-numeric:tabular-nums;margin:0}
+.part{cursor:pointer;transition:opacity .2s}
+svg.dim .part:not(.sel){opacity:.3}
+.part.sel{filter:drop-shadow(0 0 5px var(--hi)) drop-shadow(0 0 2px var(--hi))}
+.score{font-family:var(--f-mono);font-size:1rem;color:var(--muted)}
+table.air{border-collapse:collapse;width:100%;font-size:.92rem}
+table.air td,table.air th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+table.air th{background:var(--bg)}
+table.air td.on{background:var(--accent);color:#fff;font-weight:700}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Stavba <span>dýchací soustavy</span></h1>
+  <p class="sub">Interaktivní pokusy k 1. hodině · Dýchací soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-ce" aria-selected="true" data-p="p-ce">1 · Cesta vzduchu</button>
+  <button role="tab" id="t-ra" aria-selected="false" data-p="p-ra">2 · Řasinkový epitel</button>
+  <button role="tab" id="t-sk" aria-selected="false" data-p="p-sk">3 · Plicní sklípek</button>
+  <button role="tab" id="t-su" aria-selected="false" data-p="p-su">4 · Surfaktant</button>
+</nav>
+
+<!-- 1 CESTA VZDUCHU -->
+<section class="stage" id="p-ce" role="tabpanel" aria-labelledby="t-ce">
+  <div class="panel"><svg id="ceSvg" viewBox="-130 0 790 540" role="img" aria-label="Schéma dýchací soustavy – klikni na část"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Kudy jde vzduch?</h2>
+      <p>Klikni na kteroukoli část dýchací soustavy. Hlava je z boku, plíce zepředu – <b>pravá plíce je na obrázku vlevo</b>.</p>
+    </div>
+    <div class="row" role="group" aria-label="Režim">
+      <button class="btn" data-mode="exp" aria-pressed="true">Prozkoumat</button>
+      <button class="btn" data-mode="find">Najdi část</button>
+      <button class="btn" id="ceHalves" aria-pressed="false">Horní × dolní cesty</button>
+    </div>
+    <p class="status" id="ceStatus">Vyber část dýchací soustavy</p>
+    <p id="ceText">Vzduch jde: nosní dutina → nosohltan → hrtan → průdušnice → průdušky → průdušinky → plicní sklípky.</p>
+    <p class="score" id="ceScore" hidden></p>
+    <div class="row" id="ceFindRow" hidden><button class="btn primary" id="ceNext">Další úkol ▶</button><button class="btn" id="ceReset">Začít znovu</button></div>
+    <div class="row"><button class="btn" id="nut">Vdechni oříšek 🥜</button><span class="score" id="nutScore"></span></div>
+    <p class="note">Hranicí mezi <b>horními</b> a <b>dolními cestami dýchacími</b> je <b>začátek hrtanu</b> – hrtan už patří k dolním cestám. V hltanu se dýchací cesty kříží s trávicí soustavou.</p>
+  </div>
+</section>
+
+<!-- 2 ŘASINKY -->
+<section class="stage" id="p-ra" role="tabpanel" aria-labelledby="t-ra" hidden>
+  <div class="panel"><svg id="raSvg" viewBox="0 0 520 360" role="img" aria-label="Řasinkový epitel dýchacích cest"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Řasinkový „eskalátor“</h2>
+      <p>Řasinky kmitají <b>12–20krát za sekundu</b> směrem <b>ven z těla</b> a posouvají <b>hlen</b> se zachycenými částicemi rychlostí asi <b>1 cm za minutu</b>. Hlen tvoří <b>pohárkové buňky</b> – denně až 100 ml.</p>
+    </div>
+    <div class="row"><button class="btn primary" id="dust">Vdechni prach a bakterie</button><button class="btn" id="raSlow" aria-pressed="false">Zpomalit</button></div>
+    <p class="read" id="raRead"></p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Cigaretový kouř řasinky ochromuje. Hlen pak stojí, hromadí se a kuřák ho musí vykašlávat („kuřácký kašel“).
+      <div class="row" style="margin-top:8px"><button class="btn" id="smoke" aria-pressed="false">🚬 Kouření</button></div></div>
+    <p class="note">Hlen většinou spolkneme, případně vysmrkáme. Jen strop nosní dutiny pod čichovou kostí tvoří <b>čichový epitel</b>.</p>
+  </div>
+</section>
+
+<!-- 3 SKLÍPEK -->
+<section class="stage" id="p-sk" role="tabpanel" aria-labelledby="t-sk" hidden>
+  <div class="panel"><svg id="skSvg" viewBox="0 0 520 400" role="img" aria-label="Výměna plynů v plicním sklípku"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Výměna plynů</h2>
+      <p>Kyslík a oxid uhličitý se přesouvají <b>difuzí po koncentračním spádu</b> – tam, kde je daného plynu méně. <b style="color:var(--art)">O₂</b> jde ze sklípku do krve, <b style="color:var(--vein)">CO₂</b> z krve do sklípku.</p>
+    </div>
+    <div class="row"><button class="btn primary" id="inh">Nádech</button><button class="btn" id="exh">Výdech</button></div>
+    <p class="status" id="skStatus"></p>
+    <table class="air" aria-label="Složení vzduchu">
+      <tr><th>Plyn</th><th>vdechnutý vzduch</th><th>vydechnutý vzduch</th></tr>
+      <tr><td>N₂</td><td data-c="i">78 %</td><td data-c="e">78 %</td></tr>
+      <tr><td>O₂</td><td data-c="i">21 %</td><td data-c="e">16 %</td></tr>
+      <tr><td>CO₂</td><td data-c="i">0,035 %</td><td data-c="e">4,5 %</td></tr>
+      <tr><td>ostatní (Ar…)</td><td data-c="i">1 %</td><td data-c="e">1 %</td></tr>
+    </table>
+    <p class="note">Stěnu sklípků tvoří tenké dlaždicovité <b>pneumocyty I. typu</b>; plocha všech sklípků je asi <b>140 m²</b>. Vydechovaný vzduch je navíc prakticky 100% nasycený vodní párou – denně tak ztratíme asi 0,5 l vody.</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Vzduch od krve odděluje vrstva tenká <b>méně než 1 µm</b>. V plicích je asi 300–500 milionů sklípků. Ve vydechovaném vzduchu zbývá 16 % kyslíku – proto má smysl dýchání z úst do úst.</div>
+  </div>
+</section>
+
+<!-- 4 SURFAKTANT -->
+<section class="stage" id="p-su" role="tabpanel" aria-labelledby="t-su" hidden>
+  <div class="panel"><svg id="suSvg" viewBox="0 0 520 360" role="img" aria-label="Surfaktant v plicním sklípku"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Aby dobře klouzaly</h2>
+      <p><b>Pneumocyty II. typu</b> tvoří <b>surfaktant</b> – směs volných fosfolipidů (90 %) a bílkovin. Jeho hydrofobní část <b>brání slepení stěn sklípku při výdechu</b>.</p>
+    </div>
+    <label class="sl">Týden nitroděložního vývoje při narození <output id="wkOut">40. týden</output><input type="range" id="wk" min="22" max="40" value="40"></label>
+    <p class="read" id="suRead"></p>
+    <p class="status" id="suStatus"></p>
+    <p id="suText"></p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Nedonošeným dětem se dnes surfaktant podává uměle přímo do průdušnice a matkám před předčasným porodem se dávají kortikoidy, které urychlí zrání plic.
+      <div class="row" style="margin-top:8px"><button class="btn" id="giveSurf" aria-pressed="false">💉 Podat surfaktant</button></div></div>
+    <p class="note">Surfaktant se tvoří od <b>20. týdne</b> nitroděložního vývoje, dostatečná vrstva je od <b>34. týdne</b>. Dítě narozené dříve ho má málo → hrozí <b>kolaps plic</b> = <b>syndrom dechové tísně novorozenců</b>.</p>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+let tab="p-ce";
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});tab=b.dataset.p;drawCe();}));
+
+/* ===== 1 CESTA VZDUCHU ===== */
+const PARTS={
+  nos:["Nosní dutina","Ohřívá vdechovaný vzduch (bohatá kapilární síť pod sliznicí), vystlaná <b>řasinkovým epitelem</b> s hlenem. Povrch zvětšují <b>skořepy nosní</b>, dutinu dělí přepážka podepřená radličnou kostí. Strop tvoří <b>čichový epitel</b>.",0],
+  dut:["Vedlejší nosní dutiny","Dutiny v kosti <b>čelní, čichové, klínové a v horní čelisti</b>. Ohřívají a zvlhčují vzduch, odlehčují lebku, podílejí se na tvorbě hlasu. Sliznice uvolňuje <b>oxid dusnatý</b>, který ničí viry a bakterie.",0],
+  noh:["Nosohltan","Horní část hltanu. Na jeho stropě je <b>hltanová (nosní) mandle</b>, ústí do něj <b>Eustachova trubice</b> ze středního ucha.",0],
+  hlt:["Hltan","Zde se <b>dýchací cesty kříží s trávicí soustavou</b> – vzduch jde dopředu do hrtanu, potrava dozadu do jícnu.",0],
+  pri:["Hrtanová příklopka","Jediná chrupavka hrtanu z <b>elastické chrupavky</b>. Při <b>polykání zakryje vstup do hrtanu</b>. Záklon hlavy vstup naopak otevírá – důležité při první pomoci.",1],
+  hrt:["Hrtan","Začátek <b>dolních cest dýchacích</b>. Visí na jazylce, tvoří ho chrupavky: <b>štítná</b> (u mužů „ohryzek“), <b>prstencová</b> a hlasivkové. Jsou v něm <b>pravé hlasové řasy</b> – tvoří hlas.",1],
+  tra:["Průdušnice","Trubice asi <b>10 cm dlouhá a 2 cm široká</b>, zepředu vyztužená <b>15–20 poloměsíčitými chrupavkami</b>. Na úrovni 4. hrudního obratle se dělí na dvě průdušky.",1],
+  ppr:["Pravá průduška","<b>Širší a svislejší</b> než levá – proto v ní (v pravé plíci) končí asi <b>75 %</b> vdechnutých cizích těles.",1],
+  lpr:["Levá průduška","<b>Užší</b> a nevede tak strmě dolů – vlevo je potřeba místo pro <b>srdce</b>.",1],
+  bro:["Průdušinky","Průdušky se v plicích celkem <b>23krát větví</b> až na průdušinky. Ty <b>už nemají chrupavky ani hlenové žlázky</b> a ústí do plicních sklípků. Celek = <b>průduškový strom</b>.",1],
+  skl:["Plicní sklípky (alveoly)","Tvoří plicní lalůčky na konci průdušinek. Jejich plocha je asi <b>140 m²</b>; stěnu tvoří tenké <b>pneumocyty I. typu</b>. Tady probíhá <b>výměna plynů</b> s krví (pokus 3).",1],
+  ppl:["Pravá plíce","Větší, má <b>3 laloky</b> (horní, střední, dolní).",1],
+  lpl:["Levá plíce","Menší, protože do ní víc zasahuje <b>srdce</b>; má jen <b>2 laloky</b> (horní a dolní).",1],
+  bra:["Bránice","Hlavní <b>vdechový sval</b> pod plícemi – jak funguje, probereme v 2. hodině (mechanika dýchání).",2],
+};
+let ceMode="exp",ceSel=null,ceTarget=null,ceOk=0,ceTot=0,ceQ=[],halves=false,nut=null,nutR=0,nutL=0;
+function drawCe(now){now=now??performance.now();
+  const s=$("#ceSvg");if(!s)return;s.innerHTML="";
+  const P={},part=id=>{const g=el("g",{class:"part","data-id":id},s);P[id]=g;return g};
+  const S=css("--skin"),S2=css("--skin2"),M=css("--muc"),M2=css("--muc2"),C=css("--cart"),C2=css("--cart2"),L=css("--lung"),L2=css("--lung2");
+  // hlava z boku (obličej doleva)
+  el("path",{d:"M150 92 Q 142 98 150 104 L 160 108 Q 156 120 166 128 Q 160 140 172 150 Q 176 168 200 172 L 236 172 L 240 210 L 300 210 L 300 150 Q 340 140 340 80 Q 336 18 262 14 Q 196 12 176 50 Q 170 66 168 76 Z",fill:S,stroke:S2,"stroke-width":2},s);
+  txt(s,320,40,"hlava z boku",{"font-size":11,fill:css("--muted")});
+  // vedlejší nosní dutiny
+  let g=part("dut");el("ellipse",{cx:196,cy:54,rx:12,ry:7,fill:"#7cc47e",opacity:.9},g);el("ellipse",{cx:206,cy:112,rx:14,ry:9,fill:"#4fb3d9",opacity:.9},g);el("ellipse",{cx:238,cy:76,rx:8,ry:6,fill:"#e05a5a",opacity:.9},g);
+  // nosní dutina
+  g=part("nos");el("path",{d:"M160 96 Q 175 70 230 72 L 262 80 L 262 104 L 170 108 Z",fill:M,stroke:M2,"stroke-width":1.5},g);
+  [84,93].forEach(y=>el("path",{d:`M195 ${y} Q 225 ${y-6} 250 ${y+2}`,fill:"none",stroke:M2,"stroke-width":2},g));
+  // ústní dutina (jen obrys)
+  el("path",{d:"M172 122 Q 200 116 250 120 L 256 140 Q 210 146 174 140 Z",fill:css("--muc"),opacity:.45},s);txt(s,190,135,"ústa",{"font-size":10,fill:css("--muted")});
+  // nosohltan
+  g=part("noh");el("path",{d:"M262 80 Q 290 82 290 110 L 290 128 L 266 128 L 262 104 Z",fill:M,stroke:M2,"stroke-width":1.5},g);
+  // hltan
+  g=part("hlt");el("path",{d:"M266 128 L 290 128 L 292 168 L 266 168 Z",fill:M,stroke:M2,"stroke-width":1.5},g);
+  // jícen
+  el("rect",{x:282,y:168,width:12,height:120,fill:css("--muc"),opacity:.4},s);txt(s,300,250,"jícen",{"font-size":10,fill:css("--muted")});
+  // hrtanová příklopka
+  g=part("pri");el("path",{d:"M266 168 Q 280 160 286 170",fill:"none",stroke:C2,"stroke-width":5,"stroke-linecap":"round"},g);el("circle",{cx:276,cy:166,r:10,fill:"transparent"},g);
+  // hrtan
+  g=part("hrt");el("rect",{x:258,y:172,width:24,height:34,rx:6,fill:C,stroke:C2,"stroke-width":2},g);el("line",{x1:262,y1:188,x2:278,y2:188,stroke:C2,"stroke-width":2},g);
+  // průdušnice
+  g=part("tra");el("rect",{x:261,y:206,width:18,height:96,fill:C,stroke:C2,"stroke-width":1.5},g);for(let y=212;y<300;y+=8)el("line",{x1:261,y1:y,x2:279,y2:y,stroke:C2,"stroke-width":2},g);
+  // plíce
+  g=part("ppl");el("path",{d:"M246 300 Q 250 270 230 262 Q 160 250 128 330 Q 104 400 118 470 Q 180 488 252 470 Q 258 400 246 300 Z",fill:L,stroke:L2,"stroke-width":2},g);
+  el("path",{d:"M122 380 Q 180 360 250 350",fill:"none",stroke:L2,"stroke-width":2},g);el("path",{d:"M140 420 Q 200 405 252 410",fill:"none",stroke:L2,"stroke-width":2},g);
+  g=part("lpl");el("path",{d:"M294 300 Q 290 270 310 262 Q 380 250 412 330 Q 436 400 422 470 Q 380 482 340 474 Q 330 440 300 430 Q 296 380 294 300 Z",fill:L,stroke:L2,"stroke-width":2},g);
+  el("path",{d:"M300 400 Q 360 360 418 360",fill:"none",stroke:L2,"stroke-width":2},g);
+  // srdce
+  el("path",{d:"M300 432 Q 330 440 340 474 Q 300 492 268 480 Q 262 455 300 432 Z",fill:css("--art"),opacity:.35},s);txt(s,302,470,"srdce",{"font-size":10,fill:css("--muted"),"text-anchor":"middle"});
+  // průdušky
+  g=part("ppr");el("path",{d:"M266 300 L 232 352",stroke:C,"stroke-width":15,"stroke-linecap":"round"},g);el("path",{d:"M266 300 L 232 352",stroke:C2,"stroke-width":15,"stroke-linecap":"round",fill:"none",opacity:.35},g);
+  g=part("lpr");el("path",{d:"M274 300 L 322 340",stroke:C,"stroke-width":11,"stroke-linecap":"round"},g);el("path",{d:"M274 300 L 322 340",stroke:C2,"stroke-width":11,"stroke-linecap":"round",fill:"none",opacity:.35},g);
+  // průdušinky
+  g=part("bro");
+  const br=(x,y,a,len,d)=>{if(d>3)return;const x2=x+Math.cos(a)*len,y2=y+Math.sin(a)*len;el("line",{x1:x,y1:y,x2,y2,stroke:C2,"stroke-width":4-d},g);br(x2,y2,a-.45,len*.72,d+1);br(x2,y2,a+.45,len*.72,d+1)};
+  br(232,352,Math.PI*.62,38,0);br(232,352,Math.PI*.95,30,1);br(322,340,Math.PI*.38,38,0);br(322,340,Math.PI*.05,30,1);
+  el("rect",{x:140,y:340,width:250,height:110,fill:"transparent"},g);
+  // sklípky – zvětšení
+  g=part("skl");el("circle",{cx:452,cy:200,r:52,fill:css("--panel"),stroke:css("--muted"),"stroke-width":1.5,"stroke-dasharray":"4 3"},g);
+  [[440,190],[462,184],[452,206],[432,212],[474,206],[450,228],[470,228],[430,190]].forEach(([x,y])=>el("circle",{cx:x,cy:y,r:11,fill:L,stroke:L2,"stroke-width":1.5},g));
+  el("line",{x1:452,y1:150,x2:452,y2:172,stroke:C2,"stroke-width":3},g);
+  el("line",{x1:405,y1:226,x2:376,y2:392,stroke:css("--muted"),"stroke-width":1,"stroke-dasharray":"3 3"},s);
+  // bránice
+  g=part("bra");el("path",{d:"M100 482 Q 270 440 440 482 L 440 494 Q 270 452 100 494 Z",fill:"#c46a5a",opacity:.8},g);
+  // horní × dolní cesty
+  if(halves){el("rect",{x:150,y:40,width:146,height:128,rx:10,fill:"none",stroke:css("--upper"),"stroke-width":3,"stroke-dasharray":"8 5"},s);
+    txt(s,150,32,"HORNÍ cesty dýchací",{"font-size":12.5,"font-weight":700,fill:css("--upper")});
+    el("rect",{x:104,y:166,width:330,height:316,rx:12,fill:"none",stroke:css("--lower"),"stroke-width":3,"stroke-dasharray":"8 5"},s);
+    txt(s,108,532,"DOLNÍ cesty dýchací (od hrtanu níž)",{"font-size":12.5,"font-weight":700,fill:css("--lower")});
+    el("line",{x1:240,y1:168,x2:330,y2:168,stroke:css("--ink"),"stroke-width":2},s);txt(s,334,212,"hranice: začátek hrtanu",{"font-size":11.5,"font-weight":700});}
+  // oříšek
+  if(nut){const k=Math.min(1,(now-nut.t0)/1800);let pts=[[200,130],[262,150],[270,185],[270,300]].concat(nut.right?[[240,350],[220,380]]:[[318,338],[340,360]]);
+    const L0=pts.length-1,f=k*L0,i=Math.min(L0-1,Math.floor(f)),r=f-i;const x=pts[i][0]+(pts[i+1][0]-pts[i][0])*r,y=pts[i][1]+(pts[i+1][1]-pts[i][1])*r;
+    el("ellipse",{cx:x,cy:y,rx:6,ry:8,fill:"#a0682e",stroke:"#5e3a14","stroke-width":1.5},s);}
+  s.classList.toggle("dim",!!ceSel);if(ceSel&&P[ceSel])P[ceSel].classList.add("sel");
+  Object.entries(P).forEach(([id,g])=>g.addEventListener("click",e=>{e.stopPropagation();pick(id)}));
+  if(ceMode==="exp"){
+    const pill=(id,x,y,tx,ty,t,anchor)=>{el("line",{x1:x,y1:y,x2:tx,y2:ty,stroke:css("--muted"),"stroke-width":1},s);const g=el("g",{style:"cursor:pointer"},s);
+      const r=el("rect",{rx:7,fill:css("--panel"),stroke:ceSel===id?css("--accent"):css("--muted"),"stroke-width":ceSel===id?2.5:1.2},g);
+      const tt=txt(g,tx,ty+4,t,{"font-size":12.5,"font-weight":700,"text-anchor":anchor});const bb=tt.getBBox();
+      r.setAttribute("x",bb.x-6);r.setAttribute("y",bb.y-3);r.setAttribute("width",bb.width+12);r.setAttribute("height",bb.height+6);
+      g.addEventListener("click",e=>{e.stopPropagation();pick(id)})};
+    pill("dut",196,54,60,40,"vedlejší nosní dutiny","end");
+    pill("nos",180,96,60,80,"nosní dutina","end");
+    pill("noh",284,96,360,96,"nosohltan","start");
+    pill("hlt",288,150,360,140,"hltan","start");
+    pill("pri",280,166,360,176,"hrtanová příklopka","start");
+    pill("hrt",258,190,60,196,"hrtan","end");
+    pill("tra",262,250,60,248,"průdušnice","end");
+    pill("ppr",246,330,60,300,"pravá průduška","end");
+    pill("lpr",300,322,520,300,"levá průduška","start");
+    pill("bro",180,400,60,400,"průdušinky","end");
+    pill("ppl",130,440,60,446,"pravá plíce (3 laloky)","end");
+    pill("lpl",410,430,520,446,"levá plíce (2 laloky)","start");
+    pill("skl",500,200,520,150,"plicní sklípky","start");
+    pill("bra",420,482,520,500,"bránice","start");
+  }
+  if(ceMode==="exp"&&ceSel)txt(s,-120,24,PARTS[ceSel][0],{"font-size":15,"font-weight":700,fill:css("--accent")});
+}
+function pick(id){
+  if(ceMode==="exp"){ceSel=id;$("#ceStatus").className="status";$("#ceStatus").textContent=PARTS[id][0]+(PARTS[id][2]===0?" · horní cesty":PARTS[id][2]===1?" · dolní cesty / plíce":"");$("#ceText").innerHTML=PARTS[id][1];drawCe(performance.now());return}
+  if(!ceTarget)return;ceTot++;
+  if(id===ceTarget){ceOk++;ceSel=id;$("#ceStatus").className="status ok";$("#ceStatus").textContent="Správně: "+PARTS[id][0];$("#ceText").innerHTML=PARTS[id][1];ceTarget=null}
+  else{ceSel=id;$("#ceStatus").className="status bad";$("#ceStatus").textContent="To je "+PARTS[id][0].toLowerCase()+". Zkus to znovu."}
+  $("#ceScore").textContent=`Skóre: ${ceOk} správně z ${ceTot} pokusů`;drawCe(performance.now());
+}
+function nextTask(){if(!ceQ.length)ceQ=Object.keys(PARTS).sort(()=>Math.random()-.5);ceTarget=ceQ.pop();ceSel=null;
+  $("#ceStatus").className="status";$("#ceStatus").textContent="Najdi: "+PARTS[ceTarget][0];$("#ceText").textContent="Klikni na správnou část schématu.";drawCe(performance.now())}
+$$("[data-mode]").forEach(b=>b.onclick=()=>{ceMode=b.dataset.mode;press("[data-mode]",b);ceSel=null;const f=ceMode==="find";$("#ceScore").hidden=!f;$("#ceFindRow").hidden=!f;
+  if(f){ceOk=0;ceTot=0;ceQ=[];$("#ceScore").textContent="Skóre: 0 správně z 0 pokusů";nextTask()}else{ceTarget=null;$("#ceStatus").className="status";$("#ceStatus").textContent="Vyber část dýchací soustavy";drawCe(performance.now())}});
+$("#ceNext").onclick=nextTask;$("#ceReset").onclick=()=>{ceOk=0;ceTot=0;ceQ=[];nextTask()};
+$("#ceHalves").onclick=()=>{halves=!halves;$("#ceHalves").setAttribute("aria-pressed",halves);drawCe(performance.now())};
+$("#ceSvg").addEventListener("click",()=>{if(ceMode==="exp"&&ceSel){ceSel=null;$("#ceStatus").textContent="Vyber část dýchací soustavy";drawCe(performance.now())}});
+$("#nut").onclick=()=>{const right=Math.random()<.75;nut={t0:performance.now(),right};right?nutR++:nutL++;
+  setTimeout(()=>{$("#ceStatus").className="status warn";$("#ceStatus").textContent="Oříšek skončil v "+(right?"pravé":"levé")+" plíci";
+    $("#ceText").innerHTML="Pravá průduška je <b>širší a vede svisleji</b>, proto lékaři vdechnutá tělesa loví v <b>75 %</b> případů z <b>pravé plíce</b>.";
+    $("#nutScore").textContent=`pravá ${nutR} × levá ${nutL}`},reduce?10:1800)};
+
+/* ===== 2 ŘASINKY ===== */
+let raT=0,smoke=false,slow=false,mucusX=0,parts2=[];
+function addDust(){for(let i=0;i<8;i++)parts2.push({x:20+Math.random()*120,y:96+Math.random()*30,k:Math.random()<.4?"b":"p"})}
+function drawRa(dt){
+  const s=$("#raSvg");s.innerHTML="";const sp=slow?.25:1;const ciliaOn=!smoke;
+  raT+=dt*sp;
+  // vzduch
+  el("rect",{x:0,y:0,width:520,height:90,fill:css("--air")},s);txt(s,12,24,"vzduch v dýchacích cestách",{"font-size":12,fill:css("--muted")});
+  // šipka ven
+  el("path",{d:"M380 40 H 490",stroke:css("--accent"),"stroke-width":3,"marker-end":"url(#ar)"},s);
+  const d=el("defs",{},s),m=el("marker",{id:"ar",viewBox:"0 0 10 10",refX:8,refY:5,markerWidth:6,markerHeight:6,orient:"auto"},d);el("path",{d:"M0 0 L10 5 L0 10 z",fill:css("--accent")},m);
+  txt(s,435,30,"ven z těla (k hrtanu)",{"font-size":12,"font-weight":700,"text-anchor":"middle",fill:css("--accent")});
+  // hlen
+  const mt=smoke?70:46;
+  el("rect",{x:0,y:140-mt,width:520,height:mt-6,fill:css("--mucus"),opacity:.75},s);txt(s,12,140-mt+16,"hlen",{"font-size":12,"font-weight":600});
+  // buňky
+  const W=40;
+  for(let i=0;i<13;i++){const x=i*W,gob=i%4===2;
+    el("rect",{x:x+1,y:150,width:W-2,height:150,rx:6,fill:gob?"#e8d7f0":"#f6c9d0",stroke:"#c98aa0","stroke-width":1.5},s);
+    el("ellipse",{cx:x+W/2,cy:250,rx:9,ry:14,fill:"#7a4a8c",opacity:.8},s);
+    if(gob){el("ellipse",{cx:x+W/2,cy:182,rx:14,ry:24,fill:"#fff",opacity:.85},s);if(i===2)txt(s,x+W/2,325,"pohárková buňka",{"font-size":11.5,"text-anchor":"middle","font-weight":600})}
+    else for(let c=0;c<5;c++){const cx=x+6+c*7;const ph=raT*16*2*Math.PI/4+cx*.05;const sw=ciliaOn?Math.sin(ph)*9:2;
+      el("path",{d:`M${cx} 150 Q ${cx+sw*.4} 136 ${cx+sw} 122`,fill:"none",stroke:"#b05a7a","stroke-width":2,"stroke-linecap":"round"},s)}
+  }
+  txt(s,220,325,"řasinková buňka",{"font-size":11.5,"text-anchor":"middle","font-weight":600});
+  el("rect",{x:0,y:300,width:520,height:6,fill:"#c98aa0"},s);txt(s,420,325,"bazální membrána",{"font-size":11.5});
+  // částice
+  const v=ciliaOn?40*dt*sp:0;
+  parts2.forEach(p=>{p.x+=v;const y=140-mt+12+((p.y-96)%(mt-18));
+    if(p.k==="b")el("ellipse",{cx:p.x,cy:y,rx:6,ry:3.5,fill:"#2e9e5b"},s);else el("circle",{cx:p.x,cy:y,r:3.5,fill:"#5b4a3a"},s)});
+  parts2=parts2.filter(p=>p.x<540);
+  $("#raRead").textContent=smoke?"řasinky ochromené – hlen stojí a hromadí se":"řasinky kmitají 12–20× za sekundu · hlen ~1 cm/min";
+}
+
+/* ===== 3 SKLÍPEK ===== */
+let breath="in",mol=[],cells=[];
+function initMol(){mol=[];for(let i=0;i<26;i++)mol.push({g:"o",side:"a",x:0,y:0,t:Math.random()});for(let i=0;i<4;i++)mol.push({g:"c",side:"a",t:Math.random()});
+  for(let i=0;i<14;i++)mol.push({g:"c",side:"b",t:Math.random()});mol.forEach(placeMol)}
+const AC={x:200,y:190,r:120};
+function placeMol(m){if(m.side==="a"){const a=Math.random()*Math.PI*2,r=Math.random()*(AC.r-20);m.x=AC.x+Math.cos(a)*r;m.y=AC.y+Math.sin(a)*r}else{m.p=Math.random();}}
+function capPt(p){const a=-Math.PI*.15+p*Math.PI*1.3;return[AC.x+Math.cos(a)*(AC.r+24),AC.y+Math.sin(a)*(AC.r+24)]}
+for(let i=0;i<9;i++)cells.push({p:i/9});
+function drawSk(dt){
+  const s=$("#skSvg");s.innerHTML="";
+  // sklípek
+  el("circle",{cx:AC.x,cy:AC.y,r:AC.r,fill:css("--air"),stroke:css("--lung2"),"stroke-width":5},s);
+  txt(s,AC.x,AC.y+AC.r-18,"vzduch v plicním sklípku",{"text-anchor":"middle","font-size":12,"font-weight":600});
+  // vlásečnice
+  const d=[];for(let i=0;i<=40;i++){const [x,y]=capPt(i/40);d.push((i?"L":"M")+x.toFixed(1)+" "+y.toFixed(1))}
+  el("path",{d:d.join(" "),fill:"none",stroke:css("--art"),"stroke-width":30,opacity:.18,"stroke-linecap":"round"},s);
+  el("path",{d:d.join(" "),fill:"none",stroke:css("--art"),"stroke-width":1,opacity:.4,"stroke-dasharray":"4 4"},s);
+  const [sx,sy]=capPt(0),[ex,ey]=capPt(1);
+  txt(s,350,96,"← odkysličená krev přitéká",{"font-size":11.5,fill:css("--vein"),"font-weight":600});
+  txt(s,8,96,"okysličená krev odtéká ←",{"font-size":11.5,fill:css("--art"),"font-weight":600});
+  txt(s,AC.x,AC.y+AC.r+46,"vlásečnice kolem sklípku",{"font-size":11.5,"text-anchor":"middle",fill:css("--muted")});
+  // krvinky
+  cells.forEach(c=>{c.p=(c.p+dt*.06)%1;const [x,y]=capPt(c.p);const k=Math.min(1,c.p*1.6);
+    const col=`rgb(${Math.round(47+(209-47)*k)},${Math.round(111+(38-111)*k)},${Math.round(214+(59-214)*k)})`;el("ellipse",{cx:x,cy:y,rx:10,ry:6,fill:col,opacity:.9},s)});
+  // molekuly – difuze po spádu
+  mol.forEach(m=>{
+    if(m.side==="a"){m.x+=(Math.random()-.5)*60*dt;m.y+=(Math.random()-.5)*60*dt;const dx=m.x-AC.x,dy=m.y-AC.y,r=Math.hypot(dx,dy);
+      if(r>AC.r-10){const a=Math.atan2(dy,dx);const onCap=a>-Math.PI*.15&&a<Math.PI*1.15;
+        if(m.g==="o"&&onCap&&Math.random()<.04){m.side="b";m.p=Math.max(0,Math.min(1,(a+Math.PI*.15)/(Math.PI*1.3)))}
+        else{m.x=AC.x+dx/r*(AC.r-12);m.y=AC.y+dy/r*(AC.r-12)}}
+      el("circle",{cx:m.x,cy:m.y,r:5,fill:m.g==="o"?css("--art"):css("--vein")},s);}
+    else{m.p+=dt*.06;const [x,y]=capPt(Math.min(1,m.p));
+      if(m.g==="c"&&Math.random()<.012){m.side="a";const a=-Math.PI*.15+m.p*Math.PI*1.3;m.x=AC.x+Math.cos(a)*(AC.r-14);m.y=AC.y+Math.sin(a)*(AC.r-14)}
+      if(m.p>1){if(m.g==="o"){m.p=0;m.side="gone"}else m.p=0}
+      if(m.side==="b")el("circle",{cx:x+(m.g==="o"?6:-6),cy:y,r:4.5,fill:m.g==="o"?css("--art"):css("--vein")},s);}
+  });
+  mol=mol.filter(m=>m.side!=="gone");
+  // přísun CO2 z tkání
+  if(mol.filter(m=>m.g==="c"&&m.side==="b").length<10)mol.push({g:"c",side:"b",p:0});
+  const nO=mol.filter(m=>m.g==="o"&&m.side==="a").length,nC=mol.filter(m=>m.g==="c"&&m.side==="a").length;
+  // popisky stěny
+  el("line",{x1:AC.x-AC.r*.6,y1:AC.y+AC.r*.8,x2:60,y2:360,stroke:css("--ink"),"stroke-width":1},s);txt(s,8,376,"stěna: pneumocyt I. typu",{"font-size":11.5,"font-weight":600});txt(s,8,392,"+ endotel vlásečnice",{"font-size":11.5});
+  el("circle",{cx:390,cy:268,r:5,fill:css("--art")},s);txt(s,400,272,"O₂",{"font-size":12,"font-weight":700});el("circle",{cx:440,cy:268,r:5,fill:css("--vein")},s);txt(s,450,272,"CO₂",{"font-size":12,"font-weight":700});
+  // ukazatel
+  el("rect",{x:380,y:300,width:130,height:80,rx:8,fill:css("--panel"),stroke:css("--line")},s);
+  txt(s,390,320,"ve sklípku:",{"font-size":12,"font-weight":700});txt(s,390,342,`O₂ částic: ${nO}`,{"font-size":12,fill:css("--art")});txt(s,390,362,`CO₂ částic: ${nC}`,{"font-size":12,fill:css("--vein")});
+  $("#skStatus").textContent=breath==="in"?"Nádech: čerstvý vzduch – hodně O₂, málo CO₂":"Výdech: vzduch ochuzený o O₂, obohacený o CO₂";
+  $$("table.air td[data-c]").forEach(td=>td.classList.toggle("on",(td.dataset.c==="i")===(breath==="in")&&td.parentElement.rowIndex!==1&&td.parentElement.rowIndex!==4));
+}
+$("#inh").onclick=()=>{breath="in";mol=mol.filter(m=>m.side==="b");for(let i=0;i<26;i++){const m={g:"o",side:"a"};placeMol(m);mol.push(m)}for(let i=0;i<1;i++){const m={g:"c",side:"a"};placeMol(m);mol.push(m)}};
+$("#exh").onclick=()=>{breath="out"};
+
+/* ===== 4 SURFAKTANT ===== */
+let wk=40,given=false,suT=0,collapsed=0;
+const surfAmt=()=>given?1:wk<20?0:Math.min(1,(wk-20)/14);
+function drawSu(dt){
+  const s=$("#suSvg");s.innerHTML="";suT+=dt;const amt=surfAmt();
+  const cyc=(Math.sin(suT*1.4)+1)/2; // 1 = nádech
+  const ok=amt>=1;
+  // kolaps: bez surfaktantu se sklípek při výdechu slepí a nádechem se jen částečně otevře
+  if(!ok&&cyc<.15)collapsed=Math.min(1,collapsed+dt*.6*(1-amt));if(ok)collapsed=Math.max(0,collapsed-dt);
+  const base=ok?.62:.62-.5*collapsed*(1-amt);
+  const r=60+70*(base+(1-base)*cyc*(1-.7*collapsed*(1-amt)));
+  const cx=200,cy=190;
+  el("rect",{x:190,y:10,width:20,height:cy-r-4>10?cy-r-4:10,fill:css("--cart")},s);txt(s,218,30,"průdušinka",{"font-size":11.5,fill:css("--muted")});
+  el("circle",{cx,cy,r,fill:css("--air"),stroke:css("--lung2"),"stroke-width":6},s);
+  // vrstva surfaktantu
+  if(amt>0){const n=Math.round(36*amt);for(let i=0;i<n;i++){const a=i/n*Math.PI*2;const x=cx+Math.cos(a)*(r-7),y=cy+Math.sin(a)*(r-7);
+    el("circle",{cx:x,cy:y,r:3.2,fill:"#e0b23a"},s);el("line",{x1:x,y1:y,x2:cx+Math.cos(a)*(r-15),y2:cy+Math.sin(a)*(r-15),stroke:"#b88a10","stroke-width":1.5},s)}}
+  // slepení
+  if(collapsed>.4&&!ok){el("path",{d:`M${cx-r*.7} ${cy} Q ${cx} ${cy-6} ${cx+r*.7} ${cy}`,stroke:css("--bad"),"stroke-width":3,fill:"none","stroke-dasharray":"5 4"},s);
+    txt(s,cx,cy+5,"stěny se slepují",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:css("--bad")})}
+  // legenda
+  el("circle",{cx:350,cy:60,r:4,fill:"#e0b23a"},s);el("line",{x1:350,y1:60,x2:360,y2:66,stroke:"#b88a10","stroke-width":1.5},s);txt(s,366,64,"surfaktant (fosfolipidy)",{"font-size":12});
+  txt(s,380,96,cyc>.5?"nádech":"výdech",{"font-size":16,"font-weight":700,fill:css("--muted")});
+  el("rect",{x:380,y:120,width:120,height:14,rx:4,fill:css("--line")},s);el("rect",{x:380,y:120,width:120*amt,height:14,rx:4,fill:"#e0b23a"},s);txt(s,380,152,"množství surfaktantu",{"font-size":11.5,fill:css("--muted")});
+  el("line",{x1:380+120*(14/14),y1:116,x2:380+120,y2:138,stroke:css("--ink"),"stroke-width":1},s);
+  txt(s,380,176,"dostatek od 34. týdne",{"font-size":11.5,fill:css("--muted")});
+  $("#wkOut").textContent=wk+". týden";$("#suRead").textContent="surfaktant: "+(given?"podán uměle":Math.round(amt*100)+" % potřebného množství");
+  const S=$("#suStatus"),T=$("#suText");
+  if(ok){S.className="status ok";S.textContent=given&&wk<34?"Podaný surfaktant sklípky drží otevřené":"Sklípky se při výdechu neslepí";T.innerHTML="Hydrofobní část fosfolipidů brání slepení stěn sklípku při výdechu – nepolární řetězce se drží asi <b>10× slaběji</b> než voda s vodíkovými můstky."}
+  else{S.className="status bad";S.textContent="Syndrom dechové tísně novorozenců";T.innerHTML=`Dítě narozené ve ${wk}. týdnu má málo surfaktantu (dostatečný je až od 34. týdne). Sklípky se při výdechu <b>slepí</b> a nádechem se otevřou jen částečně → hrozí <b>kolaps plic</b>.`}
+}
+$("#wk").oninput=e=>{wk=+e.target.value;given=false;$("#giveSurf").setAttribute("aria-pressed",false);collapsed=0};
+$("#giveSurf").onclick=()=>{given=!given;$("#giveSurf").setAttribute("aria-pressed",given)};
+
+/* ===== SMYČKA ===== */
+let last=0;
+$("#dust").onclick=addDust;$("#smoke").onclick=()=>{smoke=!smoke;$("#smoke").setAttribute("aria-pressed",smoke)};
+$("#raSlow").onclick=()=>{slow=!slow;$("#raSlow").setAttribute("aria-pressed",slow)};
+function loop(now){const dt=reduce?0:Math.min(.05,(now-(last||now))/1000);last=now;
+  if(tab==="p-ce"&&nut)drawCe(now);
+  if(tab==="p-ra")drawRa(dt);if(tab==="p-sk")drawSk(dt);if(tab==="p-su")drawSu(dt);
+  requestAnimationFrame(loop)}
+initMol();addDust();drawCe(0);drawRa(0);drawSk(0);drawSu(0);requestAnimationFrame(loop);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>drawCe(performance.now()));
+</script>
+</body>
+</html>
