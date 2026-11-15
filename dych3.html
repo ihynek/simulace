@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Onemocnění dýchací soustavy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --skin:#f1d3c0; --skin2:#d9a98c; --muc:#f0a7a7; --muc2:#d77b7b; --cart:#dfe6ee; --cart2:#9fb0c2;
+  --lung:#f3b0ae; --lung2:#d9827f; --air:#d8ecfb; --mucus:#cfe3a6; --hi:#f2b705; --upper:#3b82f6; --lower:#e8873a;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --warn:#c97a00; --navic:#4b3fd0; --navicbg:#eef0ff;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --skin:#6b5446; --skin2:#8a6b58; --muc:#8a4a4a; --muc2:#a85f5f; --cart:#3a4655; --cart2:#6d8199;
+  --lung:#8a4c4b; --lung2:#a8605d; --air:#1e3346; --mucus:#5d7a2e; --hi:#ffd23f; --upper:#6aa2ff; --lower:#f0a030;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --navic:#a99cff; --navicbg:#25233d; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)} .status.warn{color:var(--warn)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.navic{font-size:.9rem;background:var(--navicbg);border-left:4px solid var(--navic);padding:8px 12px;border-radius:6px;margin:0}
+.navic b.tag{color:var(--navic);font-size:.75rem;letter-spacing:.04em;display:block;margin-bottom:2px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.1rem;font-variant-numeric:tabular-nums;margin:0}
+.part{cursor:pointer;transition:opacity .2s}
+svg.dim .part:not(.sel){opacity:.3}
+.part.sel{filter:drop-shadow(0 0 5px var(--hi)) drop-shadow(0 0 2px var(--hi))}
+.score{font-family:var(--f-mono);font-size:1rem;color:var(--muted)}
+table.air{border-collapse:collapse;width:100%;font-size:.92rem}
+table.air td,table.air th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+table.air th{background:var(--bg)}
+table.air td.on{background:var(--accent);color:#fff;font-weight:700}
+.chk{display:flex;flex-wrap:wrap;gap:6px}
+.big{font-family:var(--f-display);font-size:2rem;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+.meter{display:grid;grid-template-columns:110px 1fr 54px;gap:8px;align-items:center;font-size:.92rem}
+.meter .bar{height:12px;border-radius:6px;background:var(--line);overflow:hidden}
+.meter .bar i{display:block;height:100%;background:var(--vein);border-radius:6px}
+.meter b{font-family:var(--f-mono);font-weight:500;text-align:right}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Onemocnění <span>dýchací soustavy</span></h1>
+  <p class="sub">Interaktivní pokusy ke 3. hodině · Dýchací soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-as" aria-selected="true" data-p="p-as">1 · Astma</button>
+  <button role="tab" id="t-ko" aria-selected="false" data-p="p-ko">2 · Kouření</button>
+  <button role="tab" id="t-cf" aria-selected="false" data-p="p-cf">3 · Cystická fibróza</button>
+  <button role="tab" id="t-pn" aria-selected="false" data-p="p-pn">4 · Pneumotorax</button>
+</nav>
+
+<!-- 1 ASTMA -->
+<section class="stage" id="p-as" role="tabpanel" aria-labelledby="t-as">
+  <div class="panel"><svg id="asSvg" viewBox="0 0 520 470" role="img" aria-label="Průřez průduškou při astmatu"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Když se zúží trubky</h2>
+      <p><b>Astma</b> je chronické onemocnění dolních cest dýchacích. Při záchvatu se průdušky <b>zúží</b>: stáhne se <b>hladká svalovina</b> v jejich stěně a <b>sliznice oteče</b> neinfekčním zánětem.</p>
+    </div>
+    <div class="row" role="group" aria-label="Spouštěč záchvatu">
+      <button class="btn" data-tr="alerg">pyl (alergie)</button><button class="btn" data-tr="namaha">fyzická zátěž</button><button class="btn" data-tr="stres">stres</button>
+    </div>
+    <div class="row"><button class="btn primary" id="inh">Použít inhalátor</button><button class="btn" id="kort" aria-pressed="false">dlouhodobá léčba (kortikoidy)</button><button class="btn" id="asReset">Zdravá průduška</button></div>
+    <div class="meter"><span>průsvit</span><span class="bar"><i id="asM1"></i></span><b id="asV1"></b></div>
+    <div class="meter"><span>průtok vzduchu</span><span class="bar"><i id="asM2"></i></span><b id="asV2"></b></div>
+    <p class="status" id="asStatus"></p>
+    <p id="asText"></p>
+    <p class="note">Příčinou záchvatu mohou být <b>alergické reakce</b>, <b>emoční nebo fyzická zátěž</b>, svou roli mají <b>dědičné dispozice</b>. Dlouhodobě se astma léčí <b>kortikoidy</b> (zmírňují zánět) a <b>antihistaminiky</b> (tlumí alergickou reakci). Akutní úlevu přináší <b>inhalátor</b> – aerosol povolí hladkou svalovinu průdušek.</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Průtok vzduchu trubicí klesá se <b>čtvrtou mocninou</b> poloměru: když se průsvit zúží na polovinu, proteče jen asi 1/16 vzduchu. Proto i „malé“ zúžení průdušek způsobí velkou dušnost.</div>
+  </div>
+</section>
+
+<!-- 2 KOUŘENÍ -->
+<section class="stage" id="p-ko" role="tabpanel" aria-labelledby="t-ko" hidden>
+  <div class="panel"><svg id="koSvg" viewBox="0 0 520 480" role="img" aria-label="Vliv kouření na plíce, hemoglobin a epitel"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Hřebíčky do rakve</h2>
+      <p>Cigaretový kouř obsahuje asi <b>4 000</b> chemických látek, z toho přes <b>40 karcinogenů</b>. <b>Nikotin</b> způsobuje závislost, <b>oxid uhelnatý</b> blokuje hemoglobin a <b>dehet</b> se usazuje v plicích.</p>
+    </div>
+    <label class="sl">Cigaret denně <output id="cdOut"></output><input type="range" id="cd" min="0" max="40" step="1" value="20"></label>
+    <label class="sl">Let kouření <output id="lyOut"></output><input type="range" id="ly" min="0" max="40" step="1" value="10"></label>
+    <div class="row" role="group" aria-label="Typ kuřáka"><button class="btn" data-kt="akt" aria-pressed="true">aktivní kuřák</button><button class="btn" data-kt="pas">pasivní kuřák</button><button class="btn" id="quit" aria-pressed="false">rok po přestání (navíc)</button></div>
+    <p class="read" id="koRead"></p>
+    <p id="koText"></p>
+    <p class="note">Až <b>10 % hemoglobinu</b> se u kuřáka změní na <b>karbonylhemoglobin</b>, tkáně pak trpí nedostatkem kyslíku. V dýchacích cestách vyvolá kouř <b>metaplazii epitelu</b>: řasinkový víceřadý epitel se změní na mnohovrstevný dlaždicový, který tvoří méně hlenu a nemá řasinky. <b>82 %</b> nemocných rakovinou plic jsou kuřáci. Hodnoty v grafice jsou orientační.</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Lékaři počítají zátěž kouřením v <b>krabičkorocích</b> (krabičky denně × roky). Po přestání zmizí CO z krve během 1–2 dnů a řasinky se během týdnů až měsíců začnou obnovovat; dehet a zvýšené riziko rakoviny ale klesají jen pomalu.</div>
+    <p class="note">Pomoc při odvykání: <b>Národní linka pro odvykání 800 350 000</b>, web <b>chciodvykat.cz</b>, odvykací centra SLZT, adiktologové.</p>
+  </div>
+</section>
+
+<!-- 3 CYSTICKÁ FIBRÓZA -->
+<section class="stage" id="p-cf" role="tabpanel" aria-labelledby="t-cf" hidden>
+  <div class="panel"><svg id="cfSvg" viewBox="0 0 520 470" role="img" aria-label="Epitel dýchacích cest a chloridový kanál"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Když je husto v plicích</h2>
+      <p><b>Cystická fibróza</b> je dědičná porucha buněčného <b>chloridového transportního kanálu</b> v buňkách epitelu dýchacích cest.</p>
+    </div>
+    <div class="row" role="group" aria-label="Stav"><button class="btn" data-cf="zdr" aria-pressed="true">zdravé dýchací cesty</button><button class="btn" data-cf="cf">cystická fibróza</button><button class="btn" data-cf="tx">po transplantaci plic</button></div>
+    <div class="row"><button class="btn" id="cfSlow" aria-pressed="false">Zpomalit</button></div>
+    <p class="status" id="cfStatus"></p>
+    <p id="cfText"></p>
+    <p class="note">Chloridové anionty se nemohou čerpat z buněk do prostoru dýchacích cest → buňky víc přijímají <b>sodné kationty</b> a z prostoru dýchacích cest se <b>odčerpává voda</b> → sekret je <b>hustý</b>. Řasinky ho nevynesou, nemocní jsou zahlenění a v hlenu se množí bakterie (časté záněty plic). Dříve 90 % nemocných umíralo kolem 30 let, dnes se věk dožití zvyšuje.</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Stejný kanál pracuje i v potních žlázách – pot nemocných je velmi slaný („slané děti“). Na tom je založen <b>potní test</b>. V ČR se cystická fibróza vyhledává u všech novorozenců.</div>
+  </div>
+</section>
+
+<!-- 4 PNEUMOTORAX -->
+<section class="stage" id="p-pn" role="tabpanel" aria-labelledby="t-pn" hidden>
+  <div class="panel"><svg id="pnSvg" viewBox="0 0 520 470" role="img" aria-label="Pneumotorax – kolaps plíce"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Na díru v hrudníku bez pytlíku</h2>
+      <p>Plíce drží roztažené <b>podtlak</b> v pohrudniční dutině. Když do ní vnikne vzduch, podtlak se poruší a plíce se <b>vyprázdní a zkolabuje</b> – to je <b>pneumotorax</b>.</p>
+    </div>
+    <div class="row" role="group" aria-label="Příčina">
+      <button class="btn" data-pn="uraz">poranění hrudníku</button><button class="btn" data-pn="zebro">zlomené žebro</button><button class="btn" data-pn="spont">spontánně</button>
+    </div>
+    <p class="status" id="pnStatus"></p>
+    <p id="pnText"></p>
+    <div id="pnAid" hidden>
+      <p style="margin:0 0 6px"><b>Jak pomůžete?</b></p>
+      <div class="row" role="group" aria-label="První pomoc">
+        <button class="btn" data-aid="sacek">přelepit ránu sáčkem</button><button class="btn" data-aid="leh">položit na záda</button><button class="btn" data-aid="polosed">posadit do polosedu, volat 155</button>
+      </div>
+      <p class="status" id="aidStatus" style="margin-top:8px"></p>
+      <p id="aidText"></p>
+    </div>
+    <div class="row"><button class="btn" id="pnReset">Zdravý hrudník</button></div>
+    <p class="note">Pneumotorax vzniká nejčastěji po úrazu – poranění hrudníku (bodná rána, větev, řídítka kola) s proražením hrudní stěny. Podtlak se může porušit i zevnitř (zlomené žebro) nebo spontánně. Dříve se rána kryla neprodyšnou vrstvou (plastovým sáčkem), <b>dnes se to nedoporučuje</b>.</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Spontánní pneumotorax se typicky objeví u vysokých štíhlých mladých mužů (praskne drobný puchýřek na povrchu plíce), riziko zvyšuje kouření. Pevně přilepený sáček může vzduch v hrudníku uzavřít – tlak pak s každým nádechem roste a stlačuje plíci i srdce (přetlakový pneumotorax).</div>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+const app=(cur,tgt,dt,rate)=>reduce?tgt:cur+(tgt-cur)*Math.min(1,dt*rate);
+const pct=v=>Math.round(v*100)+" %";
+let tab="p-as";
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});tab=b.dataset.p;}));
+
+/* ===== 1 ASTMA ===== */
+const AS={mus:0,sw:0,mu:0},AT={mus:0,sw:0,mu:0};let kort=false,asMode="zdr",trig=null,asT=0;
+const TRN={alerg:"pyl (alergická reakce)",namaha:"fyzická zátěž",stres:"stres (emoční zátěž)"};
+function asTargets(){
+  if(asMode==="zdr"){AT.mus=0;AT.sw=kort?0:0;AT.mu=0}
+  else if(asMode==="zachvat"){AT.mus=1;AT.sw=kort?.25:.85;AT.mu=kort?.25:.6}
+  else if(asMode==="inh"){AT.mus=0;AT.sw=kort?.2:.75;AT.mu=kort?.15:.45}
+}
+function drawAs(dt){
+  asT+=dt;asTargets();AS.mus=app(AS.mus,AT.mus,dt,asMode==="inh"?1.6:1.1);AS.sw=app(AS.sw,AT.sw,dt,.6);AS.mu=app(AS.mu,AT.mu,dt,.6);
+  const s=$("#asSvg");s.innerHTML="";const cx=250,cy=245;
+  const Rw=175-38*AS.mus;           // vnější okraj stěny
+  const Rm=Rw-30;                   // vnitřní okraj svaloviny
+  const thick=16+34*AS.sw;          // tloušťka sliznice
+  const Rl=Rm-thick;                // průsvit
+  const fold=.10*AS.mus+.03;        // zřasení sliznice
+  const ring=(r,amp,n,ph=0)=>{let d="";for(let i=0;i<=120;i++){const a=i/120*Math.PI*2;const rr=r*(1+amp*Math.sin(n*a+ph));d+=(i?"L":"M")+(cx+rr*Math.cos(a)).toFixed(1)+" "+(cy+rr*Math.sin(a)).toFixed(1)}return d+"Z"};
+  // vazivo stěny + chrupavky
+  el("circle",{cx,cy,r:Rw+16,fill:css("--skin"),opacity:.6},s);
+  for(let i=0;i<5;i++){const a0=i/5*Math.PI*2+.3,a1=a0+.75;const r=Rw+8;el("path",{d:`M${cx+r*Math.cos(a0)} ${cy+r*Math.sin(a0)} A ${r} ${r} 0 0 1 ${cx+r*Math.cos(a1)} ${cy+r*Math.sin(a1)}`,fill:"none",stroke:css("--cart2"),"stroke-width":10,"stroke-linecap":"round",opacity:.9},s)}
+  // hladká svalovina
+  const musCol=AS.mus>.4?"#c0392b":"#c46a5a";
+  el("circle",{cx,cy,r:(Rw+Rm)/2,fill:"none",stroke:musCol,"stroke-width":Rw-Rm,opacity:.35+.5*AS.mus},s);
+  for(let i=0;i<36;i++){const a=i/36*Math.PI*2;el("line",{x1:cx+Rm*Math.cos(a),y1:cy+Rm*Math.sin(a),x2:cx+Rw*Math.cos(a+.06),y2:cy+Rw*Math.sin(a+.06),stroke:musCol,"stroke-width":1.5,opacity:.6},s)}
+  // sliznice
+  el("path",{d:ring(Rm-2,0,1),fill:AS.sw>.4?"#e37b7b":css("--muc"),stroke:css("--muc2"),"stroke-width":2},s);
+  // průsvit (vzduch)
+  el("path",{d:ring(Rl,fold,9),fill:css("--air"),stroke:css("--muc2"),"stroke-width":2},s);
+  // hlen
+  if(AS.mu>.05){for(let i=0;i<9;i++){const a=i/9*Math.PI*2+.4;const rr=Rl*(1+fold*Math.sin(9*a))-4;el("ellipse",{cx:cx+rr*Math.cos(a),cy:cy+rr*Math.sin(a),rx:4+10*AS.mu,ry:3+6*AS.mu,fill:css("--mucus"),opacity:.9},s)}}
+  // proudění vzduchu – tečky
+  const flow=Math.pow(Math.max(.05,Rl/129),4);
+  for(let i=0;i<14;i++){const a=i*2.4,rad=(i%5+1)/6*Rl*.7;const ph=(asT*(.4+flow*1.6)+i*.37)%1;el("circle",{cx:cx+rad*Math.cos(a),cy:cy+rad*Math.sin(a),r:2+4*ph,fill:"none",stroke:css("--vein"),opacity:(1-ph)*.8},s)}
+  // popisky
+  const lab=(x,y,lx,ly,t,a="start",b=false)=>{el("line",{x1:x,y1:y,x2:lx,y2:ly,stroke:css("--ink"),"stroke-width":1},s);txt(s,lx+(a==="end"?-4:4),ly+4,t,{"font-size":12.5,"text-anchor":a,"font-weight":b?700:500,fill:b?css("--accent"):css("--ink")})};
+  lab(cx+(Rw+Rm)/2*Math.cos(-.9),cy+(Rw+Rm)/2*Math.sin(-.9),505,40,"hladká svalovina","end",AS.mus>.5);
+  lab(cx+(Rw+8)*Math.cos(.55),cy+(Rw+8)*Math.sin(.55),505,445,"chrupavka","end");
+  lab(cx+(Rm-thick/2)*Math.cos(2.5),cy+(Rm-thick/2)*Math.sin(2.5),12,440,AS.sw>.4?"oteklá sliznice":"sliznice","start",AS.sw>.4);
+  lab(cx,cy,12,40,"průsvit (vzduch)","start");
+  if(AS.mu>.3)lab(cx+(Rl-4)*Math.cos(3.54),cy+(Rl-4)*Math.sin(3.54),12,85,"hlen","start");
+  if(asMode==="zachvat"&&!reduce)txt(s,cx,cy+5,"♪ sípání ♪",{"text-anchor":"middle","font-size":14,"font-weight":700,fill:css("--accent"),opacity:.5+.5*Math.sin(asT*8)});
+  // měřidla
+  const pr=Math.max(0,Math.min(1,Rl/129)),fl=Math.pow(pr,4);
+  $("#asM1").style.width=pct(pr);$("#asV1").textContent=pct(pr);$("#asM2").style.width=pct(fl);$("#asV2").textContent=pct(fl);
+  $("#asM2").style.background=fl<.3?css("--bad"):fl<.7?css("--warn"):css("--ok");
+  const S=$("#asStatus"),T=$("#asText");
+  if(asMode==="zdr"){S.className="status ok";S.textContent="Zdravá průduška";T.innerHTML="Hladká svalovina je uvolněná, sliznice tenká, vzduch proudí volně. Vyber spouštěč záchvatu."}
+  else if(asMode==="zachvat"){S.className="status bad";S.textContent="Astmatický záchvat – spouštěč: "+TRN[trig];T.innerHTML="Hladká svalovina se <b>stáhla</b>, sliznice <b>oteče</b> a přibude hlen. Průsvit se zúží, nádechy jsou <b>sípavé, pískavé</b>, člověk se dusí."+(kort?" Díky dlouhodobé léčbě kortikoidy je zánět menší a záchvat mírnější.":"")}
+  else{S.className="status warn";S.textContent="Po inhalátoru";T.innerHTML="Aerosol z inhalátoru <b>povolil hladkou svalovinu</b> – průduška se rozšířila a dýchá se lépe. "+(kort?"Zánět sliznice tlumí dlouhodobá léčba kortikoidy.":"Oteklá sliznice ale zůstává – zánět léčí dlouhodobě <b>kortikoidy</b> (zkus je zapnout).")}
+}
+$$("[data-tr]").forEach(b=>b.onclick=()=>{trig=b.dataset.tr;asMode="zachvat";press("[data-tr]",b)});
+$("#inh").onclick=()=>{if(asMode==="zachvat")asMode="inh"};
+$("#kort").onclick=()=>{kort=!kort;$("#kort").setAttribute("aria-pressed",kort)};
+$("#asReset").onclick=()=>{asMode="zdr";trig=null;press("[data-tr]",null)};
+
+/* ===== 2 KOUŘENÍ ===== */
+let kt="akt",quit=false,koT=0;
+const rnd=(i)=>{const x=Math.sin(i*12.9898)*43758.5453;return x-Math.floor(x)};
+function lungPath(cx,sg,top,bot,w){const x0=cx+sg*14;return `M${x0} ${top+20} Q ${x0+sg*w*.45} ${top} ${x0+sg*w} ${top+90} Q ${x0+sg*(w+12)} ${top+(bot-top)*.7} ${x0+sg*w*.9} ${bot} Q ${x0+sg*w*.45} ${bot-30} ${x0} ${bot-20} Z`}
+function drawKo(dt){
+  koT+=dt;const s=$("#koSvg");s.innerHTML="";
+  const cd=+$("#cd").value,ly=+$("#ly").value;$("#cdOut").textContent=cd;$("#lyOut").textContent=ly;
+  const eff=kt==="pas"?cd*.1:cd;            // pasivní kuřák – orientačně desetina
+  const pack=eff/20*ly;                        // krabičkoroky
+  const tar=Math.min(1,pack/30)*(quit?.8:1);   // dehet
+  const coHb=quit?.01:Math.min(.10,.01+eff/40*.09); // podíl karbonylhemoglobinu
+  const meta=Math.min(1,pack/15)*(quit?.55:1); // podíl metaplazie
+  // --- plíce
+  txt(s,130,22,"plíce – usazený dehet",{"text-anchor":"middle","font-size":12,"font-weight":700});
+  el("rect",{x:124,y:34,width:12,height:46,fill:css("--cart"),stroke:css("--cart2")},s);
+  const L=css("--lung"),L2=css("--lung2");
+  [-1,1].forEach(sg=>el("path",{d:lungPath(130,sg,70,250,92),fill:L,stroke:L2,"stroke-width":2.5},s));
+  const nDots=Math.round(tar*260);
+  for(let i=0;i<nDots;i++){const sg=i%2?1:-1;const u=rnd(i+1),v=rnd(i+7);const x=130+sg*(20+u*78*(1-.25*Math.abs(v-.5))),y=95+v*140;el("circle",{cx:x,cy:y,r:1.5+rnd(i+3)*2.6,fill:"#3a2a1c",opacity:.25+.55*tar},s)}
+  // --- hemoglobin
+  txt(s,390,22,"100 molekul hemoglobinu",{"text-anchor":"middle","font-size":12,"font-weight":700});
+  const nCO=Math.round(coHb*100);
+  for(let i=0;i<100;i++){const r=Math.floor(i/10),c=i%10;const isCO=i>=100-nCO;el("circle",{cx:300+c*20,cy:48+r*20,r:7.5,fill:isCO?"#7a8794":css("--art"),stroke:isCO?css("--ink"):"none","stroke-width":isCO?1.5:0},s)}
+  el("circle",{cx:300,cy:258,r:6,fill:css("--art")},s);txt(s,310,262,"nese O₂",{"font-size":11});
+  el("circle",{cx:380,cy:258,r:6,fill:"#7a8794",stroke:css("--ink"),"stroke-width":1.5},s);txt(s,390,262,"blokuje CO",{"font-size":11});
+  // --- epitel
+  const y0=300,y1=455;txt(s,260,y0-8,"epitel průdušek",{"text-anchor":"middle","font-size":12,"font-weight":700});
+  el("rect",{x:10,y:y1,width:500,height:8,fill:css("--cart2"),opacity:.5},s);
+  const N=12,cw=500/N;const nMeta=Math.round(meta*N);
+  for(let i=0;i<N;i++){const x=10+i*cw;const isM=i>=N-nMeta;
+    if(!isM){el("rect",{x:x+2,y:y0+40,width:cw-4,height:y1-y0-42,rx:6,fill:i%4===1?"#e9eff8":css("--muc"),stroke:css("--muc2"),"stroke-width":1.5},s);
+      el("ellipse",{cx:x+cw/2,cy:y0+40+(i%2?70:45),rx:7,ry:10,fill:css("--muc2")},s);
+      if(i%4===1){el("ellipse",{cx:x+cw/2,cy:y0+62,rx:cw/2-6,ry:16,fill:css("--mucus")},s)} // pohárková buňka
+      else for(let k=0;k<6;k++){const xx=x+6+k*(cw-12)/5;const sw=reduce?0:Math.sin(koT*9+k*.6+i)*5;el("path",{d:`M${xx} ${y0+40} q ${sw/2} -14 ${sw} -26`,stroke:css("--muc2"),"stroke-width":1.6,fill:"none"},s)}}
+    else{for(let k=0;k<5;k++){const hh=(y1-y0-30)/5;el("rect",{x:x+1,y:y0+30+k*hh,width:cw-2,height:hh-1,rx:3,fill:"#efe2d6",stroke:"#bfa892","stroke-width":1},s);el("ellipse",{cx:x+cw/2,cy:y0+30+k*hh+hh/2,rx:9,ry:3.5,fill:"#bfa892"},s)}}}
+  el("line",{x1:10,y1:y0+12,x2:510,y2:y0+12,stroke:css("--line"),"stroke-dasharray":"4 4"},s);
+  txt(s,14,y0+8,"řasinkový víceřadý epitel",{"font-size":10.5,fill:css("--muted")});
+  if(nMeta)txt(s,506,y0+8,"metaplazie: mnohovrstevný dlaždicový",{"font-size":10.5,"text-anchor":"end",fill:css("--accent"),"font-weight":700});
+  // --- texty
+  const pk=pack.toFixed(1).replace(".",",");
+  $("#koRead").innerHTML=`krabičkoroky: ${pk} · karbonylhemoglobin: ${Math.round(coHb*100)} % · metaplazie: ${Math.round(meta*100)} % epitelu`;
+  let t;
+  if(cd===0||ly===0)t="Nekuřák: hemoglobin nese kyslík, řasinky vynášejí hlen s nečistotami ven, plíce jsou čisté.";
+  else if(quit)t="Rok po přestání (navíc): CO zmizel z krve, část řasinkového epitelu se obnovila. Dehet z plic mizí jen pomalu.";
+  else if(kt==="pas")t="<b>Pasivní kouření</b> – vdechování vzduchu obsahujícího dým z cigaret – je také rizikové. Zátěž je menší, ale ne nulová (desetina je jen orientační odhad).";
+  else t=`Oxid uhelnatý blokuje asi <b>${Math.round(coHb*100)} %</b> hemoglobinu – tkáně dostávají méně kyslíku. ${meta>.3?"Velká část epitelu prošla <b>metaplazií</b>: chybí řasinky i pohárkové buňky, hlen s nečistotami se musí vykašlávat (kuřácký kašel).":"Epitel se začíná měnit."} Kouření zvyšuje riziko smrti na rakovinu plic u mužů až <b>23krát</b>, u žen <b>13krát</b>.`;
+  $("#koText").innerHTML=t;
+}
+$$("[data-kt]").forEach(b=>b.onclick=()=>{kt=b.dataset.kt;press("[data-kt]",b)});
+$("#quit").onclick=()=>{quit=!quit;$("#quit").setAttribute("aria-pressed",quit)};
+
+/* ===== 3 CYSTICKÁ FIBRÓZA ===== */
+let cf="zdr",cfT=0,cfSlow=false,cfK=0,mucX=0;
+function drawCf(dt){
+  const sp=cfSlow?.35:1;cfT+=dt*sp;const ill=cf==="cf";cfK=app(cfK,ill?1:0,dt,.7);
+  const s=$("#cfSvg");s.innerHTML="";
+  const yA=210,yB=420;               // apikální membrána, bazální strana
+  const mTop=yA-28-62-70*cfK;          // horní hranice hlenu
+  // prostor dýchacích cest
+  txt(s,12,24,"prostor dýchacích cest",{"font-size":12,"font-weight":700,fill:css("--muted")});
+  // tekutá vrstva (voda) mezi řasinkami
+  el("rect",{x:0,y:yA-28+18*cfK,width:520,height:28-18*cfK,fill:css("--air"),opacity:.9},s);
+  // hlen
+  const mc=ill?"#a7b85a":css("--mucus");
+  el("path",{d:`M0 ${yA-28+18*cfK} L0 ${mTop} Q 130 ${mTop-10} 260 ${mTop} T 520 ${mTop} L520 ${yA-28+18*cfK} Z`,fill:mc,opacity:.55+.4*cfK},s);
+  txt(s,508,mTop+40,cfK>.5?"hustý hlen":"hlen",{"font-size":12.5,"text-anchor":"end","font-weight":700});
+  // posun hlenu (řasinky vynášejí)
+  mucX+=dt*sp*38*(1-cfK);
+  for(let i=0;i<10;i++){const x=((i*57+mucX)%540)-10,y=mTop+10+(i%3)*((yA-40-mTop)/3);el("circle",{cx:x,cy:y,r:3,fill:"#5b4a2a",opacity:.6},s)}
+  if(cfK>.15){txt(s,260,mTop+22,"→ hlen stojí, řasinky ho nevynesou",{"font-size":11.5,"text-anchor":"middle",fill:css("--bad"),"font-weight":700,opacity:cfK})}
+  else txt(s,260,mTop+22,"→ řasinky posouvají hlen ven z plic",{"font-size":11.5,"text-anchor":"middle",fill:css("--ok"),"font-weight":700});
+  // bakterie
+  if(cfK>.5){for(let i=0;i<7;i++){const x=40+i*68+Math.sin(cfT+i)*6,y=mTop+40+(i%2)*30;el("rect",{x:x-8,y:y-3.5,width:16,height:7,rx:3.5,fill:"#6d2c91",opacity:(cfK-.5)*2,transform:`rotate(${i*25} ${x} ${y})`},s)}
+    txt(s,40,mTop+92,"bakterie",{"font-size":11,fill:"#6d2c91","font-weight":700})}
+  // buňky
+  const N=4,cw=520/N;
+  for(let i=0;i<N;i++){const x=i*cw;
+    el("rect",{x:x+3,y:yA,width:cw-6,height:yB-yA,rx:10,fill:css("--muc"),stroke:css("--muc2"),"stroke-width":2,opacity:.85},s);
+    el("ellipse",{cx:x+cw/2,cy:yA+140,rx:22,ry:15,fill:css("--muc2"),opacity:.8},s);
+    // řasinky
+    for(let k=0;k<9;k++){const xx=x+14+k*(cw-28)/8;const sw=(reduce?0:Math.sin(cfT*10+k*.7+i*2))*7*(1-cfK*.9);el("path",{d:`M${xx} ${yA} q ${sw/2} -14 ${sw} -26`,stroke:css("--muc2"),"stroke-width":2,fill:"none"},s)}
+    // kanály
+    const xCl=x+cw*.68,xNa=x+cw*.3;
+    el("rect",{x:xCl-9,y:yA-6,width:18,height:22,rx:5,fill:ill?"#9aa5b1":"#3bb36a",stroke:ill?css("--bad"):"#1e8a3c","stroke-width":2},s);
+    if(ill){el("line",{x1:xCl-11,y1:yA-8,x2:xCl+11,y2:yA+18,stroke:css("--bad"),"stroke-width":3},s);el("line",{x1:xCl+11,y1:yA-8,x2:xCl-11,y2:yA+18,stroke:css("--bad"),"stroke-width":3},s)}
+    el("rect",{x:xNa-9,y:yA-6,width:18,height:22,rx:5,fill:"#e36a5a",stroke:"#b03a2e","stroke-width":2},s);
+    // ionty a voda
+    for(let k=0;k<3;k++){
+      const ph=(cfT*.5+k/3+i*.13)%1;
+      if(!ill){ // Cl⁻ ven
+        const y=yA+90-ph*120;el("circle",{cx:xCl,cy:y,r:8,fill:"#3bb36a"},s);txt(s,xCl,y+3.5,"Cl⁻",{"font-size":8.5,"text-anchor":"middle",fill:"#fff","font-weight":700});
+        const yw=yA+70-ph*110;el("path",{d:`M${xCl+22} ${yw-7} q 6 8 0 12 q -6 -4 0 -12z`,fill:css("--vein")},s)}
+      else{ // Cl⁻ zůstává uvnitř, Na⁺ a voda dovnitř
+        el("circle",{cx:xCl-10+k*10,cy:yA+60+k*14,r:8,fill:"#3bb36a",opacity:.9},s);txt(s,xCl-10+k*10,yA+63.5+k*14,"Cl⁻",{"font-size":8.5,"text-anchor":"middle",fill:"#fff","font-weight":700});
+        const yw=yA-40+ph*120;el("path",{d:`M${xNa+24} ${yw-7} q 6 8 0 12 q -6 -4 0 -12z`,fill:css("--vein")},s)}
+      const sNa=ill?1:.45;const yn=yA-30+((cfT*.5*(ill?1.4:.8)+k/3+i*.2)%1)*120;
+      if(k<(ill?3:1)){el("circle",{cx:xNa,cy:yn,r:8,fill:"#e36a5a",opacity:sNa},s);txt(s,xNa,yn+3.5,"Na⁺",{"font-size":8.5,"text-anchor":"middle",fill:"#fff","font-weight":700})}
+    }
+  }
+  txt(s,12,yB+28,"mezibuněčná tekutina",{"font-size":12,"font-weight":700,fill:css("--muted")});
+  // legenda
+  el("rect",{x:300,y:yB+14,width:14,height:14,rx:3,fill:"#3bb36a"},s);txt(s,318,yB+26,"chloridový kanál",{"font-size":11});
+  el("rect",{x:410,y:yB+14,width:14,height:14,rx:3,fill:"#e36a5a"},s);txt(s,428,yB+26,"sodný kanál",{"font-size":11});
+  el("path",{d:`M230 ${yB+14} q 6 8 0 12 q -6 -4 0 -12z`,fill:css("--vein")},s);txt(s,240,yB+26,"voda",{"font-size":11});
+  const S=$("#cfStatus"),T=$("#cfText");
+  if(cf==="zdr"){S.className="status ok";S.textContent="Zdravé dýchací cesty";T.innerHTML="Chloridovým kanálem odcházejí <b>Cl⁻</b> z buněk do prostoru dýchacích cest a za nimi <b>voda</b>. Hlen je řídký a řasinky ho vynášejí ven."}
+  else if(cf==="cf"){S.className="status bad";S.textContent="Cystická fibróza – chloridový kanál nefunguje";T.innerHTML="Cl⁻ zůstávají v buňkách, buňky víc přijímají <b>Na⁺</b> a z prostoru dýchacích cest se <b>odčerpává voda</b>. Hlen zhoustne, řasinky ho nevynesou, množí se v něm <b>bakterie</b> – nemocný se dusí a má časté záněty plic."}
+  else{S.className="status ok";S.textContent="Po transplantaci plic";T.innerHTML="Dárcovské plíce mají chloridové kanály <b>funkční</b> – hlen v nich je opět řídký. (Kanály v ostatních orgánech, třeba v potních žlázách, zůstávají vadné.)"}
+}
+$$("[data-cf]").forEach(b=>b.onclick=()=>{cf=b.dataset.cf;press("[data-cf]",b)});
+$("#cfSlow").onclick=()=>{cfSlow=!cfSlow;$("#cfSlow").setAttribute("aria-pressed",cfSlow)};
+
+/* ===== 4 PNEUMOTORAX ===== */
+let pn=null,pnK=0,pnT=0,aid=null;
+const PNC={uraz:"Poranění hrudníku – hrudní stěna je proražená, vzduch vniká zvenku do pohrudniční dutiny.",zebro:"Zlomené žebro poranilo plíci – vzduch uniká do pohrudniční dutiny zevnitř.",spont:"Spontánní pneumotorax – bez úrazu, vzduch unikl z plíce do pohrudniční dutiny."};
+function drawPn(dt){
+  pnT+=dt;pnK=app(pnK,pn?1:0,dt,.5);
+  const s=$("#pnSvg");s.innerHTML="";
+  const sit=aid==="polosed",per=pn?2.6:4.5,ph=(pnT%per)/per,k=reduce?.5:(.5-.5*Math.cos(ph*Math.PI*2));
+  const cx=230,top=90,bot=360;const W=150+6*k;
+  // hrudní stěna
+  el("path",{d:`M${cx-W} ${top+70} Q ${cx-W-14} ${top+190} ${cx-W+4} ${bot} L ${cx+W-4} ${bot} Q ${cx+W+14} ${top+190} ${cx+W} ${top+70} Q ${cx+W} ${top+8} ${cx+W*.45} ${top+4} Q ${cx} ${top-4} ${cx-W*.45} ${top+4} Q ${cx-W} ${top+8} ${cx-W} ${top+70} Z`,fill:css("--panel"),stroke:css("--muted"),"stroke-width":3},s);
+  // žebra
+  for(let i=0;i<6;i++){const y=top+62+i*38;[-1,1].forEach(sg=>el("path",{d:`M${cx+sg*20} ${y} Q ${cx+sg*W*.7} ${y-6} ${cx+sg*(W+2)} ${y+14}`,fill:"none",stroke:"#d9c7a8","stroke-width":8,"stroke-linecap":"round",opacity:.75},s))}
+  // vzduch v pohrudniční dutině (strana pacienta pravá = vlevo na obrazovce)
+  if(pnK>.02){el("path",{d:`M${cx-16} ${top+8} Q ${cx-W+4} ${top+10} ${cx-W+3} ${top+72} Q ${cx-W-10} ${top+190} ${cx-W+8} ${bot-4} L ${cx-16} ${bot-4} Z`,fill:css("--air"),opacity:.95*pnK},s);
+    txt(s,cx-W+14,top+36,"vzduch v pohrudniční dutině",{"font-size":11.5,"font-weight":700,fill:css("--vein"),opacity:pnK})}
+  // plíce
+  el("rect",{x:cx-9,y:18,width:18,height:top-10,fill:css("--cart"),stroke:css("--cart2")},s);
+  const L=css("--lung"),L2=css("--lung2");
+  [-1,1].forEach(sg=>{const coll=sg<0?pnK:0;const sc=(1-.62*coll)*(.9+.1*k*(1-coll));const hx=cx+sg*20,hy=top+140;
+    const g=el("g",{transform:`translate(${hx} ${hy}) scale(${sc}) translate(${-hx} ${-hy})`},s);
+    el("path",{d:lungPath(cx,sg,top+30,bot-30,W-48),fill:L,stroke:L2,"stroke-width":3},g)});
+  // bránice
+  el("path",{d:`M${cx-W+4} ${bot} C ${cx-W*.6} ${bot-60+20*k} ${cx+W*.6} ${bot-60+20*k} ${cx+W-4} ${bot}`,fill:"none",stroke:"#c46a5a","stroke-width":8,"stroke-linecap":"round"},s);
+  // rána / šipka
+  if(pn==="uraz"){const x=cx-W-6,y=top+150;el("path",{d:`M${x-40} ${y-10} L ${x+18} ${y+4}`,stroke:css("--bad"),"stroke-width":4,"marker-end":"url(#pnA)"},s);txt(s,x-42,y-16,"rána",{"font-size":12,"font-weight":700,fill:css("--bad")});
+    if(aid==="sacek")el("rect",{x:x-8,y:y-22,width:22,height:44,rx:3,fill:"#c9d6e3",stroke:css("--ink"),opacity:.85},s)}
+  if(pn==="zebro"){el("path",{d:`M${cx-W+30} ${top+163} l 10 -10 l 6 14 l 10 -10`,stroke:css("--bad"),"stroke-width":3,fill:"none"},s);txt(s,cx-W+20,top+140,"zlomené žebro",{"font-size":12,"font-weight":700,fill:css("--bad")})}
+  if(pn==="spont")txt(s,cx-W+18,top+60,"prasklý puchýřek",{"font-size":12,"font-weight":700,fill:css("--bad")});
+  const d=el("defs",{},s),m=el("marker",{id:"pnA",viewBox:"0 0 10 10",refX:8,refY:5,markerWidth:5,markerHeight:5,orient:"auto"},d);el("path",{d:"M0 0 L10 5 L0 10 z",fill:css("--bad")},m);
+  // popisky
+  txt(s,cx-W*.5,bot+32,"pravá plíce",{"text-anchor":"middle","font-size":12.5,"font-weight":600});txt(s,cx+W*.5,bot+32,"levá plíce",{"text-anchor":"middle","font-size":12.5,"font-weight":600});
+  txt(s,cx,bot+50,"(pohled zepředu – pravá strana pacienta je vlevo)",{"text-anchor":"middle","font-size":10.5,fill:css("--muted")});
+  // manometry
+  const gauge=(x,label,v)=>{el("rect",{x,y:14,width:120,height:50,rx:8,fill:css("--panel"),stroke:css("--line")},s);txt(s,x+8,32,label,{"font-size":10.5,fill:css("--muted")});
+    el("rect",{x:x+8,y:40,width:104,height:9,rx:4,fill:css("--line")},s);el("rect",{x:x+8,y:40,width:104*v,height:9,rx:4,fill:v<.3?css("--bad"):css("--ok")},s);txt(s,x+8,60,v<.3?"podtlak zrušen":"podtlak",{"font-size":9.5,fill:v<.3?css("--bad"):css("--muted")})};
+  gauge(8,"pohrudniční dutina P",1-pnK*.97);gauge(392,"pohrudniční dutina L",1);
+  // postava – poloha
+  if(pn&&aid){const fx=470,fy=170;const g=el("g",{stroke:css("--ink"),"stroke-width":3,fill:"none","stroke-linecap":"round"},s);
+    if(aid==="polosed"){el("circle",{cx:fx-10,cy:fy-50,r:9},g);el("path",{d:`M${fx-8} ${fy-40} L ${fx} ${fy} L ${fx+34} ${fy} L ${fx+38} ${fy+30} M${fx-6} ${fy-30} L ${fx+14} ${fy-14}`},g);el("path",{d:`M${fx-26} ${fy-60} L ${fx-12} ${fy+4}`,stroke:css("--muted"),"stroke-width":5},g)}
+    else{el("circle",{cx:fx-34,cy:fy-6,r:9},g);el("path",{d:`M${fx-24} ${fy-4} L ${fx+20} ${fy-4} L ${fx+44} ${fy-4} M${fx-10} ${fy-4} L ${fx+4} ${fy-14}`},g)}
+    txt(s,fx+4,fy+50,aid==="polosed"?"polosed":aid==="leh"?"leh na zádech":"",{"font-size":11,"text-anchor":"middle"})}
+  const S=$("#pnStatus"),T=$("#pnText");
+  if(!pn){S.className="status ok";S.textContent="Zdravý hrudník";T.innerHTML="Podtlak v pohrudniční dutině drží obě plíce roztažené – při dýchání vyplňují celou hrudní dutinu. Vyber, co se stane."}
+  else{S.className="status bad";S.textContent="Pneumotorax pravé plíce";T.innerHTML=PNC[pn]+" Podtlak se poruší, plíce se <b>vyprázdní a zkolabuje</b>. Postižený se dusí a dýchá rychle."}
+  $("#pnAid").hidden=!pn;
+}
+$$("[data-pn]").forEach(b=>b.onclick=()=>{pn=b.dataset.pn;aid=null;press("[data-pn]",b);press("[data-aid]",null);$("#aidStatus").textContent="";$("#aidText").textContent="";
+  $$("[data-aid]")[0].hidden=pn!=="uraz"});
+$$("[data-aid]").forEach(b=>b.onclick=()=>{aid=b.dataset.aid;press("[data-aid]",b);const S=$("#aidStatus"),T=$("#aidText");
+  if(aid==="sacek"){S.className="status warn";S.textContent="Dnes se nedoporučuje";T.innerHTML="Krytí rány neprodyšnou vrstvou (plastovým sáčkem) se dříve používalo, dnes se <b>nedoporučuje</b> – „na díru v hrudníku dnes už bez pytlíku“."}
+  else if(aid==="leh"){S.className="status bad";S.textContent="Lépe ne";T.innerHTML="Vleže se postiženému dýchá hůř. Podle učebnice pomůžeme uvedením do <b>polosedu</b>."}
+  else{S.className="status ok";S.textContent="Správně";T.innerHTML="Uvedeme zraněného do <b>polosedu</b> a zavoláme <b>lékařskou pomoc (155)</b>. Víc laik udělat nemůže – stejně postupujeme i při zlomeném žebru nebo spontánním pneumotoraxu."}});
+$("#pnReset").onclick=()=>{pn=null;aid=null;press("[data-pn]",null);press("[data-aid]",null)};
+
+/* ===== SMYČKA ===== */
+let last=0;
+function loop(now){now=now??performance.now();const dt=reduce?0:Math.min(.05,(now-(last||now))/1000);last=now;
+  if(tab==="p-as")drawAs(dt);if(tab==="p-ko")drawKo(dt);if(tab==="p-cf")drawCf(dt);if(tab==="p-pn")drawPn(dt);
+  requestAnimationFrame(loop)}
+drawAs(0);drawKo(0);drawCf(0);drawPn(0);requestAnimationFrame(loop);
+</script>
+</body>
+</html>
