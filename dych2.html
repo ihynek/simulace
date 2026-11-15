@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mechanika dýchání</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --skin:#f1d3c0; --skin2:#d9a98c; --muc:#f0a7a7; --muc2:#d77b7b; --cart:#dfe6ee; --cart2:#9fb0c2;
+  --lung:#f3b0ae; --lung2:#d9827f; --air:#d8ecfb; --mucus:#cfe3a6; --hi:#f2b705; --upper:#3b82f6; --lower:#e8873a;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --warn:#c97a00; --navic:#4b3fd0; --navicbg:#eef0ff;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --skin:#6b5446; --skin2:#8a6b58; --muc:#8a4a4a; --muc2:#a85f5f; --cart:#3a4655; --cart2:#6d8199;
+  --lung:#8a4c4b; --lung2:#a8605d; --air:#1e3346; --mucus:#5d7a2e; --hi:#ffd23f; --upper:#6aa2ff; --lower:#f0a030;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --navic:#a99cff; --navicbg:#25233d; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)} .status.warn{color:var(--warn)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.navic{font-size:.9rem;background:var(--navicbg);border-left:4px solid var(--navic);padding:8px 12px;border-radius:6px;margin:0}
+.navic b.tag{color:var(--navic);font-size:.75rem;letter-spacing:.04em;display:block;margin-bottom:2px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.1rem;font-variant-numeric:tabular-nums;margin:0}
+.part{cursor:pointer;transition:opacity .2s}
+svg.dim .part:not(.sel){opacity:.3}
+.part.sel{filter:drop-shadow(0 0 5px var(--hi)) drop-shadow(0 0 2px var(--hi))}
+.score{font-family:var(--f-mono);font-size:1rem;color:var(--muted)}
+table.air{border-collapse:collapse;width:100%;font-size:.92rem}
+table.air td,table.air th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+table.air th{background:var(--bg)}
+table.air td.on{background:var(--accent);color:#fff;font-weight:700}
+.chk{display:flex;flex-wrap:wrap;gap:6px}
+.big{font-family:var(--f-display);font-size:2rem;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Mechanika <span>dýchání</span></h1>
+  <p class="sub">Interaktivní pokusy k 2. hodině · Dýchací soustava</p>
+</header>
+
+<nav role="tablist" aria-label="Pokusy">
+  <button role="tab" id="t-nd" aria-selected="true" data-p="p-nd">1 · Nádech a výdech</button>
+  <button role="tab" id="t-sp" aria-selected="false" data-p="p-sp">2 · Spirogram</button>
+  <button role="tab" id="t-hl" aria-selected="false" data-p="p-hl">3 · Hlasivky</button>
+  <button role="tab" id="t-hv" aria-selected="false" data-p="p-hv">4 · Hyperventilace</button>
+</nav>
+
+<!-- 1 NÁDECH A VÝDECH -->
+<section class="stage" id="p-nd" role="tabpanel" aria-labelledby="t-nd">
+  <div class="panel"><svg id="ndSvg" viewBox="0 0 520 470" role="img" aria-label="Hrudník při nádechu a výdechu"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Jak se plíce plní?</h2>
+      <p>Plíce nemají vlastní svaly. Při <b>nádechu</b> se stáhne <b>bránice</b> (klesne) a <b>vnější mezižeberní svaly</b> zvednou hrudník → v hrudní dutině vzroste <b>podtlak</b> a vzduch se nasaje.</p>
+    </div>
+    <div class="row" role="group" aria-label="Typ dýchání"><button class="btn" data-ty="bris" aria-pressed="true">břišní dýchání</button><button class="btn" data-ty="hrud">hrudní dýchání</button></div>
+    <div class="row" role="group" aria-label="Výdech"><button class="btn" data-ex="klid" aria-pressed="true">klidný výdech</button><button class="btn" data-ex="usil">usilovný výdech</button></div>
+    <div class="row"><button class="btn" id="ndPause" aria-pressed="false">Pauza</button><button class="btn" id="ndSlow" aria-pressed="false">Zpomalit</button></div>
+    <p class="status" id="ndStatus"></p>
+    <p id="ndText"></p>
+    <p class="note">Plíce obaluje <b>poplicnice</b>, hrudní dutinu vystýlá <b>pohrudnice</b>. Mezi nimi je <b>pohrudniční dutina</b> s asi 15 ml kapaliny a <b>podtlakem</b>, který drží plíce roztažené. Břišní dýchání je typičtější pro muže, hrudní pro ženy.</p>
+  </div>
+</section>
+
+<!-- 2 SPIROGRAM -->
+<section class="stage" id="p-sp" role="tabpanel" aria-labelledby="t-sp" hidden>
+  <div class="panel"><svg id="spSvg" viewBox="0 0 520 330" role="img" aria-label="Spirogram – dechové objemy"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Kolik nadýcháme?</h2>
+      <p>Spirometr zapisuje objem vdechnutého a vydechnutého vzduchu do grafu. Dechovou frekvenci a objem řídí <b>dechové centrum v prodloužené míše</b> podle potřeby O₂ a produkce CO₂.</p>
+    </div>
+    <div class="row" role="group" aria-label="Situace">
+      <button class="btn" data-sit="klid" aria-pressed="true">klid</button><button class="btn" data-sit="zatez">zátěž</button>
+      <button class="btn" data-sit="spanek">spánek</button><button class="btn" data-sit="novo">novorozenec</button>
+    </div>
+    <div class="row"><button class="btn primary" id="vkp">Maximální nádech a výdech</button><button class="btn" id="sport" aria-pressed="false">sportovec (veslař, plavec)</button></div>
+    <p class="read" id="spRead"></p>
+    <p id="spText"></p>
+    <p class="note"><b>Dechový objem</b> v klidu asi 0,5 l, <b>dechová frekvence</b> 14–20 za minutu (novorozenci 40–60, v delta spánku 10–12). <b>Vitální kapacita plic</b> = objem usilovně vydechnutý po maximálním nádechu, průměrně asi 5 l, u aerobních sportovců až 7 l. Výšky vln v režimech zátěž a novorozenec jsou jen ilustrační.</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>I po největším výdechu zůstane v plicích asi 1–1,5 l vzduchu (<b>zbytkový objem</b>) – v grafu je to šedé pásmo dole.</div>
+  </div>
+</section>
+
+<!-- 3 HLASIVKY -->
+<section class="stage" id="p-hl" role="tabpanel" aria-labelledby="t-hl" hidden>
+  <div class="panel"><svg id="hlSvg" viewBox="0 0 520 400" role="img" aria-label="Hlasová štěrbina při pohledu shora"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Jak vzniká hlas?</h2>
+      <p>Vydechovaný vzduch rozechvívá <b>pravé hlasové řasy</b>. Výšku hlasu určuje <b>frekvence jejich kmitání</b> – ta závisí na napětí a délce řas i na hustotě plynu.</p>
+    </div>
+    <div class="row" role="group" aria-label="Režim"><button class="btn" data-hm="dych" aria-pressed="true">dýchání</button><button class="btn" data-hm="hlas">mluvení / zpěv</button><button class="btn" data-hm="falz">falzet</button></div>
+    <label class="sl">Napětí hlasových řas <output id="tenOut"></output><input type="range" id="ten" min="0" max="100" value="40"></label>
+    <div class="row" role="group" aria-label="Plyn"><button class="btn" data-gas="air" aria-pressed="true">vzduch</button><button class="btn" data-gas="he">hélium („šmoula“)</button><button class="btn" data-gas="sf6">SF₆ („Darth Vader“)</button></div>
+    <div class="row"><button class="btn" id="pub" aria-pressed="false">po pubertě (chlapec)</button><button class="btn primary" id="snd" aria-pressed="false">🔊 Zvuk</button></div>
+    <p class="big" id="hlHz"></p>
+    <p id="hlText"></p>
+    <p class="note"><b>Mutace:</b> v pubertě testosteron zvětší chlapcům hrtan a prodlouží hlasové vazy → hlas klesne. <b>Falzet:</b> řasy jsou silně napnuté a kmitá jen jejich okraj; nepravé hlasové řasy nad nimi rezonují. SF₆ je nutné po pokusu vydýchat v hlubokém předklonu.</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Hlasové řasy kmitají u mužů zhruba 100krát, u žen asi 200krát za sekundu (100 a 200 Hz). Čisté hélium z balonku neobsahuje kyslík – opakované vdechování může vést ke ztrátě vědomí.</div>
+  </div>
+</section>
+
+<!-- 4 HYPERVENTILACE -->
+<section class="stage" id="p-hv" role="tabpanel" aria-labelledby="t-hv" hidden>
+  <div class="panel"><svg id="hvSvg" viewBox="0 0 520 330" role="img" aria-label="Oxid uhličitý v krvi při hyperventilaci"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Předýchání se</h2>
+      <p>Při rychlém hlubokém dýchání (stres, bolest, horečka nebo vědomě) vydýcháme příliš <b>CO₂</b>. Jeho koncentrace v krvi klesne a naruší se <b>acidobazická rovnováha krve</b>.</p>
+    </div>
+    <label class="sl">Dechová frekvence <output id="hfOut"></output><input type="range" id="hf" min="6" max="40" value="16"></label>
+    <div class="row"><button class="btn primary" id="bag" aria-pressed="false">Dýchat do pytlíku</button><button class="btn" id="hvReset">Normální dýchání</button></div>
+    <p class="status" id="hvStatus"></p>
+    <p id="hvText"></p>
+    <p class="note"><b>První pomoc</b> při hyperventilaci: pomalé dýchání do pytlíku nebo kapesníku – vdechujeme zpět vydechnutý CO₂ a jeho koncentrace v těle stoupne.</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Dýchání do sáčku pomáhá jen u hyperventilace z úzkosti či stresu. Dnes se doporučuje hlavně postiženého uklidnit a vést k pomalému dýchání (počítat s ním nádechy).</div>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+let tab="p-nd";
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});tab=b.dataset.p;if(tab!=="p-hl")stopSound();}));
+const marker=(s,id,col)=>{const d=el("defs",{},s),m=el("marker",{id,viewBox:"0 0 10 10",refX:8,refY:5,markerWidth:5,markerHeight:5,orient:"auto"},d);el("path",{d:"M0 0 L10 5 L0 10 z",fill:col},m)};
+
+/* ===== 1 NÁDECH A VÝDECH ===== */
+let ty="bris",ex="klid",ndT=0,ndPause=false,ndSlow=false;
+function drawNd(dt){
+  const s=$("#ndSvg");s.innerHTML="";if(!ndPause)ndT+=dt*(ndSlow?.35:1);
+  const per=ex==="usil"?4.2:5,ph=(ndT%per)/per,insp=ph<.45;const k=insp?Math.sin(ph/.45*Math.PI/2):Math.cos((ph-.45)/.55*Math.PI/2); // 0..1 plnost
+  const forced=!insp&&ex==="usil";const kk=forced?k-(1-k)*.25:k;
+  const dia=ty==="bris"?1:.45,rib=ty==="hrud"?1:.35;
+  const A=css("--accent"),L=css("--lung"),L2=css("--lung2"),MUS="#c46a5a",ON=css("--hi");
+  marker(s,"arIn",css("--vein"));
+  const cx=260,top=110,diaY=330+38*kk*dia,ribLift=-14*kk*rib,wid=1+.06*kk*rib;
+  // hrudní stěna (pohrudnice)
+  const W=150*wid;
+  el("path",{d:`M${cx-W} ${top+40+ribLift} Q ${cx-W-14} ${top+190} ${cx-W+4} ${diaY+8} L ${cx+W-4} ${diaY+8} Q ${cx+W+14} ${top+190} ${cx+W} ${top+40+ribLift} Q ${cx} ${top-8+ribLift} ${cx-W} ${top+40+ribLift} Z`,fill:css("--panel"),stroke:css("--muted"),"stroke-width":3},s);
+  // žebra
+  const inter=insp?"ext":(forced?"int":null);
+  for(let i=0;i<6;i++){const y=top+52+i*42+ribLift*(1-i*.08);const slope=18-12*kk*rib;
+    [-1,1].forEach(sg=>{el("path",{d:`M${cx+sg*20} ${y} Q ${cx+sg*W*.7} ${y-6} ${cx+sg*(W+4)} ${y+slope}`,fill:"none",stroke:"#d9c7a8","stroke-width":9,"stroke-linecap":"round"},s)});
+    if(i<5)[-1,1].forEach(sg=>el("path",{d:`M${cx+sg*(W*.55)} ${y+10} L ${cx+sg*(W*.62)} ${y+34}`,stroke:inter?ON:MUS,"stroke-width":inter?5:3,opacity:inter?1:.5},s));}
+  // plíce
+  const lw=110*(.88+.12*kk),lh=(diaY-top-50);
+  [-1,1].forEach(sg=>{const x0=cx+sg*18;el("path",{d:`M${x0} ${top+30} Q ${x0+sg*lw*.4} ${top+20} ${x0+sg*lw} ${top+110} Q ${x0+sg*(lw+14)} ${top+40+lh*.7} ${x0+sg*lw*.9} ${diaY-2} Q ${x0+sg*lw*.45} ${330-80+60*kk*dia} ${x0} ${330-70+60*kk*dia} Z`,fill:L,stroke:L2,"stroke-width":3},s)});
+  // poplicnice / pohrudnice popisky
+  // průdušnice + šipka vzduchu
+  el("rect",{x:cx-10,y:20,width:20,height:top+20-10,fill:css("--cart"),stroke:css("--cart2")},s);
+  const flowIn=insp,arY=flowIn?40:110;el("path",{d:flowIn?`M${cx+40} 30 L ${cx+40} 90`:`M${cx+40} 100 L ${cx+40} 40`,stroke:css("--vein"),"stroke-width":4,"marker-end":"url(#arIn)"},s);
+  txt(s,cx+50,60,flowIn?"vzduch dovnitř":"vzduch ven",{"font-size":12.5,"font-weight":700,fill:css("--vein")});
+  // bránice
+  const domeTop=330-70+60*kk*dia; // vrchol kopule
+  el("path",{d:`M${cx-W+4} ${diaY+8} C ${cx-W*.6} ${domeTop-10} ${cx+W*.6} ${domeTop-10} ${cx+W-4} ${diaY+8}`,fill:"none",stroke:insp?ON:MUS,"stroke-width":insp?12:9,"stroke-linecap":"round"},s);
+  // břicho
+  const belly=forced;el("path",{d:`M${cx-W+4} ${diaY+14} Q ${cx} ${diaY+80+18*kk*dia} ${cx+W-4} ${diaY+14}`,fill:belly?"rgba(242,183,5,.25)":"none",stroke:belly?ON:css("--line"),"stroke-width":belly?4:2},s);
+  // popisky
+  const lab=(x,y,lx,ly,t,b=false,a="start")=>{el("line",{x1:x,y1:y,x2:lx,y2:ly,stroke:css("--ink"),"stroke-width":1},s);txt(s,lx+(a==="end"?-4:4),ly+4,t,{"font-size":12,"font-weight":b?700:500,"text-anchor":a,fill:b?css("--accent"):css("--ink")})};
+  lab(cx-W*.55,330-40+50*kk*dia,40,diaY+40,"bránice",insp,"start");
+  lab(cx+W*.6,top+120,500,150,(forced?"vnitřní":"vnější")+" mezižeberní svaly",!!inter,"end");
+  lab(cx-W,top+180,40,top+170,"pohrudnice",false);
+  lab(cx-100,top+120,40,top+100,"plíce + poplicnice",false);
+  if(belly)txt(s,cx,diaY+70,"břišní lis",{"text-anchor":"middle","font-size":13,"font-weight":700,fill:css("--accent")});
+  // manometr podtlaku
+  const neg=-(3+4*kk*(dia*.6+rib*.4))+(forced?4*(1-k):0);
+  el("rect",{x:20,y:20,width:150,height:56,rx:8,fill:css("--panel"),stroke:css("--line")},s);
+  txt(s,30,40,"tlak v pohrudniční dutině",{"font-size":11,fill:css("--muted")});
+  el("rect",{x:30,y:50,width:130,height:10,rx:4,fill:css("--line")},s);el("rect",{x:30+130*Math.min(1,Math.max(0,(-neg)/9)),y:46,width:4,height:18,fill:css("--accent")},s);
+  txt(s,30,72,"slabší podtlak",{"font-size":9.5,fill:css("--muted")});txt(s,160,72,"silnější",{"font-size":9.5,fill:css("--muted"),"text-anchor":"end"});
+  // stav
+  const S=$("#ndStatus"),T=$("#ndText");
+  if(insp){S.textContent="NÁDECH (inspirace) – aktivní děj";S.className="status ok";T.innerHTML=(ty==="bris"?"Hlavně se stahuje <b>bránice</b> – klesá dolů (břišní dýchání).":"Hlavně pracují <b>vnější mezižeberní svaly</b> – přitahují spodní žebro k žebru nad ním a hrudník se zvedá (hrudní dýchání).")+" Objem hrudníku roste, podtlak sílí a vzduch proudí po tlakovém spádu dovnitř."}
+  else if(forced){S.textContent="USILOVNÝ VÝDECH";S.className="status warn";T.innerHTML="Pracují <b>vnitřní mezižeberní svaly</b> (stahují výše postavené žebro níž) a <b>svaly břicha – břišní lis</b>. Vydechneme víc vzduchu než při klidném výdechu."}
+  else{S.textContent="KLIDNÝ VÝDECH (exspirace) – pasivní";S.className="status";T.innerHTML="Bránice a vnější mezižeberní svaly <b>ochabnou</b>, hrudník se vrátí a vzduch odchází ven – bez práce svalů."}
+}
+$$("[data-ty]").forEach(b=>b.onclick=()=>{ty=b.dataset.ty;press("[data-ty]",b)});
+$$("[data-ex]").forEach(b=>b.onclick=()=>{ex=b.dataset.ex;press("[data-ex]",b)});
+$("#ndPause").onclick=()=>{ndPause=!ndPause;$("#ndPause").setAttribute("aria-pressed",ndPause);$("#ndPause").textContent=ndPause?"Pokračovat":"Pauza"};
+$("#ndSlow").onclick=()=>{ndSlow=!ndSlow;$("#ndSlow").setAttribute("aria-pressed",ndSlow)};
+
+/* ===== 2 SPIROGRAM ===== */
+const SIT={klid:{f:16,v:.5,n:"klid",t:"V klidu je dechový objem asi <b>0,5 l</b> a frekvence 14–20 dechů za minutu."},
+  zatez:{f:32,v:1.6,n:"zátěž",t:"Při zátěži potřebuje tělo víc O₂ a tvoří víc CO₂ – <b>dechové centrum v prodloužené míše</b> zrychlí dechovou frekvenci a zvýší dechový objem."},
+  spanek:{f:11,v:.4,n:"spánek",t:"Ve spánku se snižuje dechová frekvence i dechový objem; v <b>delta spánku</b> jen 10–12 dechů za minutu."},
+  novo:{f:50,v:.15,n:"novorozenec",t:"Novorozenci mají rychlejší metabolismus a dýchají <b>40–60krát za minutu</b>."}};
+let sit="klid",sport=false,spT=0,spPts=[],vk=null;const RV=1.2,FRC=2.6;
+function spVol(t){const S=SIT[sit];const per=60/S.f;const ph=(t%per)/per;let v=FRC+S.v*(ph<.4?Math.sin(ph/.4*Math.PI/2):Math.cos((ph-.4)/.6*Math.PI/2));
+  if(vk){const u=(t-vk)/7;const VK=sport?7:5,top=RV+VK;if(u<0)return v;if(u<.35)v=FRC+(top-FRC)*Math.sin(u/.35*Math.PI/2);else if(u<.75)v=top-(top-RV)*Math.sin((u-.35)/.4*Math.PI/2);else if(u<1)v=RV+(FRC-RV)*((u-.75)/.25);else vk=null}
+  return v}
+function drawSp(dt){
+  const s=$("#spSvg");s.innerHTML="";spT+=dt;const W=520,H=330,x0=50,y0=290,ys=30,WIN=20;
+  for(let l=0;l<=9;l++){const y=y0-l*ys;el("line",{x1:x0,y1:y,x2:W-10,y2:y,stroke:css("--line"),"stroke-width":l%2?.6:1},s);txt(s,x0-6,y+4,l+" l",{"font-size":10.5,"text-anchor":"end",fill:css("--muted")})}
+  el("rect",{x:x0,y:y0-RV*ys,width:W-10-x0,height:RV*ys,fill:css("--muted"),opacity:.15},s);txt(s,x0+6,y0-6,"zbytkový objem (navíc)",{"font-size":10.5,fill:css("--navic")});
+  spPts.push([spT,spVol(spT)]);while(spPts.length&&spT-spPts[0][0]>WIN)spPts.shift();
+  const d=spPts.map(([t,v],i)=>(i?"L":"M")+(x0+(t-(spT-WIN))/WIN*(W-10-x0)).toFixed(1)+" "+(y0-v*ys).toFixed(1)).join(" ");
+  el("path",{d,fill:"none",stroke:css("--vein"),"stroke-width":2.5,"stroke-linejoin":"round"},s);
+  txt(s,x0,18,"objem vzduchu v plicích (l) · posledních 20 s",{"font-size":11.5,fill:css("--muted")});
+  if(vk||spPts.some(p=>p[1]>FRC+2)){const VK=sport?7:5;const yt=y0-(RV+VK)*ys,yb=y0-RV*ys;const xx=W-40;
+    el("line",{x1:xx,y1:yt,x2:xx,y2:yb,stroke:css("--accent"),"stroke-width":2},s);el("line",{x1:xx-6,y1:yt,x2:xx+6,y2:yt,stroke:css("--accent"),"stroke-width":2},s);el("line",{x1:xx-6,y1:yb,x2:xx+6,y2:yb,stroke:css("--accent"),"stroke-width":2},s);
+    txt(s,xx-8,(yt+yb)/2,`VKP ≈ ${VK} l`,{"font-size":13,"font-weight":700,"text-anchor":"end",fill:css("--accent")})}
+  const S=SIT[sit];$("#spRead").innerHTML=`dechová frekvence: ${S.f} /min · dechový objem: ${String(S.v).replace(".",",")} l`;$("#spText").innerHTML=S.t;
+}
+$$("[data-sit]").forEach(b=>b.onclick=()=>{sit=b.dataset.sit;press("[data-sit]",b)});
+$("#vkp").onclick=()=>{vk=spT};$("#sport").onclick=()=>{sport=!sport;$("#sport").setAttribute("aria-pressed",sport)};
+
+/* ===== 3 HLASIVKY ===== */
+let hm="dych",gas="air",pub=false,ac=null,osc=null,gain=null,hlT=0;
+const GASF={air:1,he:2.4,sf6:.45};
+function freq(){const ten=+$("#ten").value/100;let f=(pub?100:200)*(.75+.7*ten);if(hm==="falz")f*=2.2;return Math.round(f*GASF[gas])}
+function drawHl(dt){
+  const s=$("#hlSvg");s.innerHTML="";hlT+=dt;const cx=260,cy=210;const len=pub?190:160;const f=freq();
+  // hrtan – pohled shora
+  el("ellipse",{cx,cy,rx:200,ry:170,fill:css("--muc"),opacity:.55},s);
+  txt(s,cx,40,"pohled shora do hrtanu",{"text-anchor":"middle","font-size":12,fill:css("--muted")});
+  // hrtanová příklopka nahoře
+  el("path",{d:`M${cx-70} 70 Q ${cx} 30 ${cx+70} 70 Q ${cx} 60 ${cx-70} 70 Z`,fill:css("--cart"),stroke:css("--cart2"),"stroke-width":2},s);txt(s,cx+80,62,"hrtanová příklopka",{"font-size":11.5});
+  // nepravé řasy
+  const open=hm==="dych"?1:0;const vib=hm==="dych"?0:(reduce?0:Math.sin(hlT*Math.min(f,60)*.6)*(hm==="falz"?2:5));
+  const ang=open?.32:.02;const yTop=cy-len/2,yBot=cy+len/2;
+  [-1,1].forEach(sg=>{ // nepravé
+    el("path",{d:`M${cx} ${yTop-8} L ${cx+sg*(Math.tan(ang)*len+70)} ${yBot+6} L ${cx+sg*(Math.tan(ang)*len+46)} ${yBot+6} Z`,fill:css("--muc2"),opacity:.55},s)});
+  // pravé hlasové řasy
+  [-1,1].forEach(sg=>{const xb=cx+sg*(Math.tan(ang)*len+4+Math.max(0,vib)*(hm==="falz"?.6:1));
+    el("path",{d:`M${cx+sg*2} ${yTop} L ${xb} ${yBot} L ${xb+sg*26} ${yBot} L ${cx+sg*30} ${yTop+6} Z`,fill:"#f6f1e6",stroke:"#b9a98a","stroke-width":2},s);
+    if(hm==="falz")el("line",{x1:cx+sg*3,y1:yTop+6,x2:xb,y2:yBot-4,stroke:css("--hi"),"stroke-width":3},s)});
+  // štěrbina
+  txt(s,cx,yBot+62,open?"hlasová štěrbina otevřená – dýchání":"řasy u sebe – vzduch je rozechvívá",{"text-anchor":"middle","font-size":12.5,"font-weight":700});
+  el("line",{x1:cx+40,y1:cy,x2:cx+150,y2:cy-40,stroke:css("--ink"),"stroke-width":1},s);txt(s,cx+154,cy-38,"pravé hlasové řasy",{"font-size":12,"font-weight":600});
+  el("line",{x1:cx-Math.tan(ang)*len-56,y1:cy+60,x2:150,y2:120,stroke:css("--ink"),"stroke-width":1},s);txt(s,146,116,"nepravé hlasové řasy",{"font-size":12,"text-anchor":"end"});
+  if(open){el("line",{x1:cx,y1:cy,x2:cx-150,y2:cy-60,stroke:css("--ink"),"stroke-width":1},s);txt(s,cx-154,cy-64,"hlasová štěrbina",{"font-size":12,"text-anchor":"end"})}
+  $("#tenOut").textContent=+$("#ten").value<34?"volné":+$("#ten").value<67?"střední":"napnuté";
+  $("#hlHz").textContent=hm==="dych"?"ticho":`${f} Hz`;
+  let t=hm==="dych"?"Při dýchání je <b>hlasová štěrbina otevřená</b> a řasy nekmitají.":"Řasy se přiblíží, vydechovaný vzduch je <b>rozechvívá</b>. Napjatější a kratší řasy kmitají rychleji → vyšší tón.";
+  if(hm==="falz")t="<b>Falzet:</b> řasy jsou silně napnuté a natažené a kmitá jen jejich <b>okraj</b> → velmi vysoký tón.";
+  if(gas==="he"&&hm!=="dych")t+=" <b>Hélium</b> má malou hustotu – řasy kmitají s vyšší frekvencí → vysoký hlas „šmouly“.";
+  if(gas==="sf6"&&hm!=="dych")t+=" <b>Fluorid sírový</b> má velkou hustotu – řasy kmitají pomalu → hluboký hlas „Darth Vadera“. Pak vydýchat v hlubokém předklonu!";
+  if(pub&&hm!=="dych")t+=" <b>Po pubertě</b> má chlapec větší hrtan a delší hlasové vazy → nižší hlas.";
+  $("#hlText").innerHTML=t;
+  if(osc){osc.frequency.setTargetAtTime(Math.max(40,f),ac.currentTime,.03);gain.gain.setTargetAtTime(hm==="dych"?0:.12,ac.currentTime,.05)}
+}
+function stopSound(){if(osc){try{osc.stop()}catch(e){}osc=null}$("#snd")&&$("#snd").setAttribute("aria-pressed",false)}
+$("#snd").onclick=()=>{if(osc){stopSound();return}try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();osc=ac.createOscillator();gain=ac.createGain();const flt=ac.createBiquadFilter();
+  osc.type="sawtooth";flt.type="lowpass";flt.frequency.value=1800;gain.gain.value=0;osc.connect(flt).connect(gain).connect(ac.destination);osc.start();$("#snd").setAttribute("aria-pressed",true)}catch(e){}};
+$$("[data-hm]").forEach(b=>b.onclick=()=>{hm=b.dataset.hm;press("[data-hm]",b)});
+$$("[data-gas]").forEach(b=>b.onclick=()=>{gas=b.dataset.gas;press("[data-gas]",b)});
+$("#pub").onclick=()=>{pub=!pub;$("#pub").setAttribute("aria-pressed",pub)};
+
+/* ===== 4 HYPERVENTILACE ===== */
+let co2=1,bag=false,hvT=0,hvPts=[];
+function drawHv(dt){
+  const s=$("#hvSvg");s.innerHTML="";hvT+=dt;const f=+$("#hf").value;
+  let target=Math.max(.25,Math.min(1.6,16/f));if(bag)target=Math.min(1.25,target+.7);co2+=(target-co2)*dt*.35;
+  hvPts.push([hvT,co2]);while(hvPts.length&&hvT-hvPts[0][0]>30)hvPts.shift();
+  const x0=50,y0=290,W=470,H=250,sc=v=>y0-v/1.6*H;
+  el("rect",{x:x0,y:sc(1.15),width:W-x0+40,height:sc(.85)-sc(1.15),fill:"#2e9e5b",opacity:.12},s);txt(s,W+20,sc(1)+4,"norma",{"font-size":11,"text-anchor":"end",fill:"#2e9e5b"});
+  el("line",{x1:x0,y1:sc(.6),x2:W+40,y2:sc(.6),stroke:css("--bad"),"stroke-dasharray":"5 4"},s);txt(s,W+20,sc(.6)-6,"příznaky",{"font-size":11,"text-anchor":"end",fill:css("--bad")});
+  el("line",{x1:x0,y1:y0,x2:W+40,y2:y0,stroke:css("--muted")},s);el("line",{x1:x0,y1:y0,x2:x0,y2:y0-H,stroke:css("--muted")},s);
+  txt(s,x0,24,"koncentrace CO₂ v krvi (relativně) · posledních 30 s",{"font-size":11.5,fill:css("--muted")});
+  const d=hvPts.map(([t,v],i)=>(i?"L":"M")+(x0+(t-(hvT-30))/30*(W+40-x0)).toFixed(1)+" "+sc(v).toFixed(1)).join(" ");
+  el("path",{d,fill:"none",stroke:css("--vein"),"stroke-width":3},s);
+  // dech
+  const ph=(hvT*f/60)%1;const r=14+8*Math.sin(ph*Math.PI*2);el("circle",{cx:470,cy:60,r,fill:css("--air"),stroke:css("--vein"),"stroke-width":2},s);txt(s,470,100,f+" /min",{"font-size":12,"text-anchor":"middle","font-weight":700});
+  if(bag){el("path",{d:"M440 120 q 30 -18 60 0 l -6 60 q -24 8 -48 0 z",fill:"#d9c7a8",stroke:"#a08a60"},s);txt(s,470,200,"pytlík",{"font-size":11,"text-anchor":"middle"})}
+  $("#hfOut").textContent=f+" dechů / min";
+  const S=$("#hvStatus"),T=$("#hvText");
+  if(co2<.6){S.className="status bad";S.textContent="Hyperventilace – CO₂ v krvi je příliš nízko";T.innerHTML="Narušená acidobazická rovnováha krve → <b>změny vnímání</b>, mravenčení, <b>křeče</b>, hrozí <b>ztráta vědomí</b>. (Změn vnímání využíval psychiatr Stanislav Grof při holotropním dýchání – bez lékařského dozoru je to nebezpečné.)"}
+  else if(co2<.85){S.className="status warn";S.textContent="CO₂ klesá";T.innerHTML="Rychlým dýcháním vydýcháme víc CO₂, než tělo stihne vytvořit."}
+  else{S.className="status ok";S.textContent=bag?"Pytlík vrací CO₂ do normy":"CO₂ v krvi je v normě";T.innerHTML=bag?"Vdechujeme zpět vydechnutý vzduch s CO₂ – jeho koncentrace v těle stoupne.":"Při klidné frekvenci 14–20 dechů za minutu je CO₂ v krvi v normě."}
+}
+$("#bag").onclick=()=>{bag=!bag;$("#bag").setAttribute("aria-pressed",bag)};
+$("#hvReset").onclick=()=>{$("#hf").value=16;bag=false;$("#bag").setAttribute("aria-pressed",false)};
+
+/* ===== SMYČKA ===== */
+let last=0;
+function loop(now){const dt=reduce?0:Math.min(.05,(now-(last||now))/1000);last=now;
+  if(tab==="p-nd")drawNd(dt);if(tab==="p-sp")drawSp(dt);if(tab==="p-hl")drawHl(dt);if(tab==="p-hv")drawHv(dt);
+  requestAnimationFrame(loop)}
+drawNd(0);drawSp(0);drawHl(0);drawHv(0);requestAnimationFrame(loop);
+</script>
+</body>
+</html>
