@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vývoj zárodku živočichů</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --skin:#f1d3c0; --skin2:#d9a98c; --muc:#f0a7a7; --muc2:#d77b7b; --cart:#dfe6ee; --cart2:#9fb0c2;
+  --lung:#f3b0ae; --lung2:#d9827f; --air:#d8ecfb; --mucus:#cfe3a6; --hi:#f2b705; --upper:#3b82f6; --lower:#e8873a;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --warn:#c97a00; --navic:#4b3fd0; --navicbg:#eef0ff;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --skin:#6b5446; --skin2:#8a6b58; --muc:#8a4a4a; --muc2:#a85f5f; --cart:#3a4655; --cart2:#6d8199;
+  --lung:#8a4c4b; --lung2:#a8605d; --air:#1e3346; --mucus:#5d7a2e; --hi:#ffd23f; --upper:#6aa2ff; --lower:#f0a030;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --navic:#a99cff; --navicbg:#25233d; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)} .status.warn{color:var(--warn)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.navic{font-size:.9rem;background:var(--navicbg);border-left:4px solid var(--navic);padding:8px 12px;border-radius:6px;margin:0}
+.navic b.tag{color:var(--navic);font-size:.75rem;letter-spacing:.04em;display:block;margin-bottom:2px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.1rem;font-variant-numeric:tabular-nums;margin:0}
+.part{cursor:pointer;transition:opacity .2s}
+svg.dim .part:not(.sel){opacity:.3}
+.part.sel{filter:drop-shadow(0 0 5px var(--hi)) drop-shadow(0 0 2px var(--hi))}
+.score{font-family:var(--f-mono);font-size:1rem;color:var(--muted)}
+table.air{border-collapse:collapse;width:100%;font-size:.92rem}
+table.air td,table.air th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+table.air th{background:var(--bg)}
+table.air td.on{background:var(--accent);color:#fff;font-weight:700}
+.chk{display:flex;flex-wrap:wrap;gap:6px}
+.big{font-family:var(--f-display);font-size:2rem;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* zárodečné listy */
+:root{--cell:#f0a35e; --cell2:#b8662a; --ekto:#1f8fa8; --ento:#f2c230; --entoT:#9a7400; --mezo:#d1263b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--cell:#c9803f; --cell2:#f0b888; --ekto:#4fc3dc; --ento:#e6b422; --entoT:#f2c94c; --mezo:#ff5a6a}}
+.terms{margin:0;font-size:.92rem;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.terms b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Vývoj zárodku <span>živočichů</span></h1>
+  <p class="sub">Interaktivní animace k 1. hodině · Živočichové – úvod do systému · kap. 64 a 68</p>
+</header>
+<p class="terms"><b>Důležité pojmy:</b> zygota · rýhování · blastomery · morula · blastula · blastocél · gastrula · prvostřevo · prvoústa · ektoderm · entoderm · mezoderm · célom · prvoústí · druhoústí</p>
+
+<nav role="tablist" aria-label="Animace">
+  <button role="tab" id="t-a" aria-selected="true" data-p="p-a">1 · Od zygoty ke gastrule</button>
+  <button role="tab" id="t-b" aria-selected="false" data-p="p-b">2 · Prvoústí × druhoústí</button>
+  <button role="tab" id="t-c" aria-selected="false" data-p="p-c">3 · Dva, nebo tři listy?</button>
+</nav>
+
+<!-- 1 OD ZYGOTY KE GASTRULE -->
+<section class="stage" id="p-a" role="tabpanel" aria-labelledby="t-a">
+  <div class="panel"><svg id="aSvg" viewBox="0 0 520 430" role="img" aria-label="Vývoj zárodku od zygoty po gastrulu"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Jak ze zygoty vznikne gastrula?</h2>
+      <p>Posouvej jezdcem nebo spusť přehrávání. Sleduj, že zárodek při rýhování <b>neroste</b> – jen se dělí na menší buňky.</p>
+    </div>
+    <label class="sl">Průběh vývoje <output id="aOut"></output><input type="range" id="aT" min="0" max="6" step="0.01" value="0"></label>
+    <div class="row"><button class="btn" id="aPrev">◀ Krok zpět</button><button class="btn" id="aNext">Krok vpřed ▶</button><button class="btn primary" id="aPlay" aria-pressed="false">▶ Přehrát</button></div>
+    <p class="status" id="aStatus"></p>
+    <p id="aText"></p>
+    <p class="note">Od blastuly dál je zárodek nakreslen <b>v řezu</b>. Gastrula je jako polovyfouklý míč, do kterého jsme kopli: stěna se prohne dovnitř a vzniknou dvě vrstvy buněk.</p>
+  </div>
+</section>
+
+<!-- 2 PRVOÚSTÍ × DRUHOÚSTÍ -->
+<section class="stage" id="p-b" role="tabpanel" aria-labelledby="t-b" hidden>
+  <div class="panel"><svg id="bSvg" viewBox="0 0 520 430" role="img" aria-label="Osud prvoúst u prvoústých a druhoústých"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Co se stane s prvoústy?</h2>
+      <p>Prvostřevo se prodlužuje, až se na opačné straně zárodku prolomí <b>druhý otvor</b>. Ze slepé dutiny vznikne <b>trávicí trubice</b>. Rozdíl je v tom, který otvor se stane ústy.</p>
+    </div>
+    <div class="row" role="group" aria-label="Skupina"><button class="btn" data-bm="prvo" aria-pressed="true">prvoústí</button><button class="btn" data-bm="druho">druhoústí</button></div>
+    <label class="sl">Vývoj trávicí trubice <output id="bOut"></output><input type="range" id="bT" min="0" max="1" step="0.005" value="0"></label>
+    <div class="row"><button class="btn primary" id="bPlay" aria-pressed="false">▶ Přehrát</button></div>
+    <p class="status" id="bStatus"></p>
+    <p id="bText"></p>
+    <table class="air"><tr><th></th><th>prvoústí</th><th>druhoústí</th></tr>
+      <tr><td>z prvoúst vzniká</td><td id="bc1">ústní otvor</td><td id="bc2">řitní otvor</td></tr>
+      <tr><td>rýhování</td><td>spirální</td><td>radiální</td></tr>
+      <tr><td>kmeny</td><td>ploštěnci, měkkýši, kroužkovci, hlístice, členovci</td><td>ostnokožci, strunatci</td></tr></table>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Latinsky <b>Protostomia</b> a <b>Deuterostomia</b> (řec. prótos = první, deuteros = druhý, stoma = ústa). U člověka tedy jako první vzniká otvor řitní.</div>
+  </div>
+</section>
+
+<!-- 3 DVA, NEBO TŘI LISTY -->
+<section class="stage" id="p-c" role="tabpanel" aria-labelledby="t-c" hidden>
+  <div class="panel"><svg id="cSvg" viewBox="0 0 520 430" role="img" aria-label="Příčný řez tělem se zárodečnými listy"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Kolik zárodečných listů?</h2>
+      <p>Příčný řez tělem. Přepni skupinu a klepni na vrstvu (nebo na tlačítko), abys zjistil, co z ní vzniká.</p>
+    </div>
+    <div class="row" role="group" aria-label="Skupina"><button class="btn" data-cm="di" aria-pressed="true">Diblastica</button><button class="btn" data-cm="tri">Triblastica</button></div>
+    <div class="row" role="group" aria-label="Zárodečný list"><button class="btn" data-ck="ekto">ektoderm</button><button class="btn" data-ck="ento">entoderm</button><button class="btn" data-ck="mezo" id="cMezoBtn" hidden>mezoderm</button><button class="btn" data-ck="mezen" id="cMezenBtn" hidden>mezenchym</button></div>
+    <p class="status" id="cStatus"></p>
+    <p id="cText"></p>
+    <p class="note"><b>Diblastica</b> mají dva zárodečné listy (žahavci; zjednodušeně sem řadíme i houbovce), prostor mezi nimi vyplňuje mezenchym. <b>Triblastica</b> mají navíc mezoderm – patří sem všichni dvoustranně souměrní živočichové (Bilateria).</p>
+    <div class="navic"><b class="tag">NAVÍC – NAD RÁMEC UČEBNICE</b>Z mezodermu obecně vznikají <b>svaly, opěrná soustava, cévní soustava, vylučovací a pohlavní orgány</b> – proto je třetí list tak důležitý pro složitější stavbu těla. <b>Mezenchym</b> u Diblastik je řídká výplň z volných buněk mezi ektodermem a entodermem. Není to mezoderm v pravém slova smyslu – tím je až třetí zárodečný list Triblastik. Učebnice v kap. 64 název mezenchym neuvádí a píše jen o „volných buňkách“.</div>
+  </div>
+</section>
+</div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS="http://www.w3.org/2000/svg";
+const el=(t,a={},p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const txt=(p,x,y,s,a={})=>{const t=el("text",{x,y,...a},p);t.textContent=s;return t};
+const press=(sel,b)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",x===b));
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x)), lerp=(a,b,t)=>a+(b-a)*t, ease=t=>t*t*(3-2*t);
+const mix=(c1,c2,t)=>{const h=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));const a=h(c1),b=h(c2);return "#"+a.map((v,i)=>Math.round(lerp(v,b[i],t)).toString(16).padStart(2,"0")).join("")};
+const pathOf=pts=>pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+let tab="p-a";
+$$("nav button").forEach(b=>b.addEventListener("click",()=>{
+  $$("nav button").forEach(x=>{x.setAttribute("aria-selected",x===b);$("#"+x.dataset.p).hidden=x!==b});tab=b.dataset.p;stopAll();redraw();}));
+
+/* společná geometrie: zárodek v řezu, prvoústa dole */
+const CX=260, CY=205, R=125, SW=24, LIP=30;
+const G1=Math.asin(LIP/R), G0=1.0;                 // poloviční úhel otvoru: hotová gastrula / začátek vchlipování
+const BASE=CY+R*Math.cos(G1);
+const circ=(a,r=R)=>[CX+r*Math.sin(a),CY+r*Math.cos(a)];   // a = 0 dole, kladně doprava
+const key=(u,d)=>{const al=Math.PI*u;return [CX-Math.cos(al)*(LIP+35*Math.sin(al)),BASE-Math.sin(al)*d]};
+const arc=(a1,a2,n=70)=>Array.from({length:n+1},(_,i)=>circ(lerp(a1,a2,i/n)));
+const angOf=p=>Math.atan2(p[0]-CX,p[1]-CY);
+// vrstva buněk: silná čára + jemné předěly mezi buňkami
+function layer(s,pts,col,w=SW){
+  const d=pathOf(pts);
+  el("path",{d,fill:"none",stroke:col,"stroke-width":w,"stroke-linecap":"round","stroke-linejoin":"round"},s);
+  el("path",{d,fill:"none",stroke:css("--panel"),"stroke-width":w+1,"stroke-dasharray":"1.6 15",opacity:.75},s);
+}
+function lab(s,x,y,lx,ly,t,o={}){
+  const left=lx<x;
+  el("line",{x1:x,y1:y,x2:lx,y2:ly,stroke:css("--ink"),"stroke-width":1},s);
+  el("circle",{cx:x,cy:y,r:2.5,fill:css("--ink")},s);
+  txt(s,lx+(left?-6:6),ly+5,t,{"font-size":14,"font-weight":o.b?700:600,"text-anchor":left?"end":"start",fill:o.c||css("--ink")});
+}
+
+/* ===== 1 OD ZYGOTY KE GASTRULE ===== */
+const A=[
+  ["Zygota","Oplozené vajíčko – jediná diploidní buňka, ze které vznikne celé mnohobuněčné tělo."],
+  ["Rýhování – 2 blastomery","Zygota se dělí. Vzniklým buňkám říkáme <b>blastomery</b>. Zárodek při tom neroste."],
+  ["Rýhování – 4 blastomery","Další dělení. Buněk přibývá, ale jsou stále menší."],
+  ["Morula","Koule <b>plná buněk</b>, podobná plodenství moruše."],
+  ["Blastula","Buňky se přesunuly k povrchu a vznikl dutý „míč“. Dutina vyplněná tekutinou je <b>blastocél</b>."],
+  ["Gastrulace","Část stěny se zanořuje dovnitř – jako když kopneme do polovyfouklého míče."],
+  ["Gastrula","Zárodek má dva <b>zárodečné listy</b>: vnější <b>ektoderm</b> a vnitřní <b>entoderm</b>. Dutina je <b>prvostřevo</b>, její otvor jsou <b>prvoústa</b>."],
+];
+const MOR=(()=>{const r=21,o=[];for(let j=-4;j<=4;j++)for(let i=-4;i<=4;i++){const x=i*r*1.9+(j&1?r*.95:0),y=j*r*1.65;if(Math.hypot(x,y)<=R-6)o.push([CX+x,CY+y])}return {r,o}})();
+let aT=0,aPlay=false;
+function gastrula(s,g,opts={}){
+  // g = 0 blastula … 1 hotová gastrula; vrátí body pro popisky
+  const e=ease(clamp(g)), D=opts.depth??150;
+  const n=60, pocket=Array.from({length:n+1},(_,i)=>{const u=i/n,a=circ(lerp(-G0,G0,u)),k=key(u,D);return [lerp(a[0],k[0],e),lerp(a[1],k[1],e)]});
+  const aL=angOf(pocket[0]), aR=angOf(pocket[n]);
+  const outer=arc(aR,2*Math.PI+aL,90);
+  const cell=css("--cell"), ce=ease(clamp(g*3)), ek=mix(cell,css("--ekto"),ce), en=mix(cell,css("--ento"),ce);
+  el("path",{d:pathOf(outer.concat(pocket))+" Z",fill:css("--air")},s);
+  layer(s,pocket,en); layer(s,outer,ek);
+  return {pocket,top:pocket[n/2]};
+}
+function drawA(){
+  const s=$("#aSvg");s.innerHTML="";const t=aT, cell=css("--cell"), edge=css("--cell2");
+  if(t<3){ // pohled zvenku: zygota → 2 → 4 → morula
+    const f=clamp(t-2), RR=R+SW/2;
+    const g=el("g",{opacity:1-f},s);
+    el("circle",{cx:CX,cy:CY,r:RR,fill:cell,stroke:edge,"stroke-width":3},g);
+    const l1=ease(clamp(t)), l2=ease(clamp(t-1));
+    if(l1>0)el("line",{x1:CX,y1:CY-RR*l1,x2:CX,y2:CY+RR*l1,stroke:edge,"stroke-width":3},g);
+    if(l2>0)el("line",{x1:CX-RR*l2,y1:CY,x2:CX+RR*l2,y2:CY,stroke:edge,"stroke-width":3},g);
+    const nuc=t<.5?[[0,0]]:t<1.5?[[-55,0],[55,0]]:[[-55,-55],[55,-55],[-55,55],[55,55]];
+    nuc.forEach(([x,y])=>el("circle",{cx:CX+x,cy:CY+y,r:t<.5?16:11,fill:css("--mezo"),opacity:.8},g));
+    if(f>0){const m=el("g",{opacity:f},s);MOR.o.forEach(p=>el("circle",{cx:p[0],cy:p[1],r:MOR.r,fill:cell,stroke:edge,"stroke-width":2},m));}
+  } else if(t<4){ // morula → blastula (řez)
+    const f=t-3;
+    const m=el("g",{opacity:1-f},s);MOR.o.forEach(p=>el("circle",{cx:p[0],cy:p[1],r:MOR.r,fill:cell,stroke:edge,"stroke-width":2},m));
+    const b=el("g",{opacity:f},s);gastrula(b,0);
+  } else {
+    const r=gastrula(s,(t-4)/2);
+    if(t>5.75){
+      lab(s,CX-R*.72,CY-R*.72,96,52,"ektoderm",{c:css("--ekto"),b:1});
+      lab(s,r.pocket[14][0],r.pocket[14][1],96,CY+150,"entoderm",{c:css("--entoT"),b:1});
+      lab(s,CX,CY+20,425,CY-150,"prvostřevo",{});
+      lab(s,CX,BASE+8,425,BASE+40,"prvoústa",{b:1});
+    }
+  }
+  const k=Math.round(t), near=Math.abs(t-k)<.2;
+  if(near&&k===0)lab(s,CX+60,CY-60,425,60,"zygota",{b:1});
+  if(near&&(k===1||k===2))lab(s,CX+60,CY-60,425,60,"blastomery",{b:1});
+  if(near&&k===3)lab(s,CX+70,CY-70,425,60,"morula",{b:1});
+  if(near&&k===4)lab(s,CX,CY,425,60,"blastocél",{b:1});
+  txt(s,CX,418,t<3.5?"pohled zvenku":"řez zárodkem",{"text-anchor":"middle","font-size":13,fill:css("--muted")});
+  $("#aStatus").textContent=(k+1)+" / 7 · "+A[k][0]; $("#aText").innerHTML=A[k][1];
+  $("#aOut").textContent=A[k][0]; $("#aT").value=t;
+}
+$("#aT").addEventListener("input",e=>{aT=+e.target.value;setPlayA(false);drawA()});
+$("#aPrev").addEventListener("click",()=>{setPlayA(false);aT=Math.max(0,Math.ceil(aT-1e-6)-1);drawA()});
+$("#aNext").addEventListener("click",()=>{setPlayA(false);aT=Math.min(6,Math.floor(aT+1e-6)+1);drawA()});
+function setPlayA(on){aPlay=on;$("#aPlay").setAttribute("aria-pressed",on);$("#aPlay").textContent=on?"❚❚ Pauza":"▶ Přehrát"}
+$("#aPlay").addEventListener("click",()=>{if(!aPlay&&aT>=6)aT=0;setPlayA(!aPlay)});
+
+/* ===== 2 PRVOÚSTÍ × DRUHOÚSTÍ ===== */
+let bM="prvo",bT=0,bPlay=false;
+const DFULL=BASE-(CY-R);
+function drawB(){
+  const s=$("#bSvg");s.innerHTML="";
+  const grow=ease(clamp(bT/.6)), open=ease(clamp((bT-.6)/.4)), d=lerp(150,DFULL,grow), del=.41*open;
+  const ek=css("--ekto"), en=css("--ento"), n=60;
+  const seg=(u1,u2)=>Array.from({length:n+1},(_,i)=>key(lerp(u1,u2,i/n),d));
+  if(open<=0){
+    const pocket=seg(0,1), outer=arc(G1,2*Math.PI-G1,90);
+    el("path",{d:pathOf(outer.concat(pocket))+" Z",fill:css("--air")},s);
+    layer(s,pocket,en); layer(s,outer,ek);
+  } else {
+    const L=seg(0,.5-del/Math.PI), Rr=seg(.5+del/Math.PI,1);
+    const gt=Math.asin(clamp((CX-L[n][0])/R,0,.9));
+    const oL=arc(-(Math.PI-gt),-G1,60), oR=arc(G1,Math.PI-gt,60);
+    el("path",{d:pathOf(L.concat(oL))+" Z",fill:css("--air")},s);
+    el("path",{d:pathOf(oR.concat(Rr))+" Z",fill:css("--air")},s);
+    layer(s,L,en); layer(s,Rr,en); layer(s,oL,ek); layer(s,oR,ek);
+  }
+  const done=open>.6, hi=css("--accent"), mu=css("--muted");
+  const big=(y,t1,t2,strong)=>{txt(s,CX,y,t1,{"text-anchor":"middle","font-size":strong?22:17,"font-weight":700,fill:strong?hi:css("--ink")});
+    txt(s,CX,y+18,t2,{"text-anchor":"middle","font-size":13,fill:mu});};
+  // dolní otvor = prvoústa
+  if(!done) big(BASE+42,"prvoústa","prvotní otvor gastruly",false);
+  else if(bM==="prvo") big(BASE+42,"ÚSTA","vznikla z prvoúst",true);
+  else big(BASE+42,"ŘIŤ","založila se v místě prvoúst",true);
+  if(done){ if(bM==="prvo") big(CY-R-44,"řiť","vznikla nově",false); else big(CY-R-44,"ÚSTA","prolomila se nově na opačné straně",true); }
+  txt(s,CX,CY+6,done?"trávicí trubice":"prvostřevo",{"text-anchor":"middle","font-size":14,"font-weight":600,fill:css("--ink")});
+  lab(s,CX-R*.72,CY-R*.72,96,52,"ektoderm",{c:ek,b:1});
+  lab(s,CX-52,CY+60,96,CY+150,"entoderm",{c:css("--entoT"),b:1});
+  const S=$("#bStatus"),T=$("#bText");
+  S.className="status"+(done?" ok":"");
+  if(!done){S.textContent=bT<.6?"Prvostřevo se prodlužuje":"Prolamuje se druhý otvor";T.innerHTML="Zatím má zárodek jediný otvor – <b>prvoústa</b>. Posuň jezdec dál.";}
+  else if(bM==="prvo"){S.textContent="PRVOÚSTÍ – z prvoúst jsou ústa";T.innerHTML="Prvotní otvor slouží jako <b>ústní otvor</b>, řitní otvor vzniká nově. Patří sem skupiny <b>Spiralia</b> a <b>Ecdysozoa</b>.";}
+  else{S.textContent="DRUHOÚSTÍ – ústa jsou až druhý otvor";T.innerHTML="V místě prvoúst se zakládá <b>řitní otvor</b>, ústa se tvoří na opačné straně zárodku. Patříme sem i my – <b>strunatci</b>.";}
+  $("#bc1").className=bM==="prvo"&&done?"on":"";$("#bc2").className=bM==="druho"&&done?"on":"";
+  $("#bOut").textContent=Math.round(bT*100)+" %"; $("#bT").value=bT;
+}
+$$("[data-bm]").forEach(b=>b.addEventListener("click",()=>{bM=b.dataset.bm;press("[data-bm]",b);drawB()}));
+$("#bT").addEventListener("input",e=>{bT=+e.target.value;setPlayB(false);drawB()});
+function setPlayB(on){bPlay=on;$("#bPlay").setAttribute("aria-pressed",on);$("#bPlay").textContent=on?"❚❚ Pauza":"▶ Přehrát"}
+$("#bPlay").addEventListener("click",()=>{if(!bPlay&&bT>=1)bT=0;setPlayB(!bPlay)});
+
+/* ===== 3 DVA, NEBO TŘI LISTY ===== */
+const C={
+  ekto:["Ektoderm – vnější zárodečný list","Vzniká z něj <b>pokožka</b>; u strunatců také <b>nervová soustava</b>."],
+  ento:["Entoderm – vnitřní zárodečný list","Vzniká z něj <b>trávicí dutina</b> nebo <b>trávicí trubice</b>."],
+  mezo:["Mezoderm – třetí zárodečný list","Vzniká mezi ektodermem a entodermem. Může vytvořit párové <b>célomové váčky</b>; dutina uvnitř je <b>célom</b> (pravá tělní dutina)."],
+  mezen:["Mezenchym – výplň mezi dvěma listy","Řídká výplň z volných buněk mezi ektodermem a entodermem. <b>Není to zárodečný list ani mezoderm v pravém slova smyslu</b> – netvoří souvislou vrstvu buněk ani célomové váčky."],
+};
+let cM="di",cK=null,cA=0,cV="mez";
+// volné buňky mezodermu (mezenchym): pevně daná „náhodná“ místa mezi oběma listy
+const MES=(()=>{let sd=7;const rnd=()=>(sd=(sd*16807)%2147483647)/2147483647;const o=[];let guard=0;
+  while(o.length<64&&guard++<5000){const a=rnd()*2*Math.PI,r=58+rnd()*(R-22-58),p=[CX+r*Math.cos(a),CY+r*Math.sin(a),rnd()*Math.PI];
+    if(o.every(q=>Math.hypot(q[0]-p[0],q[1]-p[1])>17))o.push(p)}return o})();
+function drawC(){
+  const s=$("#cSvg");s.innerHTML="";s.classList.toggle("dim",!!cK);
+  const ring=(r,col,w,k)=>{const g=el("g",{class:"part"+(cK===k?" sel":""),"data-k":k,tabindex:0,role:"button","aria-label":C[k][0]},s);
+    layer(g,Array.from({length:121},(_,i)=>circ(i/120*2*Math.PI,r)),col,w);g.addEventListener("click",()=>pickC(k));return g};
+  el("circle",{cx:CX,cy:CY,r:R,fill:css("--air")},s);
+  const m=ease(cA);
+  if(cM==="di"){
+    const g=el("g",{class:"part"+(cK==="mezen"?" sel":""),"data-k":"mezen",tabindex:0,role:"button","aria-label":C.mezen[0]},s);
+    el("circle",{cx:CX,cy:CY,r:R-12,fill:"transparent"},g);
+    MES.forEach(([x,y,ro])=>{for(let i=0;i<3;i++){const a=ro+i*2.094;el("line",{x1:x,y1:y,x2:x+Math.cos(a)*9,y2:y+Math.sin(a)*9,stroke:css("--mezo"),"stroke-width":2,"stroke-linecap":"round"},g)}
+      el("circle",{cx:x,cy:y,r:4.5,fill:css("--mezo")},g)});
+    g.addEventListener("click",()=>pickC("mezen"));
+  }
+  if(cM==="tri"&&m>0){
+    const g=el("g",{class:"part"+(cK==="mezo"?" sel":""),"data-k":"mezo",tabindex:0,role:"button","aria-label":C.mezo[0]},s);
+    [-1,1].forEach(sg=>{const pts=Array.from({length:61},(_,i)=>{const a=i/60*2*Math.PI;return [CX+sg*80+Math.cos(a)*27*m,CY+Math.sin(a)*62*m]});
+      el("path",{d:pathOf(pts)+" Z",fill:css("--panel"),stroke:css("--mezo"),"stroke-width":11*m,"stroke-linejoin":"round"},g);
+      el("path",{d:pathOf(pts)+" Z",fill:"none",stroke:css("--panel"),"stroke-width":11*m+1,"stroke-dasharray":"1.6 13",opacity:.75},g);});
+    g.addEventListener("click",()=>pickC("mezo"));
+    if(m>.95){[-80,80].forEach(dx=>txt(s,CX+dx,CY+4,"célom",{"text-anchor":"middle","font-size":11.5,"font-weight":700}));}
+  }
+  ring(R,css("--ekto"),SW,"ekto");
+  el("circle",{cx:CX,cy:CY,r:40,fill:css("--panel")},s);
+  ring(40,css("--ento"),18,"ento");
+  lab(s,CX+R*.71,CY-R*.71,425,52,"ektoderm",{c:css("--ekto"),b:1});
+  lab(s,CX+30,CY+28,425,CY+160,"entoderm",{c:css("--entoT"),b:1});
+  txt(s,CX,CY+4,"trávicí",{"text-anchor":"middle","font-size":11});txt(s,CX,CY+17,"dutina",{"text-anchor":"middle","font-size":11});
+  if(cM==="tri"&&m>.95)lab(s,CX-80-28,CY+20,96,CY+160,"mezoderm",{c:css("--mezo"),b:1});
+  if(cM==="di"){const p=MES.reduce((b,q)=>Math.hypot(q[0]-(CX-75),q[1]-(CY+45))<Math.hypot(b[0]-(CX-75),b[1]-(CY+45))?q:b);
+    lab(s,p[0],p[1],96,CY+160,"mezenchym",{c:css("--mezo"),b:1});txt(s,90,CY+181,"volné buňky",{"text-anchor":"end","font-size":11.5,fill:css("--muted")});}
+  txt(s,CX,418,"příčný řez tělem (schéma)",{"text-anchor":"middle","font-size":13,fill:css("--muted")});
+  $("#cMezoBtn").hidden=cM!=="tri";$("#cMezenBtn").hidden=cM!=="di";
+  const S=$("#cStatus"),T=$("#cText");
+  if(cK){S.textContent=C[cK][0];T.innerHTML=C[cK][1];S.className="status ok";}
+  else{S.className="status";S.textContent=cM==="di"?"DIBLASTICA – dva zárodečné listy":"TRIBLASTICA – tři zárodečné listy";
+    T.innerHTML=cM==="di"?"Zárodečné listy jsou jen dva: <b>ektoderm</b> a <b>entoderm</b>. Prostor mezi nimi vyplňuje <b>mezenchym</b> – volné buňky, které nejsou zárodečným listem. Trávicí dutina je slepá, s jediným otvorem.":"Mezi ektodermem a entodermem vzniká třetí list – <b>mezoderm</b>. Zde vytvořil párové <b>célomové váčky</b>; dutina uvnitř je <b>célom</b> – pravá tělní dutina.";}
+  $$("[data-ck]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.ck===cK));
+}
+function pickC(k){cK=cK===k?null:k;drawC()}
+$$("[data-ck]").forEach(b=>b.addEventListener("click",()=>pickC(b.dataset.ck)));
+$$("[data-cm]").forEach(b=>b.addEventListener("click",()=>{cM=b.dataset.cm;press("[data-cm]",b);cK=null;cA=cM==="tri"?(reduce?1:0):0;drawC()}));
+$("#cSvg").addEventListener("keydown",e=>{const g=e.target.closest(".part");if(g&&(e.key==="Enter"||e.key===" ")){e.preventDefault();pickC(g.dataset.k)}});
+
+/* ===== smyčka ===== */
+function stopAll(){setPlayA(false);setPlayB(false)}
+function redraw(){if(tab==="p-a")drawA();else if(tab==="p-b")drawB();else drawC()}
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(tab==="p-a"&&aPlay){aT=Math.min(6,aT+dt*.55);if(aT>=6)setPlayA(false);drawA();}
+  if(tab==="p-b"&&bPlay){bT=Math.min(1,bT+dt*.16);if(bT>=1)setPlayB(false);drawB();}
+  if(tab==="p-c"&&cM==="tri"&&cA<1){cA=Math.min(1,cA+dt*.8);drawC();}
+  requestAnimationFrame(loop);
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",redraw);
+drawA();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
