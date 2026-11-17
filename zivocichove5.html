@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Svět žahavců – korálový útes a systém</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --skin:#f1d3c0; --skin2:#d9a98c; --muc:#f0a7a7; --muc2:#d77b7b; --cart:#dfe6ee; --cart2:#9fb0c2;
+  --lung:#f3b0ae; --lung2:#d9827f; --air:#d8ecfb; --mucus:#cfe3a6; --hi:#f2b705; --upper:#3b82f6; --lower:#e8873a;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --warn:#c97a00; --navic:#4b3fd0; --navicbg:#eef0ff;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --skin:#6b5446; --skin2:#8a6b58; --muc:#8a4a4a; --muc2:#a85f5f; --cart:#3a4655; --cart2:#6d8199;
+  --lung:#8a4c4b; --lung2:#a8605d; --air:#1e3346; --mucus:#5d7a2e; --hi:#ffd23f; --upper:#6aa2ff; --lower:#f0a030;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --navic:#a99cff; --navicbg:#25233d; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)} .status.warn{color:var(--warn)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.navic{font-size:.9rem;background:var(--navicbg);border-left:4px solid var(--navic);padding:8px 12px;border-radius:6px;margin:0}
+.navic b.tag{color:var(--navic);font-size:.75rem;letter-spacing:.04em;display:block;margin-bottom:2px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.1rem;font-variant-numeric:tabular-nums;margin:0}
+.part{cursor:pointer;transition:opacity .2s}
+svg.dim .part:not(.sel){opacity:.3}
+.part.sel{filter:drop-shadow(0 0 5px var(--hi)) drop-shadow(0 0 2px var(--hi))}
+.score{font-family:var(--f-mono);font-size:1rem;color:var(--muted)}
+table.air{border-collapse:collapse;width:100%;font-size:.92rem}
+table.air td,table.air th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+table.air th{background:var(--bg)}
+table.air td.on{background:var(--accent);color:#fff;font-weight:700}
+.chk{display:flex;flex-wrap:wrap;gap:6px}
+.big{font-family:var(--f-display);font-size:2rem;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* zárodečné listy */
+:root{--cell:#f0a35e; --cell2:#b8662a; --ekto:#1f8fa8; --ento:#f2c230; --entoT:#9a7400; --mezo:#d1263b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--cell:#c9803f; --cell2:#f0b888; --ekto:#4fc3dc; --ento:#e6b422; --entoT:#f2c94c; --mezo:#ff5a6a}}
+.terms{margin:0;font-size:.92rem;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.terms b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Svět žahavců <span>– korálový útes a systém žahavců</span></h1>
+  <p class="sub">Interaktivní animace k 5. hodině · Živočichové – svět žahavců · kap. 71</p>
+</header>
+<p class="terms"><b>Důležité pojmy:</b> korálnatci · zooxantely · korálový útes · bělení korálů · polypovci · medúzovci · čtyřhranky · převažující stadium</p>
+
+<nav role="tablist" aria-label="Animace">
+  <button role="tab" id="t-a" aria-selected="true" data-p="p-a">1 · Korálový útes</button>
+  <button role="tab" id="t-b" aria-selected="false" data-p="p-b">2 · Systém žahavců</button>
+</nav>
+
+<!-- 1 KORÁLOVÝ ÚTES -->
+<section class="stage" id="p-a" role="tabpanel" aria-labelledby="t-a">
+  <div class="panel"><svg id="aSvg" viewBox="0 0 520 560" role="img" aria-label="Polyp útesotvorného korálu se zooxantelami"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Co potřebuje korálový útes?</h2>
+      <p>V tělech útesotvorných korálů žijí symbiotické řasy obrněnky – <b>zooxantely</b> (zelené tečky). Potřebují ke fotosyntéze <b>světlo</b>. Měň podmínky a sleduj, co se s korálem stane.</p>
+    </div>
+    <label class="sl">Hloubka vody <output id="oD"></output><input type="range" id="sD" min="0" max="80" step="5" value="10"></label>
+    <label class="sl">Oteplení vody (globální oteplování) <output id="oT"></output><input type="range" id="sT" min="0" max="3" step="0.5" value="0"></label>
+    <label class="sl">Znečištění sloučeninami fosforu a dusíku <output id="oP"></output><input type="range" id="sP" min="0" max="3" step="1" value="0"></label>
+    <p class="status" id="aStatus"></p>
+    <p id="aText"></p>
+    <p class="note">Schéma – hodnoty na jezdcích jsou jen orientační. Podle učebnice vznikají útesy v čistých a mělkých (asi do 40 m) tropických vodách.</p>
+    <div class="navic"><b class="tag">BONUS</b><b>Velký bariérový útes</b> u východního pobřeží Austrálie je dlouhý přes 2 300 km – největší stavba vytvořená živými organismy.</div>
+  </div>
+</section>
+
+<!-- 2 SYSTÉM -->
+<section class="stage" id="p-b" role="tabpanel" aria-labelledby="t-b" hidden>
+  <div class="panel"><svg id="bSvg" viewBox="0 0 520 470" role="img" aria-label="Převažující stadium v životním cyklu skupin žahavců"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Které stadium převažuje?</h2>
+      <p>Klepni na skupinu (vlevo v grafu nebo na tlačítko). Sloupce ukazují, jak velkou roli v cyklu hraje <b style="color:#b8642e">polyp</b> a <b style="color:#2f6fa8">medúza</b>.</p>
+    </div>
+    <div class="row" role="group" aria-label="Skupina" id="bBtns"></div>
+    <p class="status" id="bStatus"></p>
+    <p id="bText"></p>
+    <p id="bZ"></p>
+    <div class="navic"><b class="tag">BONUS</b>Za objev a využití <b>GFP</b> z medúzy pohárovky získali Osamu Šimomura, Martin Chalfie a Roger Tsien v roce <b>2008 Nobelovu cenu za chemii</b>.</div>
+  </div>
+</section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const NS = "http://www.w3.org/2000/svg";
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const txt = (p, x, y, s, a = {}) => { const t = el("text", { x, y, ...a }, p); if (a.fill) t.style.fill = a.fill; t.textContent = s; return t; };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const lerp = (a, b, t) => a + (b - a) * t, clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const mix = (c1, c2, t) => { const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)); const a = h(c1), b = h(c2); return "#" + a.map((v, i) => Math.round(lerp(v, b[i], t)).toString(16).padStart(2, "0")).join(""); };
+let tab = "p-a";
+$$("nav button").forEach(b => b.addEventListener("click", () => { $$("nav button").forEach(x => { x.setAttribute("aria-selected", x === b); $("#" + x.dataset.p).hidden = x !== b; }); tab = b.dataset.p; }));
+
+/* ===================== 1 KORÁLOVÝ ÚTES ===================== */
+const A = $("#aSvg");
+let sd = 3; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+const ZX = []; for (let i = 0; i < 46; i++) ZX.push([rnd(), rnd(), rnd() * 6]);
+const ALG = []; for (let i = 0; i < 26; i++) ALG.push([rnd(), rnd()]);
+let D = 10, T = 0, Pn = 0, tA = 0;
+function state() {
+  const light = clamp(1 - D / 55);                    // světlo v dané hloubce
+  const algae = Pn / 3;                               // přemnožené sinice a řasy
+  const keep = clamp(1 - Math.max(0, T - 1) / 1.5);   // podíl zooxantel, které zůstanou
+  const photo = light * keep * (1 - algae * 0.6);     // fotosyntéza zooxantel
+  return { light, algae, keep, photo };
+}
+function drawA() {
+  const s = state(); A.innerHTML = "";
+  const defs = el("defs", {}, A), g = el("linearGradient", { id: "wg", x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+  el("stop", { offset: 0, "stop-color": mix("#0b2a4a", "#7fd0f0", s.light) }, g); el("stop", { offset: 1, "stop-color": mix("#06172b", "#2c7fb8", s.light) }, g);
+  el("rect", { x: 0, y: 0, width: 520, height: 560, fill: "url(#wg)" }, A);
+  // paprsky světla
+  for (let i = 0; i < 6; i++) { const x = 40 + i * 90 + Math.sin(tA * 0.6 + i) * 10; el("path", { d: `M${x},0 L${x + 40},0 L${x + 120},${420 * Math.max(.15, s.light)} L${x + 60},${420 * Math.max(.15, s.light)} Z`, fill: "#fff8c8", opacity: 0.18 * s.light }, A); }
+  // vápenatá kostra (útes)
+  el("path", { d: "M0,560 L0,470 C60,440 110,455 160,430 C210,405 250,420 300,410 C360,398 420,430 520,415 L520,560 Z", fill: "#e9e4da", stroke: "#a59c8c", "stroke-width": 2 }, A);
+  // polyp
+  const bleach = clamp((T - 1) / 1.5), col = mix("#c98a52", "#f4f1ea", bleach), col2 = mix("#8a5428", "#c9c3b8", bleach);
+  el("path", { d: "M200,420 L208,250 C210,230 230,222 260,222 C290,222 310,230 312,250 L320,420 Z", fill: col, stroke: col2, "stroke-width": 2.5, opacity: .95 }, A);
+  for (let k = 0; k < 12; k++) { const a = Math.PI + (k + 0.5) / 12 * Math.PI, x0 = 260 + Math.cos(a) * 45, y0 = 228, sw = Math.sin(tA * 1.4 + k) * 6;
+    el("path", { d: `M${x0},${y0} q${Math.cos(a) * 30 + sw},${-40} ${Math.cos(a) * 46 + sw},${-90 - Math.abs(Math.sin(a)) * 10}`, fill: "none", stroke: col, "stroke-width": 8, "stroke-linecap": "round" }, A); }
+  el("ellipse", { cx: 260, cy: 226, rx: 13, ry: 5, fill: col2 }, A);
+  // zooxantely
+  const n = Math.round(ZX.length * s.keep);
+  ZX.forEach(([u, v, ph], i) => {
+    const y = 250 + v * 160, half = lerp(48, 58, (y - 250) / 160), x = 260 + (u * 2 - 1) * half * 0.85;
+    if (i < n) el("circle", { cx: x, cy: y, r: 4.2, fill: mix("#4a6a3a", "#4fd36a", s.photo), opacity: 0.6 + 0.4 * s.photo * (0.6 + 0.4 * Math.sin(tA * 3 + ph)) }, A);
+    else { const f = clamp(bleach * 1.3 - (i - n) / ZX.length); el("circle", { cx: x + f * (u - .5) * 300, cy: y - f * 180, r: 3.6, fill: "#4a8a4a", opacity: 0.5 * (1 - f) }, A); }
+  });
+  // přemnožené řasy a sinice
+  ALG.forEach(([u, v], i) => { if (i / ALG.length < s.algae) { const x = u * 520, y = 420 + v * 60; el("path", { d: `M${x},${y + 20} q${-8},-20 0,-40 q8,-20 0,-40`, fill: "none", stroke: "#3c8a3a", "stroke-width": 5, "stroke-linecap": "round", opacity: .85 }, A); } });
+  if (s.algae > 0) el("rect", { x: 0, y: 0, width: 520, height: 560, fill: "#4a7a3a", opacity: 0.12 * s.algae }, A);
+  // ukazatele
+  const bar = (y, lab, v, c) => { txt(A, 18, y, lab, { "font-size": 13, "font-weight": 700, fill: "#fff" }); el("rect", { x: 18, y: y + 6, width: 150, height: 10, rx: 5, fill: "#ffffff40" }, A); el("rect", { x: 18, y: y + 6, width: 150 * v, height: 10, rx: 5, fill: c }, A); };
+  bar(28, "světlo", s.light, "#ffe56a"); bar(62, "fotosyntéza zooxantel", s.photo, "#4fd36a");
+  txt(A, 500, 545, D + " m", { "text-anchor": "end", "font-size": 18, "font-weight": 700, fill: "#fff" });
+  // texty
+  let st, tx;
+  if (bleach > 0.6) { st = "Bělení korálu"; tx = "Při oteplení vody koráli ztrácejí své <b>zooxantely</b> a blednou – vidíš jen bílou vápenatou kostru prosvítající tělem. Bez zooxantel korál strádá a útes odumírá. Příčinou je <b>globální oteplování</b>."; }
+  else if (s.algae > 0.6) { st = "Přemnožené sinice a řasy"; tx = "Rozpustné sloučeniny <b>fosforu a dusíku</b> ze znečištěné vody způsobují přemnožení sinic a řas. Ty zastíní a přerostou koráli a mohou způsobit jejich úmrtí."; }
+  else if (s.light < 0.3) { st = "Příliš hluboko"; tx = "Do hloubky proniká málo světla – zooxantely nemohou dost fotosyntetizovat. Proto korálové útesy vznikají jen v <b>mělkých</b> vodách (asi do 40 m)."; }
+  else { st = "Útes prospívá"; tx = "Čistá, mělká a teplá tropická voda: zooxantely fotosyntetizují, korál roste a staví společnou <b>vápenatou kostru</b>, ze které vzniká útes."; }
+  $("#aStatus").textContent = st; $("#aStatus").className = "status" + (st === "Útes prospívá" ? " ok" : " bad"); $("#aText").innerHTML = tx;
+  $("#oD").textContent = D + " m"; $("#oT").textContent = "+" + T + " °C"; $("#oP").textContent = ["žádné", "mírné", "silné", "velmi silné"][Pn];
+}
+$("#sD").addEventListener("input", e => { D = +e.target.value; drawA(); });
+$("#sT").addEventListener("input", e => { T = +e.target.value; drawA(); });
+$("#sP").addEventListener("input", e => { Pn = +e.target.value; drawA(); });
+drawA();
+
+/* ===================== 2 SYSTÉM ===================== */
+const B = $("#bSvg");
+const G = [
+  { n: "korálnatci", p: 1, m: 0, t: "V evoluci se odštěpili jako první. Medúzu v cyklu <b>nemají</b> – to je původní stav. Láčka je rozdělená <b>přepážkami</b> v násobku 6 nebo 8; útesotvorné druhy tvoří vápenaté kostry.", z: "sasanky (sasanka cizopasná), korál červený, útesotvorní koráli, varhanitka" },
+  { n: "výtrusenky", p: 0, m: 0, t: "Paraziti (rybomorky): tělo zjednodušené na <b>mnohojaderná plazmódia</b> a spory z upravených žahavých buněk, kterými pronikají do těl vodních kroužkovců a ryb. Dlouho byly řazeny mezi prvoky.", z: "– (parazité ryb a kroužkovců)" },
+  { n: "polypovci", p: 0.85, m: 0.3, t: "Převažuje <b>polyp</b> bez přehrádkované láčky; někteří (nezmar) medúzu nemají vůbec. Pronikli i do <b>sladkých vod</b>.", z: "nezmar, trubýši (měchýřovka portugalská), medúzka sladkovodní" },
+  { n: "kalichovky", p: 0.3, m: 0.6, t: "Vytvářejí medúzové stadium <b>přisedlé stopkou</b> ke dnu.", z: "– (jen zmínka)" },
+  { n: "medúzovci", p: 0.2, m: 1, t: "Velikostně jednoznačně převažují <b>medúzy</b> – megaplankton; polypi jsou drobní a mění se v medúzy <b>strobilací</b>.", z: "talířovka ušatá, pohárovka (GFP), kořenoústky" },
+  { n: "čtyřhranky", p: 0.2, m: 1, t: "Převažuje <b>medúza</b> se zvonem tvaru krychle, 4 svazky ramen a komorovýma očima; polyp se v medúzu <b>přemění celý</b>, bez strobilace. Velmi silný jed.", z: "čtyřhranka smrtelná" },
+];
+let bI = 0;
+function drawB() {
+  B.innerHTML = "";
+  txt(B, 150, 30, "polyp", { "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: "#b8642e" });
+  txt(B, 380, 30, "medúza", { "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: "#2f6fa8" });
+  G.forEach((g, i) => {
+    const y = 50 + i * 68, sel = i === bI, row = el("g", { class: "part" + (sel ? " sel" : ""), tabindex: 0, role: "button", "aria-label": g.n, style: "cursor:pointer" }, B);
+    el("rect", { x: 4, y: y - 4, width: 512, height: 58, rx: 10, fill: sel ? "#fff4e8" : "#ffffff00", stroke: sel ? "#c0262b" : "#e1e6ea", "stroke-width": sel ? 2.5 : 1 }, row);
+    txt(row, 260, y + 30, g.n, { "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: "#18202a" });
+    // polyp sloupec doleva, medúza doprava
+    el("rect", { x: 200 - 170 * g.p, y: y + 6, width: 170 * g.p, height: 36, rx: 6, fill: "#e9a36a", opacity: .9 }, row);
+    el("rect", { x: 320, y: y + 6, width: 170 * g.m, height: 36, rx: 6, fill: "#6ea8d8", opacity: .9 }, row);
+    if (g.p === 0 && g.m === 0) txt(row, 260, y + 48, "parazit – zjednodušené tělo", { "text-anchor": "middle", "font-size": 12, fill: "#5b6673" });
+    if (g.m === 0 && g.p > 0) txt(row, 325, y + 30, "chybí", { "font-size": 13, fill: "#5b6673" });
+    row.addEventListener("click", () => { bI = i; drawB(); });
+    row.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); bI = i; drawB(); } });
+  });
+  el("line", { x1: 260, y1: 40, x2: 260, y2: 460, stroke: "#c7cdd3", "stroke-dasharray": "4 4" }, B);
+  const g = G[bI]; $("#bStatus").textContent = g.n[0].toUpperCase() + g.n.slice(1); $("#bText").innerHTML = g.t; $("#bZ").innerHTML = "<b>Zástupci:</b> " + g.z;
+  $$("#bBtns button").forEach((b, i) => b.setAttribute("aria-pressed", i === bI));
+}
+G.forEach((g, i) => { const b = document.createElement("button"); b.className = "btn"; b.type = "button"; b.textContent = g.n; b.addEventListener("click", () => { bI = i; drawB(); }); $("#bBtns").appendChild(b); });
+drawB();
+
+/* ===================== smyčka ===================== */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (tab === "p-a" && !reduce) { tA += dt; drawA(); }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
