@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Žahavci – žahavá buňka a životní cyklus</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --skin:#f1d3c0; --skin2:#d9a98c; --muc:#f0a7a7; --muc2:#d77b7b; --cart:#dfe6ee; --cart2:#9fb0c2;
+  --lung:#f3b0ae; --lung2:#d9827f; --air:#d8ecfb; --mucus:#cfe3a6; --hi:#f2b705; --upper:#3b82f6; --lower:#e8873a;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --warn:#c97a00; --navic:#4b3fd0; --navicbg:#eef0ff;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --skin:#6b5446; --skin2:#8a6b58; --muc:#8a4a4a; --muc2:#a85f5f; --cart:#3a4655; --cart2:#6d8199;
+  --lung:#8a4c4b; --lung2:#a8605d; --air:#1e3346; --mucus:#5d7a2e; --hi:#ffd23f; --upper:#6aa2ff; --lower:#f0a030;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --navic:#a99cff; --navicbg:#25233d; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)} .status.warn{color:var(--warn)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.navic{font-size:.9rem;background:var(--navicbg);border-left:4px solid var(--navic);padding:8px 12px;border-radius:6px;margin:0}
+.navic b.tag{color:var(--navic);font-size:.75rem;letter-spacing:.04em;display:block;margin-bottom:2px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.1rem;font-variant-numeric:tabular-nums;margin:0}
+.part{cursor:pointer;transition:opacity .2s}
+svg.dim .part:not(.sel){opacity:.3}
+.part.sel{filter:drop-shadow(0 0 5px var(--hi)) drop-shadow(0 0 2px var(--hi))}
+.score{font-family:var(--f-mono);font-size:1rem;color:var(--muted)}
+table.air{border-collapse:collapse;width:100%;font-size:.92rem}
+table.air td,table.air th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+table.air th{background:var(--bg)}
+table.air td.on{background:var(--accent);color:#fff;font-weight:700}
+.chk{display:flex;flex-wrap:wrap;gap:6px}
+.big{font-family:var(--f-display);font-size:2rem;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* zárodečné listy */
+:root{--cell:#f0a35e; --cell2:#b8662a; --ekto:#1f8fa8; --ento:#f2c230; --entoT:#9a7400; --mezo:#d1263b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--cell:#c9803f; --cell2:#f0b888; --ekto:#4fc3dc; --ento:#e6b422; --entoT:#f2c94c; --mezo:#ff5a6a}}
+.terms{margin:0;font-size:.92rem;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.terms b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Žahavci <span>– žahavá buňka a životní cyklus</span></h1>
+  <p class="sub">Interaktivní animace ke 4. hodině · Živočichové – žahavci · kap. 70</p>
+</header>
+<p class="terms"><b>Důležité pojmy:</b> knidocyt · knidocil · nematocysta (knida) · žahavé vlákno · stylety · hypnotoxin · polyp · medúza · planula · pučení · strobilace · efyra · rodozměna</p>
+
+<nav role="tablist" aria-label="Animace">
+  <button role="tab" id="t-a" aria-selected="true" data-p="p-a">1 · Žahavá buňka</button>
+  <button role="tab" id="t-b" aria-selected="false" data-p="p-b">2 · Životní cyklus talířovky</button>
+</nav>
+
+<!-- 1 ŽAHAVÁ BUŇKA -->
+<section class="stage" id="p-a" role="tabpanel" aria-labelledby="t-a">
+  <div class="panel"><svg id="aSvg" viewBox="0 0 520 560" role="img" aria-label="Žahavá buňka a kořist"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Jak žahavá buňka loví?</h2>
+      <p>Ke knidocilu připluje drobný korýš. Spusť lov a sleduj jednotlivé kroky. Ve skutečnosti trvá vystřelení jen několik mikrosekund – animace je mnohonásobně zpomalená.</p>
+    </div>
+    <div class="row"><button class="btn primary" id="aPlay">▶ Spustit lov</button><button class="btn" id="aReset">↺ Znovu</button></div>
+    <ol id="aSteps" class="steps">
+      <li>Kořist se dotkne <b>knidocilu</b> – pozměněného bičíku.</li>
+      <li>Podráždění spustí žahavou buňku: z <b>nematocysty (knidy)</b> vystřelí spirálovitě stočené <b>kolagenové žahavé vlákno</b>.</li>
+      <li><b>Stylety</b> a ostrý konec vlákna se zabodnou do kůže kořisti.</li>
+      <li>Vlákno jako injekcí vpraví <b>hypnotoxin</b> – směs jedů, která kořist <b>omráčí</b>.</li>
+      <li>Vystřelená buňka se <b>uvolní</b> z pokožky žahavce.</li>
+    </ol>
+    <div class="navic"><b class="tag">BONUS</b>Vystřelení žahavého vlákna patří k <b>nejrychlejším pohybům v živé přírodě</b> – hrot vlákna dosahuje zrychlení v řádu milionů g. Název <b>Cnidaria</b> pochází z řec. knide = kopřiva.</div>
+  </div>
+</section>
+
+<!-- 2 ŽIVOTNÍ CYKLUS -->
+<section class="stage" id="p-b" role="tabpanel" aria-labelledby="t-b" hidden>
+  <div class="panel"><svg id="bSvg" viewBox="0 0 640 630" role="img" aria-label="Životní cyklus talířovky"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Rodozměna – střídání generací</h2>
+      <p><b style="color:#2f6fa8">Modře</b> pohlavní generace (medúza), <b style="color:#b8642e">oranžově</b> nepohlavní generace (polyp). Klepni na stadium, nebo projdi cyklus krok za krokem.</p>
+    </div>
+    <div class="row"><button class="btn" id="bPrev">◀ Krok zpět</button><button class="btn" id="bNext">Krok vpřed ▶</button><button class="btn primary" id="bPlay">▶ Přehrát</button></div>
+    <p class="status" id="bStatus"></p>
+    <p id="bText"></p>
+    <div class="navic"><b class="tag">BONUS</b>Medúzka <b>Turritopsis dohrnii</b> dokáže cyklus obrátit – z dospělé medúzy se znovu stane polyp. Proto se jí přezdívá „nesmrtelná medúza“.</div>
+  </div>
+</section>
+</div>
+<style>.steps{margin:0;padding-left:1.3em}.steps li{margin:.25em 0;opacity:.45;transition:opacity .3s}.steps li.on{opacity:1;font-weight:600}.steps li.done{opacity:.85}</style>
+
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const NS = "http://www.w3.org/2000/svg";
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const txt = (p, x, y, s, a = {}) => { const t = el("text", { x, y, ...a }, p); if (a.fill) t.style.fill = a.fill; t.textContent = s; return t; };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x)), lerp = (a, b, t) => a + (b - a) * t, ease = t => t * t * (3 - 2 * t);
+let tab = "p-a";
+$$("nav button").forEach(b => b.addEventListener("click", () => { $$("nav button").forEach(x => { x.setAttribute("aria-selected", x === b); $("#" + x.dataset.p).hidden = x !== b; }); tab = b.dataset.p; }));
+
+/* ===================== 1 ŽAHAVÁ BUŇKA ===================== */
+const A = $("#aSvg"), CELL = "#f6c9d6", CELL2 = "#d9879e", CAP = "#7cc36a", CAP2 = "#3f8a2f", NUC = "#c0602b", THR = "#2f6b23", TOX = "#8a5cc7";
+const AX = 200, AY = 380; // střed buňky
+let aT = 0, aRun = false;
+// fáze: 0–1 přiblížení kořisti, 1–1.6 výstřel, 1.6–2.2 zabodnutí, 2.2–3.2 toxin, 3.2–4.2 uvolnění buňky
+function thread(f) { // vlákno: od hrdla nematocysty ke kořisti
+  const x0 = AX, y0 = AY - 112, x1 = 360, y1 = 120, pts = [];
+  for (let i = 0; i <= 60; i++) { const t = i / 60 * f; pts.push([lerp(x0, x1, t) + Math.sin(t * Math.PI * 3) * 22 * (1 - t), lerp(y0, y1, t)]); }
+  return pts;
+}
+function drawA() {
+  A.innerHTML = "";
+  const t = aT, ph = t < 1 ? 0 : t < 1.6 ? 1 : t < 2.2 ? 2 : t < 3.2 ? 3 : 4;
+  el("rect", { x: 0, y: 0, width: 520, height: 560, fill: "#eef6fb" }, A);
+  // pokožka žahavce (podklad)
+  el("rect", { x: 0, y: 470, width: 520, height: 90, fill: "#f1d6de" }, A);
+  for (let x = 0; x < 520; x += 46) el("line", { x1: x, y1: 470, x2: x, y2: 560, stroke: "#e2b9c6", "stroke-width": 2 }, A);
+  txt(A, 18, 540, "pokožka žahavce", { "font-size": 14, fill: "#8a5a6a", "font-weight": 700 });
+  const off = ph === 4 ? ease(clamp(t - 3.2)) * -70 : 0, rot = ph === 4 ? ease(clamp(t - 3.2)) * -14 : 0;
+  const g = el("g", { transform: `translate(${off * 0.6},${off}) rotate(${rot},${AX},${AY})` }, A);
+  el("path", { d: `M${AX - 70},${AY + 95} C${AX - 95},${AY} ${AX - 75},${AY - 120} ${AX},${AY - 135} C${AX + 75},${AY - 120} ${AX + 95},${AY} ${AX + 70},${AY + 95} Z`, fill: CELL, stroke: CELL2, "stroke-width": 2.5 }, g);
+  const fired = t >= 1;
+  if (!fired) {
+    el("ellipse", { cx: AX, cy: AY - 30, rx: 42, ry: 72, fill: CAP, stroke: CAP2, "stroke-width": 2.5 }, g);
+    let d = `M${AX},${AY - 95}`; for (let i = 0; i <= 120; i++) { const u = i / 120, y = AY - 90 + u * 120, x = AX + Math.sin(u * Math.PI * 11) * 26 * Math.sin(u * Math.PI); d += ` L${x.toFixed(1)},${y.toFixed(1)}`; }
+    el("path", { d, fill: "none", stroke: THR, "stroke-width": 2.2 }, g);
+    el("path", { d: `M${AX - 10},${AY - 102} l10,-10 l10,10`, fill: "none", stroke: THR, "stroke-width": 2 }, g);
+  } else {
+    el("path", { d: `M${AX - 16},${AY - 106} C${AX - 46},${AY - 80} ${AX - 46},${AY + 10} ${AX},${AY + 18} C${AX + 46},${AY + 10} ${AX + 46},${AY - 80} ${AX + 16},${AY - 106}`, fill: "#bfe3b3", stroke: CAP2, "stroke-width": 2.5 }, g);
+    const f = ease(clamp((t - 1) / 0.6)), pts = thread(f);
+    el("path", { d: "M" + pts.map(p => p.map(v => v.toFixed(1)).join(",")).join(" L"), fill: "none", stroke: THR, "stroke-width": 3 }, g);
+    [[-1, 0], [1, 0], [-1, 14], [1, 14]].forEach(([s, o]) => el("line", { x1: AX, y1: AY - 120 - o, x2: AX + s * 16, y2: AY - 136 - o, stroke: THR, "stroke-width": 2.6, "stroke-linecap": "round" }, g));
+    if (t > 2.2 && t < 3.4) { const k = (t - 2.2) / 1.0; for (let i = 0; i < 6; i++) { const u = clamp(k * 1.4 - i * 0.12); if (u <= 0 || u >= 1) continue; const p = pts[Math.min(60, Math.floor(u * 60))]; el("circle", { cx: p[0], cy: p[1], r: 5, fill: TOX }, g); } }
+  }
+  el("ellipse", { cx: AX, cy: AY + 60, rx: 24, ry: 16, fill: NUC }, g);
+  if (!fired) el("path", { d: `M${AX + 30},${AY - 128} C${AX + 34},${AY - 160} ${AX + 30},${AY - 185} ${AX + 38},${AY - 210}`, fill: "none", stroke: "#8a5a6a", "stroke-width": 3, "stroke-linecap": "round" }, g);
+  // kořist (korýš)
+  const px = t < 1 ? lerp(470, AX + 52, ease(clamp(t))) : 360, py = t < 1 ? lerp(70, AY - 205, ease(clamp(t))) : 120;
+  const stun = clamp((t - 2.6) / 0.8), pg = el("g", { transform: `translate(${px},${py}) rotate(${stun * 70})` }, A);
+  el("ellipse", { cx: 0, cy: 0, rx: 26, ry: 14, fill: stun > 0.5 ? "#b9a3d6" : "#e8a35a", stroke: "#8a5a2a", "stroke-width": 2 }, pg);
+  for (let k = -2; k <= 2; k++) el("line", { x1: k * 8, y1: 10, x2: k * 9 + (Math.sin(performance.now() / 120 + k) * (1 - stun) * 4), y2: 24, stroke: "#8a5a2a", "stroke-width": 2 }, pg);
+  el("path", { d: "M-22,-8 q-14,-22 -6,-34 M-18,-10 q-4,-24 8,-32", fill: "none", stroke: "#8a5a2a", "stroke-width": 1.8 }, pg);
+  el("circle", { cx: -18, cy: -3, r: 3, fill: "#222" }, pg);
+  // popisky
+  const lab = (x, y, lx, ly, s) => { el("line", { x1: x, y1: y, x2: lx, y2: ly, stroke: "#18202a", "stroke-width": 1 }, A); el("circle", { cx: x, cy: y, r: 2.5, fill: "#18202a" }, A); txt(A, lx + (lx < x ? -5 : 5), ly + 5, s, { "font-size": 14, "font-weight": 700, "text-anchor": lx < x ? "end" : "start", fill: "#18202a" }); };
+  if (ph === 0) { lab(AX + 36, AY - 195, 300, AY - 165, "knidocil"); lab(AX + 40, AY - 60, 330, AY - 85, "nematocysta (knida)"); lab(AX + 8, AY - 10, 330, AY - 20, "stočené žahavé vlákno"); }
+  if (ph >= 1 && ph <= 3) { lab(AX + 14, AY - 136, 300, AY - 105, "stylety"); lab(300, 230, 420, 260, "žahavé vlákno"); }
+  if (ph === 3) lab(360, 132, 430, 170, "hypnotoxin");
+  if (ph < 4) lab(AX + 18, AY + 60, 330, AY + 55, "jádro");
+  $$("#aSteps li").forEach((li, i) => { li.className = (aRun || t > 0) ? (i === ph ? "on" : i < ph ? "done" : "") : ""; });
+}
+function setRun(on) { aRun = on; $("#aPlay").textContent = on ? "❚❚ Pauza" : "▶ Spustit lov"; }
+$("#aPlay").addEventListener("click", () => { if (aT >= 4.2) aT = 0; setRun(!aRun); });
+$("#aReset").addEventListener("click", () => { aT = 0; setRun(false); drawA(); });
+drawA();
+
+/* ===================== 2 ŽIVOTNÍ CYKLUS ===================== */
+const Bs = $("#bSvg"), CX = 320, CY = 300, R = 205;
+const BLUE = "#bcd9ef", BL2 = "#5b8db8", POL = "#f1c9a7", PO2 = "#c27a45";
+const ST = [
+  ["Medúza", "sex", "Plovoucí <b>pohlavní</b> stadium. Na klobouku prosvítají <b>pohlavní žlázy</b> půlměsíčitého tvaru, které tvoří vajíčka nebo spermie."],
+  ["Vajíčka a spermie", "mid", "Medúzy vypouštějí pohlavní buňky do volné vody, kde dochází k <b>vnějšímu oplození</b>."],
+  ["Planula", "mid", "Z embrya se vyvine obrvená planktonní larva – <b>planula</b>. Po nějaké době přisedne a změní se v polypa."],
+  ["Polyp", "asex", "<b>Přisedlé nepohlavní</b> stadium. Přichycuje se <b>nožním terčem</b>, ale může se pomalu přesouvat kotouly, píďalkováním nebo plaváním."],
+  ["Pučení", "asex", "Polyp se množí <b>pučením</b> – vytváří dceřiné jedince (pupeny), kteří se oddělí, nebo tvoří <b>kolonie</b> propojených jedinců."],
+  ["Strobila (strobilace)", "asex", "Jen u medúzovců: na vrchu polypa se postupně odškrcují mladé medúzky – <b>strobilace</b>. Polyp v tomto stadiu se nazývá <b>strobila</b>."],
+  ["Efyra", "sex", "Odškrcená mladá medúzka – <b>efyra</b>. Otočí se přijímacím otvorem dolů a doroste v pohlavně dospělou medúzu. Cyklus se uzavírá."],
+];
+const ANG = [0, 52, 104, 155, 207, 258, 310].map(a => (a - 90) * Math.PI / 180);
+const PT = a => [CX + R * Math.cos(a), CY + R * Math.sin(a)];
+let bI = 0, bPlay = false, bAcc = 0;
+function polyp(p, x, y) {
+  el("ellipse", { cx: x, cy: y + 40, rx: 16, ry: 5, fill: POL, stroke: PO2, "stroke-width": 2 }, p);
+  el("path", { d: `M${x - 9},${y + 40} L${x - 13},${y - 12} L${x + 13},${y - 12} L${x + 9},${y + 40} Z`, fill: POL, stroke: PO2, "stroke-width": 2 }, p);
+  for (let k = -3; k <= 3; k++) el("path", { d: `M${x + k * 3.5},${y - 12} q${k * 5},-16 ${k * 7},-26`, fill: "none", stroke: PO2, "stroke-width": 2, "stroke-linecap": "round" }, p);
+}
+const ICON = [
+  (p, x, y) => { el("path", { d: `M${x - 42},${y + 6} C${x - 40},${y - 42} ${x + 40},${y - 42} ${x + 42},${y + 6} Z`, fill: BLUE, stroke: BL2, "stroke-width": 2.5 }, p); for (let k = 0; k < 7; k++) el("path", { d: `M${x - 36 + k * 12},${y + 6} q4,14 0,30`, fill: "none", stroke: BL2, "stroke-width": 1.8 }, p); [-14, 14].forEach(dx => el("path", { d: `M${x + dx - 7},${y - 10} a7,7 0 0 1 14,0`, fill: "none", stroke: "#d9879e", "stroke-width": 3 }, p)); },
+  (p, x, y) => { el("circle", { cx: x - 14, cy: y, r: 17, fill: "#fbe2a6", stroke: "#c7961a", "stroke-width": 2 }, p); el("circle", { cx: x - 14, cy: y, r: 5, fill: "#c7961a" }, p); [[22, -14], [26, 6], [18, 22]].forEach(([dx, dy]) => { el("circle", { cx: x + dx, cy: y + dy, r: 3.5, fill: "#5b6673" }, p); el("path", { d: `M${x + dx + 3},${y + dy} q8,-5 16,0 t14,0`, fill: "none", stroke: "#5b6673", "stroke-width": 1.4 }, p); }); },
+  (p, x, y) => { el("ellipse", { cx: x, cy: y, rx: 26, ry: 14, fill: "#f6d2a9", stroke: PO2, "stroke-width": 2 }, p); for (let k = 0; k < 18; k++) { const a = k / 18 * 2 * Math.PI, px = x + Math.cos(a) * 26, py = y + Math.sin(a) * 14; el("line", { x1: px, y1: py, x2: px + Math.cos(a) * 7, y2: py + Math.sin(a) * 7, stroke: PO2, "stroke-width": 1.2 }, p); } },
+  (p, x, y) => polyp(p, x, y),
+  (p, x, y) => { polyp(p, x - 10, y); el("path", { d: `M${x + 2},${y + 10} q22,-4 26,-26`, fill: "none", stroke: PO2, "stroke-width": 9, "stroke-linecap": "round" }, p); el("path", { d: `M${x + 2},${y + 10} q22,-4 26,-26`, fill: "none", stroke: POL, "stroke-width": 5, "stroke-linecap": "round" }, p); for (let k = -1; k <= 1; k++) el("line", { x1: x + 28, y1: y - 16, x2: x + 28 + k * 8, y2: y - 28, stroke: PO2, "stroke-width": 1.6 }, p); },
+  (p, x, y) => { el("rect", { x: x - 6, y: y + 22, width: 12, height: 22, fill: POL, stroke: PO2, "stroke-width": 2 }, p); for (let k = 0; k < 5; k++) el("ellipse", { cx: x, cy: y + 18 - k * 12, rx: 24, ry: 6, fill: BLUE, stroke: BL2, "stroke-width": 1.8 }, p); el("ellipse", { cx: x, cy: y + 48, rx: 16, ry: 5, fill: POL, stroke: PO2, "stroke-width": 2 }, p); },
+  (p, x, y) => { let d = ""; for (let k = 0; k < 16; k++) { const a = k / 16 * 2 * Math.PI, r = k % 2 ? 14 : 28; d += (k ? " L" : "M") + (x + Math.cos(a) * r).toFixed(1) + "," + (y + Math.sin(a) * r).toFixed(1); } el("path", { d: d + "Z", fill: BLUE, stroke: BL2, "stroke-width": 2 }, p); el("circle", { cx: x, cy: y, r: 6, fill: "#d9879e" }, p); },
+];
+function drawB() {
+  Bs.innerHTML = "";
+  const defs = el("defs", {}, Bs), m = el("marker", { id: "ar", viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse" }, defs); el("path", { d: "M0,0 L10,5 L0,10 z", fill: "#4a7fb5" }, m);
+  // generace – oblouky v pozadí
+  const arc = (a1, a2, r, col) => { const [x1, y1] = [CX + r * Math.cos(a1), CY + r * Math.sin(a1)], [x2, y2] = [CX + r * Math.cos(a2), CY + r * Math.sin(a2)]; el("path", { d: `M${x1},${y1} A${r},${r} 0 ${a2 - a1 > Math.PI ? 1 : 0} 1 ${x2},${y2}`, fill: "none", stroke: col, "stroke-width": 120, opacity: .14 }, Bs); };
+  arc(ANG[6] - 0.45, ANG[0] + 2 * Math.PI + 0.45, R, "#2f6fa8");
+  arc(ANG[3] - 0.45, ANG[5] + 0.45, R, "#b8642e");
+  txt(Bs, CX, 30, "pohlavní generace (medúza)", { "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: "#2f6fa8" });
+  txt(Bs, CX, 614, "nepohlavní generace (polyp)", { "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: "#b8642e" });
+  for (let i = 0; i < 7; i++) { const a1 = ANG[i] + 0.25, a2 = (i < 6 ? ANG[i + 1] : ANG[0] + 2 * Math.PI) - 0.25, [x1, y1] = PT(a1), [x2, y2] = PT(a2);
+    el("path", { d: `M${x1},${y1} A${R},${R} 0 0 1 ${x2},${y2}`, fill: "none", stroke: i === bI ? "#c0262b" : "#4a7fb5", "stroke-width": i === bI ? 4 : 3, "marker-end": "url(#ar)" }, Bs); }
+  ANG.forEach((a, i) => {
+    const [x, y] = PT(a), g = el("g", { class: "part" + (i === bI ? " sel" : ""), tabindex: 0, role: "button", "aria-label": ST[i][0] }, Bs);
+    el("circle", { cx: x, cy: y, r: 50, fill: "#fff", stroke: i === bI ? "#c0262b" : "#d0d7de", "stroke-width": i === bI ? 4 : 2 }, g); ICON[i](g, x, y);
+    txt(g, x, y + 68, ST[i][0].split(" (")[0], { "text-anchor": "middle", "font-size": 15, "font-weight": 700, fill: "#18202a" });
+    g.addEventListener("click", () => { bI = i; setPlay(false); drawB(); });
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); bI = i; drawB(); } });
+  });
+  txt(Bs, CX, CY - 6, "talířovka", { "text-anchor": "middle", "font-size": 20, "font-weight": 700, fill: "#5b6673" });
+  txt(Bs, CX, CY + 18, "rodozměna", { "text-anchor": "middle", "font-size": 16, fill: "#5b6673" });
+  const gen = ST[bI][1] === "sex" ? "pohlavní generace" : ST[bI][1] === "asex" ? "nepohlavní generace" : "přechod mezi generacemi";
+  $("#bStatus").textContent = (bI + 1) + " / 7 · " + ST[bI][0] + " – " + gen;
+  $("#bStatus").style.color = ST[bI][1] === "sex" ? "#2f6fa8" : ST[bI][1] === "asex" ? "#b8642e" : "";
+  $("#bText").innerHTML = ST[bI][2];
+}
+function setPlay(on) { bPlay = on; bAcc = 0; $("#bPlay").textContent = on ? "❚❚ Pauza" : "▶ Přehrát"; }
+$("#bPrev").addEventListener("click", () => { setPlay(false); bI = (bI + 6) % 7; drawB(); });
+$("#bNext").addEventListener("click", () => { setPlay(false); bI = (bI + 1) % 7; drawB(); });
+$("#bPlay").addEventListener("click", () => setPlay(!bPlay));
+drawB();
+
+/* ===================== smyčka ===================== */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (tab === "p-a") { if (aRun) { aT = Math.min(4.2, aT + dt * 0.45); if (aT >= 4.2) setRun(false); } if (aRun || aT < 1) drawA(); }
+  if (tab === "p-b" && bPlay) { bAcc += dt; if (bAcc > 3.5) { bAcc = 0; bI = (bI + 1) % 7; drawB(); } }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
