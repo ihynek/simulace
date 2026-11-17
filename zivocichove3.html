@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Žebernatky a žahavci – stavba těla a žebernatky</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: laboratorní pult jako u předchozích animací – záložky, vlevo pokus, vpravo ovládání a vysvětlení */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18202a; --muted:#5b6673; --line:#d9dfe5;
+  --art:#d1263b; --vein:#2f6fd6; --skin:#f1d3c0; --skin2:#d9a98c; --muc:#f0a7a7; --muc2:#d77b7b; --cart:#dfe6ee; --cart2:#9fb0c2;
+  --lung:#f3b0ae; --lung2:#d9827f; --air:#d8ecfb; --mucus:#cfe3a6; --hi:#f2b705; --upper:#3b82f6; --lower:#e8873a;
+  --accent:#b3122b; --ok:#1e8a3c; --bad:#c0392b; --warn:#c97a00; --navic:#4b3fd0; --navicbg:#eef0ff;
+  --f-display:"Familjen Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12161b; --panel:#1b2128; --ink:#e8ecf0; --muted:#9aa5b1; --line:#2c343d;
+  --art:#ff5a6a; --vein:#6aa2ff; --skin:#6b5446; --skin2:#8a6b58; --muc:#8a4a4a; --muc2:#a85f5f; --cart:#3a4655; --cart2:#6d8199;
+  --lung:#8a4c4b; --lung2:#a8605d; --air:#1e3346; --mucus:#5d7a2e; --hi:#ffd23f; --upper:#6aa2ff; --lower:#f0a030;
+  --accent:#e0405a; --ok:#4cc46d; --bad:#ff6b5a; --warn:#f0a030; --navic:#a99cff; --navicbg:#25233d; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px}
+h1{font-family:var(--f-display);font-size:clamp(1.7rem,3.4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--art)}
+.sub{color:var(--muted);margin:0;font-size:.95rem}
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line)}
+nav button{font:600 1rem var(--f-body);background:none;border:0;color:var(--muted);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vein);outline-offset:2px}
+.stage{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:760px){.stage{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:1.3rem;margin:0 0 6px}
+.panel p{margin:0 0 10px}
+.ctrl{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 .95rem var(--f-body);padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--panel)}
+.status{font-family:var(--f-display);font-size:1.15rem;margin:0}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)} .status.warn{color:var(--warn)}
+.note{font-size:.9rem;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.navic{font-size:.9rem;background:var(--navicbg);border-left:4px solid var(--navic);padding:8px 12px;border-radius:6px;margin:0}
+.navic b.tag{color:var(--navic);font-size:.75rem;letter-spacing:.04em;display:block;margin-bottom:2px}
+svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body);fill:var(--ink)}
+label.sl{display:flex;flex-direction:column;gap:4px;font-weight:500}
+label.sl output{font-family:var(--f-mono);color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.read{font-family:var(--f-mono);font-size:1.1rem;font-variant-numeric:tabular-nums;margin:0}
+.part{cursor:pointer;transition:opacity .2s}
+svg.dim .part:not(.sel){opacity:.3}
+.part.sel{filter:drop-shadow(0 0 5px var(--hi)) drop-shadow(0 0 2px var(--hi))}
+.score{font-family:var(--f-mono);font-size:1rem;color:var(--muted)}
+table.air{border-collapse:collapse;width:100%;font-size:.92rem}
+table.air td,table.air th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+table.air th{background:var(--bg)}
+table.air td.on{background:var(--accent);color:#fff;font-weight:700}
+.chk{display:flex;flex-wrap:wrap;gap:6px}
+.big{font-family:var(--f-display);font-size:2rem;font-weight:700;margin:0;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* zárodečné listy */
+:root{--cell:#f0a35e; --cell2:#b8662a; --ekto:#1f8fa8; --ento:#f2c230; --entoT:#9a7400; --mezo:#d1263b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--cell:#c9803f; --cell2:#f0b888; --ekto:#4fc3dc; --ento:#e6b422; --entoT:#f2c94c; --mezo:#ff5a6a}}
+.terms{margin:0;font-size:.92rem;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.terms b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Žebernatky a žahavci <span>– společné znaky a život žebernatek</span></h1>
+  <p class="sub">Interaktivní animace ke 3. hodině · Živočichové – žebernatky a žahavci · kap. 70</p>
+</header>
+<p class="terms"><b>Důležité pojmy:</b> ektoderm · entoderm · mezoglea · láčka · gastrovaskulární soustava · hřebínky · žebra · tykadla · koloblasty · statocysta · statolit · bioluminiscence</p>
+
+<nav role="tablist" aria-label="Animace">
+  <button role="tab" id="t-a" aria-selected="true" data-p="p-a">1 · Stavba těla a trávení</button>
+  <button role="tab" id="t-b" aria-selected="false" data-p="p-b">2 · Žebernatka</button>
+</nav>
+
+<!-- 1 STAVBA TĚLA A TRÁVENÍ -->
+<section class="stage" id="p-a" role="tabpanel" aria-labelledby="t-a">
+  <div class="panel"><svg id="aSvg" viewBox="0 0 520 560" role="img" aria-label="Podélný řez tělem žahavce s láčkou"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Láčka – trávicí dutina s jedním otvorem</h2>
+      <p>Sleduj potravu (oranžová): vstoupí otvorem do <b>láčky</b>, buňky <b>entodermu</b> do ní vylučují trávicí enzymy (fialové tečky), živiny se vstřebají a nestrávené zbytky odejdou <b>stejným otvorem</b> ven.</p>
+    </div>
+    <div class="row"><button class="btn primary" id="aPlay">▶ Přehrát trávení</button></div>
+    <div class="row" role="group" aria-label="Podoba láčky"><button class="btn" data-m="lacka" aria-pressed="true">jednoduchá láčka</button><button class="btn" data-m="gv">gastrovaskulární soustava</button></div>
+    <p class="status" id="aStatus"></p>
+    <p id="aText"></p>
+    <p><b>Klepni na vrstvu</b> (nebo do obrázku):</p>
+    <div class="row" role="group" aria-label="Vrstva"><button class="btn" data-k="ekto">ektoderm</button><button class="btn" data-k="mezo">mezoglea</button><button class="btn" data-k="ento">entoderm</button><button class="btn" data-k="lac">láčka</button></div>
+    <div class="navic"><b class="tag">BONUS</b>Název <b>gastrovaskulární</b> je složený z řec. gaster = žaludek a lat. vasculum = céva – láčka tu zastává i roli cévní soustavy.</div>
+  </div>
+</section>
+
+<!-- 2 ŽEBERNATKA -->
+<section class="stage" id="p-b" role="tabpanel" aria-labelledby="t-b" hidden>
+  <div class="panel"><svg id="bSvg" viewBox="0 0 520 600" role="img" aria-label="Žebernatka hruškovka"></svg></div>
+  <div class="panel ctrl">
+    <div>
+      <h2>Hruškovka – mořský angrešt</h2>
+      <p>Žebernatka plave pomocí <b>hřebínků z bičíků</b> v osmi <b>žebrech</b>; hřebínky kmitají ve vlnách. Na <b>tykadlech</b> lepí kořist <b>koloblasty</b>.</p>
+    </div>
+    <div class="row" role="group" aria-label="Osvětlení"><button class="btn" data-l="den" aria-pressed="true">☀ denní světlo</button><button class="btn" data-l="tma">☾ tma</button></div>
+    <p class="status" id="bStatus"></p>
+    <p id="bText"></p>
+    <h2 style="margin-top:6px">Statocysta – kde je dole?</h2>
+    <label class="sl">Nakloň žebernatku <output id="bOut"></output><input type="range" id="bTilt" min="-70" max="70" step="1" value="0"></label>
+    <p id="bStato">Statolit (šedý) se vždy přesune ke spodní straně statocysty a naléhá na tamní <b>bičíkaté buňky</b> (zvýrazněné). Podle toho žebernatka vnímá, <b>kde je dole a kde nahoře</b>.</p>
+    <div class="navic"><b class="tag">BONUS</b>Odborně se žebernatky nazývají <b>Ctenophora</b> (řec. kteis, ktenos = hřeben; phoros = nesoucí) – „nositelé hřebenů“. Jsou to největší živočichové, kteří se pohybují pomocí bičíků (brv).</div>
+  </div>
+</section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const NS = "http://www.w3.org/2000/svg";
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const txt = (p, x, y, s, a = {}) => { const t = el("text", { x, y, ...a }, p); if (a.fill) t.style.fill = a.fill; t.textContent = s; return t; };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const EKT = "#1f8fa8", ENT = "#f2c230", MEZ = "#ece4f3", MEZD = "#9b86b5", LAC = "#dcecf8", FOOD = "#e08a1e", ENZ = "#8a5cc7", NUT = "#3fa34d";
+let tab = "p-a";
+$$("nav button").forEach(b => b.addEventListener("click", () => { $$("nav button").forEach(x => { x.setAttribute("aria-selected", x === b); $("#" + x.dataset.p).hidden = x !== b; }); tab = b.dataset.p; }));
+const lerp = (a, b, t) => a + (b - a) * t, clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+function cells(p, d, col, w) { el("path", { d, fill: "none", stroke: col, "stroke-width": w, "stroke-linecap": "round", "stroke-linejoin": "round" }, p); el("path", { d, fill: "none", stroke: "#fff", "stroke-width": w + 1, "stroke-dasharray": "1.4 14", opacity: .8 }, p); }
+const part = (p, k, label) => el("g", { class: "part", "data-k": k, tabindex: 0, role: "button", "aria-label": label }, p);
+
+/* ===================== 1 STAVBA TĚLA ===================== */
+const A = $("#aSvg");
+const AINFO = {
+  ekto: ["Ektoderm", "Vnější zárodečný list – u žebernatek a žahavců už tvoří <b>pravý epitel</b> (pokožku)."],
+  mezo: ["Mezoglea", "Vrstva mezi ektodermem a entodermem, do které <b>migrují různé buněčné typy</b>."],
+  ento: ["Entoderm", "Vnitřní zárodečný list – vystýlá láčku, <b>vylučuje trávicí enzymy</b> a vstřebává živiny. Trávení probíhá částečně v láčce a částečně uvnitř jeho buněk."],
+  lac: ["Láčka", "Trávicí dutina s <b>jediným přijímacím a vyvrhovacím otvorem</b>. Podle ní se žebernatkám a žahavcům dříve říkalo láčkovci."],
+};
+const outer = "M200,95 C125,120 110,300 135,400 C155,470 195,495 250,495 C305,495 345,470 365,400 C390,300 375,120 300,95";
+const inner = "M222,112 C165,140 155,300 175,390 C190,445 218,462 250,462 C282,462 310,445 325,390 C345,300 335,140 278,112";
+let aMode = "lacka", aK = null, aRun = false, aT = 0;
+const GV = [[-1, 170], [-1, 260], [-1, 350], [1, 170], [1, 260], [1, 350]];
+function drawA() {
+  A.innerHTML = "";
+  const gM = part(A, "mezo", "mezoglea");
+  el("path", { d: outer + " L278,112 C335,140 345,300 325,390 C310,445 282,462 250,462 C218,462 190,445 175,390 C155,300 165,140 222,112 Z", fill: MEZ }, gM);
+  [[150, 200], [146, 300], [165, 420], [350, 200], [352, 300], [335, 420], [250, 478], [200, 470], [300, 470]].forEach(([x, y]) => el("circle", { cx: x, cy: y, r: 3.2, fill: MEZD }, gM));
+  const gL = part(A, "lac", "láčka");
+  el("path", { d: inner + " Z", fill: LAC }, gL);
+  if (aMode === "gv") GV.forEach(([s, y]) => {
+    const x0 = 250 + s * 70, x1 = 250 + s * 112;
+    el("path", { d: `M${x0},${y - 12} L${x1},${y - 8} A9,9 0 0 1 ${x1},${y + 9} L${x0},${y + 12} Z`, fill: LAC }, gL);
+  });
+  const gE = part(A, "ento", "entoderm");
+  cells(gE, inner, ENT, 13);
+  if (aMode === "gv") GV.forEach(([s, y]) => { const x0 = 250 + s * 72, x1 = 250 + s * 112; cells(gE, `M${x0},${y - 13} L${x1},${y - 9}`, ENT, 6); cells(gE, `M${x0},${y + 13} L${x1},${y + 9}`, ENT, 6); });
+  const gK = part(A, "ekto", "ektoderm"); cells(gK, outer, EKT, 13);
+  txt(A, 250, 82, "přijímací a vyvrhovací otvor", { "text-anchor": "middle", "font-size": 14, "font-weight": 700 });
+  txt(A, 250, 540, "podélný řez tělem žahavce (schéma)", { "text-anchor": "middle", "font-size": 14, fill: "#5b6673" });
+  el("g", { id: "aAn" }, A);
+  $$("#aSvg .part").forEach(g => { g.classList.toggle("sel", g.dataset.k === aK); g.addEventListener("click", () => pickA(g.dataset.k)); g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickA(g.dataset.k); } }); });
+  A.classList.toggle("dim", !!aK);
+  stepA(0);
+}
+// fáze: 0–1 vstup, 1–2 enzymy, 2–3 rozklad a vstřebání (+ rozvod u GV), 3–4 výstup zbytků
+const PH = ["Potrava vstupuje otvorem do láčky.", "Buňky entodermu vylučují do láčky trávicí enzymy.", "Potrava se rozkládá, živiny (zelené) vstřebávají buňky entodermu – trávení probíhá i uvnitř jejich buněk.", "Nestrávené zbytky odcházejí stejným otvorem ven."];
+function stepA(dt) {
+  if (aRun) { aT += dt * 0.32; if (aT >= 4) { aT = 4; setRun(false); } }
+  const g = $("#aAn"); if (!g) return; g.innerHTML = "";
+  const t = aT;
+  if (t <= 0 && !aRun) return;
+  const ph = Math.min(3, Math.floor(t));
+  // potrava
+  if (t < 2.4) { const y = lerp(40, 300, clamp(t)), r = lerp(20, 13, clamp(t - 2, 0, .4) / .4); el("circle", { cx: 250, cy: y, r, fill: FOOD, stroke: "#a85d0f", "stroke-width": 2 }, g); }
+  // enzymy
+  if (t > 1 && t < 3) { const f = clamp(t - 1); for (let i = 0; i < 16; i++) { const a = i / 16 * 2 * Math.PI, sx = 250 + Math.cos(a) * 72, sy = 300 + Math.sin(a) * 130; el("circle", { cx: lerp(sx, 250 + Math.cos(a) * 18, f), cy: lerp(sy, 300 + Math.sin(a) * 18, f), r: 3, fill: ENZ, opacity: t > 2.5 ? 1 - (t - 2.5) * 2 : 1 }, g); } }
+  // živiny → do entodermu (a u GV dál do výběžků)
+  if (t > 2 && t < 3.6) { const f = clamp(t - 2); for (let i = 0; i < 12; i++) { const a = i / 12 * 2 * Math.PI + .2;
+      let ex = 250 + Math.cos(a) * 70, ey = 300 + Math.sin(a) * 140;
+      if (aMode === "gv") { const s = Math.cos(a) > 0 ? 1 : -1, row = GV.filter(q => q[0] === s)[i % 3]; ex = 250 + s * lerp(70, 112, clamp((t - 2.6) / .8)); ey = row[1]; }
+      el("circle", { cx: lerp(250 + Math.cos(a) * 10, ex, f), cy: lerp(300 + Math.sin(a) * 10, ey, f), r: 3.4, fill: NUT, opacity: t > 3.3 ? 1 - (t - 3.3) * 3 : 1 }, g); } }
+  // zbytky ven
+  if (t > 2.6) { const f = clamp((t - 2.6) / 1.4); el("circle", { cx: 262, cy: lerp(300, 30, f), r: 8, fill: "#8a6a4a" }, g); }
+  if (aRun || t > 0) { $("#aStatus").textContent = (ph + 1) + " / 4"; $("#aStatus").className = "status"; $("#aText").innerHTML = PH[ph] + (aMode === "gv" && ph === 2 ? " Slepé výběžky láčky rozvádějí živiny do celého těla – <b>gastrovaskulární soustava</b>." : ""); }
+}
+function setRun(on) { aRun = on; $("#aPlay").textContent = on ? "❚❚ Pauza" : (aT >= 4 ? "↺ Znovu" : "▶ Přehrát trávení"); }
+$("#aPlay").addEventListener("click", () => { if (!aRun && aT >= 4) aT = 0; setRun(!aRun); });
+function pickA(k) {
+  aK = aK === k ? null : k; A.classList.toggle("dim", !!aK);
+  $$("#aSvg .part").forEach(g => g.classList.toggle("sel", g.dataset.k === aK));
+  $$("button[data-k]").forEach(b => b.setAttribute("aria-pressed", b.dataset.k === aK));
+  if (aK) { $("#aStatus").textContent = AINFO[aK][0]; $("#aStatus").className = "status ok"; $("#aText").innerHTML = AINFO[aK][1]; }
+  else showMode();
+}
+function showMode() {
+  $("#aStatus").className = "status";
+  if (aMode === "lacka") { $("#aStatus").textContent = "Jednoduchá láčka"; $("#aText").innerHTML = "Vakovité tělo má <b>jeden otvor</b> – slouží k příjmu potravy i k vyvrhování zbytků."; }
+  else { $("#aStatus").textContent = "Gastrovaskulární soustava"; $("#aText").innerHTML = "U některých skupin láčka vybíhá v mnoho <b>slepých výběžků</b>, které vedou živiny ke všem částem těla – zastávají i roli <b>cévní soustavy</b>."; }
+}
+$$("button[data-k]").forEach(b => b.addEventListener("click", () => pickA(b.dataset.k)));
+$$("[data-m]").forEach(b => b.addEventListener("click", () => { aMode = b.dataset.m; $$("[data-m]").forEach(x => x.setAttribute("aria-pressed", x === b)); aT = 0; setRun(false); drawA(); aK = null; showMode(); }));
+drawA(); showMode();
+
+/* ===================== 2 ŽEBERNATKA ===================== */
+const B = $("#bSvg"), CX = 250, CY = 255, RX = 105, RY = 150;
+let light = "den", tilt = 0, PLATES = [], STC = [];
+const COLS = ["#e0457b", "#f29d38", "#f2d43a", "#5cc46a", "#3fa9e0", "#7b5ce0"];
+function drawB() {
+  B.innerHTML = "";
+  const defs = el("defs", {}, B), f = el("filter", { id: "glow", x: "-50%", y: "-50%", width: "200%", height: "200%" }, defs);
+  el("feGaussianBlur", { stdDeviation: 2.5, result: "b" }, f); const mg = el("feMerge", {}, f); el("feMergeNode", { in: "b" }, mg); el("feMergeNode", { in: "SourceGraphic" }, mg);
+  el("rect", { x: 0, y: 0, width: 520, height: 600, fill: light === "tma" ? "#06121f" : "#f4f8fc" }, B);
+  const sc = el("g", { transform: `translate(${CX},${CY}) scale(0.8) translate(${-CX},${-CY})` }, B);
+  const body = el("g", { id: "body", transform: `rotate(${tilt},${CX},${CY})` }, sc);
+  // tykadla
+  [-1, 1].forEach(s => {
+    const x0 = CX + s * 66, y0 = CY + 20, pts = []; for (let i = 0; i <= 40; i++) { const t = i / 40; pts.push([x0 + s * (20 + 70 * t) + Math.sin(t * 7) * 18 * s, y0 + 10 + t * 300]); }
+    el("path", { d: "M" + pts.map(p => p.join(",")).join(" L"), fill: "none", stroke: light === "tma" ? "#3a5a78" : "#8fa3b8", "stroke-width": 3.5, "stroke-linecap": "round" }, body);
+    for (let i = 3; i <= 38; i += 3) { const [x, y] = pts[i]; el("path", { d: `M${x},${y} q${s * 14},6 ${s * 26},22`, fill: "none", stroke: light === "tma" ? "#2f4b66" : "#a9b9c9", "stroke-width": 1.8 }, body); for (let k = 1; k <= 3; k++) el("circle", { cx: x + s * 9 * k, cy: y + 5 * k + 2 * k * k / 3, r: 1.9, fill: "#c0602b" }, body); }
+  });
+  el("ellipse", { cx: CX, cy: CY, rx: RX, ry: RY, fill: light === "tma" ? "#0c2236" : "#e6f1fa", stroke: light === "tma" ? "#2c4f70" : "#6f98bf", "stroke-width": 2.5, opacity: .95 }, body);
+  el("path", { d: `M${CX - 15},${CY + RY - 2} C${CX - 24},${CY + 60} ${CX - 20},${CY - 20} ${CX},${CY - 40} C${CX + 20},${CY - 20} ${CX + 24},${CY + 60} ${CX + 15},${CY + RY - 2} Z`, fill: light === "tma" ? "#1d2c3a" : "#fbe9b8", stroke: light === "tma" ? "#3b4f63" : "#d8b24a", "stroke-width": 2 }, body);
+  PLATES = [];
+  const gp = el("g", light === "tma" ? { filter: "url(#glow)" } : {}, body);
+  [-0.92, -0.62, -0.22, 0.22, 0.62, 0.92].forEach((fr, ri) => {
+    const rx = RX * Math.abs(fr), sg = Math.sign(fr), P = t => [CX + sg * rx * Math.sin(t), CY - RY * Math.cos(t)];
+    const pts = []; for (let i = 0; i <= 60; i++) pts.push(P(0.18 + i / 60 * (Math.PI - 0.36)));
+    el("path", { d: "M" + pts.map(p => p.join(",")).join(" L"), fill: "none", stroke: light === "tma" ? "#1f3a55" : "#9fbcd6", "stroke-width": 5, opacity: Math.abs(fr) > .8 ? .55 : 1 }, body);
+    for (let i = 2; i <= 58; i += 3) { const [x, y] = pts[i], [x2, y2] = pts[i + 1], dx = x2 - x, dy = y2 - y, l = Math.hypot(dx, dy), nx = -dy / l, ny = dx / l;
+      PLATES.push({ e: el("line", { x1: x - nx * 5, y1: y - ny * 5, x2: x + nx * 5, y2: y + ny * 5, "stroke-width": 2.8, "stroke-linecap": "round" }, gp), i, ri, side: Math.abs(fr) > .8 }); }
+  });
+  el("circle", { cx: CX, cy: CY - RY + 6, r: 10, fill: light === "tma" ? "#0c2236" : "#fff", stroke: "#6f98bf", "stroke-width": 2 }, body);
+  el("circle", { cx: CX, cy: CY - RY + 7, r: 4, fill: "#7a7f86" }, body);
+  el("ellipse", { cx: CX, cy: CY + RY - 1, rx: 15, ry: 5, fill: light === "tma" ? "#0c2236" : "#fff", stroke: "#d8b24a", "stroke-width": 2 }, body);
+  el("g", { id: "labs" }, B);
+  // výřez statocysty (v rohu, otočený s tělem)
+  const ix = 80, iy = 80, ir = 52, gi = el("g", {}, B);
+  el("circle", { cx: ix, cy: iy, r: ir + 10, fill: light === "tma" ? "#0c2236" : "#fff", stroke: "#6f98bf", "stroke-width": 2 }, gi);
+  txt(gi, ix, iy + ir + 30, "statocysta (výřez)", { "text-anchor": "middle", "font-size": 13, fill: light === "tma" ? "#cfe0f0" : "#5b6673" });
+  STC = [];
+  for (let i = 0; i < 18; i++) { const a = i / 18 * 2 * Math.PI; STC.push({ a, e: el("circle", { cx: ix + Math.cos(a) * ir, cy: iy + Math.sin(a) * ir, r: 7, stroke: "#6f98bf", "stroke-width": 1 }, gi), h: el("line", { "stroke-width": 1.4 }, gi) }); }
+  el("circle", { id: "stl", r: 15, fill: "#8a8f96", stroke: "#5b6066", "stroke-width": 2 }, gi);
+  updStato(); drawLabs(); stepB(0);
+  $("#bStatus").textContent = light === "tma" ? "Ve tmě: bioluminiscence" : "Na světle: duhové barvy žeber";
+  $("#bText").innerHTML = light === "tma" ? "Ve specializovaných buňkách se oxiduje <b>luciferin</b> pomocí enzymu <b>luciferázy</b> a vzniká <b>studené světlo</b>. Zviditelní se hlavně žebra hřebínků – slouží pravděpodobně k <b>zastrašení predátorů</b> a <b>lákání kořisti</b>." : "Duhové barvy nejsou bioluminiscence: kmitající hřebínky <b>ohýbají (difrakce)</b> dopadající bílé světlo a rozkládají ho na barvy. Vlny barev ukazují, jak hřebínky postupně kmitají.";
+  $$("[data-l]").forEach(b => b.setAttribute("aria-pressed", b.dataset.l === light));
+}
+function updStato() {
+  const ix = 80, iy = 80, ir = 52, th = tilt * Math.PI / 180;
+  // statolit padá ke spodní straně (svět); buňky jsou pevně v těle → jejich úhel se otáčí s tělem
+  const sx = ix, sy = iy + ir - 21; const stl = $("#stl"); stl.setAttribute("cx", sx); stl.setAttribute("cy", sy);
+  STC.forEach(c => { const a = c.a + th, x = ix + Math.cos(a) * ir, y = iy + Math.sin(a) * ir, d = Math.hypot(x - sx, y - (iy + ir)), on = d < 26;
+    c.e.setAttribute("cx", x); c.e.setAttribute("cy", y); c.e.setAttribute("fill", on ? "#f2c230" : (light === "tma" ? "#1d3b58" : "#e6f1fa"));
+    c.h.setAttribute("x1", x - Math.cos(a) * 7); c.h.setAttribute("y1", y - Math.sin(a) * 7); c.h.setAttribute("x2", x - Math.cos(a) * 15); c.h.setAttribute("y2", y - Math.sin(a) * 15); c.h.setAttribute("stroke", on ? "#c7961a" : "#6f98bf"); });
+  $("#bOut").textContent = (tilt > 0 ? "+" : "") + tilt + "°";
+  const b = $("#body"); if (b) b.setAttribute("transform", `rotate(${tilt},${CX},${CY})`);
+  drawLabs();
+}
+// popisky zůstávají vodorovné; bod na těle se přepočítá podle naklonění a zmenšení
+function tf(x, y) { const th = tilt * Math.PI / 180, dx = x - CX, dy = y - CY; return [CX + 0.8 * (dx * Math.cos(th) - dy * Math.sin(th)), CY + 0.8 * (dx * Math.sin(th) + dy * Math.cos(th))]; }
+function drawLabs() {
+  const g = $("#labs"); if (!g) return; g.innerHTML = "";
+  const lc = light === "tma" ? "#e8f2fb" : "#18202a";
+  [["statocysta", CX + 8, CY - RY + 4, 372, 40], ["žebro s hřebínky", CX + 62, CY - 100, 372, 110], ["přijímací otvor", CX + 10, CY + RY, 372, 480], ["tykadlo s koloblasty", CX + 66 + 20 + 70 * .55 + Math.sin(.55 * 7) * 18, CY + 30 + .55 * 300, 372, 555]].forEach(([t, x, y, lx, ly]) => {
+    const [px, py] = tf(x, y); el("line", { x1: px, y1: py, x2: lx, y2: ly, stroke: lc, "stroke-width": 1 }, g); el("circle", { cx: px, cy: py, r: 2.5, fill: lc }, g);
+    txt(g, lx + 4, ly + 5, t, { "font-size": 14, "font-weight": 700, fill: lc });
+  });
+}
+let tB = 0;
+function stepB(dt) {
+  tB += dt;
+  PLATES.forEach(p => {
+    const w = Math.sin(p.i * 0.35 - tB * 6 + p.ri);
+    if (light === "tma") { const g = 0.15 + 0.85 * Math.max(0, Math.sin(p.i * 0.18 - tB * 2.2 + p.ri * .7)); p.e.setAttribute("stroke", "#7fffd4"); p.e.setAttribute("opacity", (p.side ? .5 : 1) * g); }
+    else { p.e.setAttribute("stroke", COLS[(((p.i + p.ri + Math.floor(tB * 8)) % 6) + 6) % 6]); p.e.setAttribute("opacity", (p.side ? .55 : 1) * (0.55 + 0.45 * w)); }
+  });
+}
+$$("[data-l]").forEach(b => b.addEventListener("click", () => { light = b.dataset.l; drawB(); }));
+$("#bTilt").addEventListener("input", e => { tilt = +e.target.value; updStato(); });
+drawB();
+
+/* ===================== smyčka ===================== */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (tab === "p-a" && aRun) stepA(dt);
+  if (tab === "p-b" && !reduce) stepB(dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
