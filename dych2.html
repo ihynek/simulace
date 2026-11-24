@@ -216,7 +216,7 @@ function drawNd(dt){
   txt(s,30,72,"slabší podtlak",{"font-size":9.5,fill:css("--muted")});txt(s,160,72,"silnější",{"font-size":9.5,fill:css("--muted"),"text-anchor":"end"});
   // stav
   const S=$("#ndStatus"),T=$("#ndText");
-  if(insp){S.textContent="NÁDECH (inspirace) – aktivní děj";S.className="status ok";T.innerHTML=(ty==="bris"?"Hlavně se stahuje <b>bránice</b> – klesá dolů (břišní dýchání).":"Hlavně pracují <b>vnější mezižeberní svaly</b> – přitahují spodní žebro k žebru nad ním a hrudník se zvedá (hrudní dýchání).")+" Objem hrudníku roste, podtlak sílí a vzduch proudí po tlakovém spádu dovnitř."}
+  if(insp){S.textContent="NÁDECH (inspirium) – aktivní děj";S.className="status ok";T.innerHTML=(ty==="bris"?"Hlavně se stahuje <b>bránice</b> – klesá dolů (břišní dýchání).":"Hlavně pracují <b>vnější mezižeberní svaly</b> – přitahují spodní žebro k žebru nad ním a hrudník se zvedá (hrudní dýchání).")+" Objem hrudníku roste, podtlak sílí a vzduch proudí po tlakovém spádu dovnitř."}
   else if(forced){S.textContent="USILOVNÝ VÝDECH";S.className="status warn";T.innerHTML="Pracují <b>vnitřní mezižeberní svaly</b> (stahují výše postavené žebro níž) a <b>svaly břicha – břišní lis</b>. Vydechneme víc vzduchu než při klidném výdechu."}
   else{S.textContent="KLIDNÝ VÝDECH (exspirace) – pasivní";S.className="status";T.innerHTML="Bránice a vnější mezižeberní svaly <b>ochabnou</b>, hrudník se vrátí a vzduch odchází ven – bez práce svalů."}
 }
