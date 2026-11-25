@@ -265,10 +265,10 @@ function kresliRez(){
   // naklonění celé scény kolem středu podložky
   const piv = {x:W/2, y:BASEY};
   R.save();
-  R.translate(piv.x,piv.y); R.rotate(-tilt*Math.PI/180); R.translate(-piv.x,-piv.y);
+  R.translate(piv.x,piv.y); R.rotate(tilt*Math.PI/180); R.translate(-piv.x,-piv.y);
 
   const hPx = P.h*PXUM, sPx = P.s*PXUM, dPx = DPAP*PXUM;
-  const x0 = -600, x1 = W+600;
+  const x0 = -1700, x1 = W+1700;      // s rezervou, aby list pokryl plátno i při naklonění 90°
 
   // --- obrys kutikuly s papilami ---
   function obrys(){
@@ -286,7 +286,7 @@ function kresliRez(){
       }
       R.lineTo(x1, BASEY);
     }
-    R.lineTo(x1, BASEY+260); R.lineTo(x0, BASEY+260); R.closePath();
+    R.lineTo(x1, BASEY+1700); R.lineTo(x0, BASEY+1700); R.closePath();
   }
 
   // --- kapka ---
