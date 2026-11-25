@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mikroreliéf pokožky — kapka a průduchový index</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Spectral:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF1F5; --panel:#FFFFFF; --ink:#1A2430; --muted:#5C6978; --line:#CBD5E0;
+  --akcent:#1B4F86; --ok:#3C7A3A; --chyba:#B5452F; --znacka:#C2410C;
+  --poleBg:#F3F8FA;
+  --voda:#8EC5DE; --voda-tm:#3E7E9E; --vodaVypln:rgba(142,197,222,.72);
+  --vzduch:#FBFDFE;
+  --list:#CFE0C4; --list-tm:#6E9459; --kutik:#EBF2E4;
+  --otisk:#F6F3EC; --stena:#A89878; --bunka:#FCFAF4;
+  --prud:#5E8C5A; --prudTm:#33602F;
+  --znB:#1B4F86; --znP:#C2410C;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+    --akcent:#6FA8DC; --ok:#7FBC7B; --chyba:#E8736A; --znacka:#E8794A;
+    --poleBg:#101922;
+    --voda:#5AA3C4; --voda-tm:#9FD4EC; --vodaVypln:rgba(90,163,196,.60);
+    --vzduch:#0B1218;
+    --list:#3C5234; --list-tm:#8FB47A; --kutik:#2A3A24;
+    --otisk:#23201A; --stena:#8A7A5C; --bunka:#2E2A22;
+    --prud:#7FAF78; --prudTm:#AFD6A6;
+    --znB:#6FA8DC; --znP:#E8794A;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131A22; --panel:#1C242E; --ink:#E6ECF2; --muted:#9BA9B8; --line:#333F4D;
+  --akcent:#6FA8DC; --ok:#7FBC7B; --chyba:#E8736A; --znacka:#E8794A;
+  --poleBg:#101922;
+  --voda:#5AA3C4; --voda-tm:#9FD4EC; --vodaVypln:rgba(90,163,196,.60);
+  --vzduch:#0B1218;
+  --list:#3C5234; --list-tm:#8FB47A; --kutik:#2A3A24;
+  --otisk:#23201A; --stena:#8A7A5C; --bunka:#2E2A22;
+  --prud:#7FAF78; --prudTm:#AFD6A6;
+  --znB:#6FA8DC; --znP:#E8794A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Atkinson Hyperlegible",system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding:1.5rem 1.25rem 3rem}
+h1{font-family:"Spectral",Georgia,serif;font-weight:700;font-size:clamp(1.6rem,3.2vw,2.2rem);line-height:1.12;margin:0 0 .3rem}
+.lead{color:var(--muted);max-width:68ch;margin:0 0 1.2rem}
+h2{font-family:"Spectral",Georgia,serif;font-size:1.08rem;margin:0 0 .55rem}
+.taby{display:flex;gap:.4rem;margin:0 0 1.1rem;border-bottom:2px solid var(--line);flex-wrap:wrap}
+.taby button{font:inherit;font-size:1rem;border:none;background:transparent;color:var(--muted);
+  padding:.55rem .95rem;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+.taby button:hover{color:var(--ink)}
+.taby button[aria-selected="true"]{color:var(--akcent);border-bottom-color:var(--akcent);font-weight:700}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.66fr);gap:1.1rem;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:1fr}}
+.stage{background:var(--panel);border:2px solid var(--line);border-radius:16px;overflow:hidden}
+canvas{display:block;width:100%;height:auto}
+canvas#rez{aspect-ratio:95/52}
+canvas#otisk{aspect-ratio:1/1;touch-action:manipulation;cursor:crosshair}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.95rem 1.05rem}
+.side{display:flex;flex-direction:column;gap:.85rem}
+.volby{display:flex;gap:.45rem;flex-wrap:wrap}
+.volby button{flex:1 1 auto;font:inherit;border:1px solid var(--line);background:transparent;color:var(--ink);
+  border-radius:9px;padding:.42rem .7rem;cursor:pointer}
+.volby button:hover{border-color:var(--akcent)}
+.volby button[aria-pressed="true"]{background:var(--akcent);border-color:var(--akcent);color:#fff}
+.volby button:disabled{opacity:.45;cursor:default}
+label.sl{display:block;font-size:.9rem;color:var(--muted);margin:.7rem 0 0}
+label.sl:first-of-type{margin-top:0}
+label.sl b{color:var(--ink);float:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--akcent);margin:.25rem 0 .1rem}
+.cisla{display:grid;grid-template-columns:1fr auto;gap:.2rem .6rem;font-size:.95rem;margin:.1rem 0 0}
+.cisla span:nth-child(odd){color:var(--muted)}
+.cisla span:nth-child(even){font-variant-numeric:tabular-nums;font-weight:700;text-align:right}
+.velke{font-family:"Spectral",Georgia,serif;font-size:1.55rem;font-weight:700;color:var(--akcent);
+  font-variant-numeric:tabular-nums}
+.stav{font-weight:700;margin:.1rem 0 .3rem}
+.stav.lotos{color:var(--ok)} .stav.prilnavy{color:var(--znacka)} .stav.smacivy{color:var(--chyba)}
+.pozn{color:var(--muted);font-size:.88rem;margin:.55rem 0 0}
+.vysl{margin:.6rem 0 0;font-size:.95rem}
+.vysl b{font-size:1.02rem}
+.ok{color:var(--ok)} .chyba{color:var(--chyba)}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+th,td{text-align:left;padding:.3rem .25rem;border-bottom:1px solid var(--line)}
+th{font-weight:700;color:var(--muted);font-size:.84rem;text-transform:uppercase;letter-spacing:.03em}
+td.c,th.c{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+.swatch{display:inline-block;width:.78rem;height:.78rem;border-radius:3px;margin-right:.45rem;vertical-align:-1px;
+  border:1px solid rgba(0,0,0,.18)}
+.vzorec{font-family:"Spectral",Georgia,serif;font-size:1.05rem;text-align:center;margin:.3rem 0 .1rem}
+footer{color:var(--muted);font-size:.86rem;margin-top:1.6rem;border-top:1px solid var(--line);padding-top:.8rem}
+.skryto{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Mikroreliéf rostlinné pokožky</h1>
+<p class="lead">Dvě věci, které se na otisku pokožky dají zkoumat: jak reliéf povrchu rozhoduje o chování
+kapky vody a jak se z otisku určí průduchový index.</p>
+
+<div class="taby" role="tablist">
+  <button role="tab" id="tabA" aria-selected="true" aria-controls="panA">Kapka na povrchu</button>
+  <button role="tab" id="tabB" aria-selected="false" aria-controls="panB">Průduchový index</button>
+</div>
+
+<!-- ============================ PANEL A ============================ -->
+<div id="panA" role="tabpanel">
+<div class="grid">
+  <div class="stage"><canvas id="rez" width="950" height="520"></canvas></div>
+
+  <div class="side">
+    <div class="box">
+      <h2>Povrch</h2>
+      <label class="sl">výška papil <b><span id="vVyska">0</span> µm</b>
+        <input type="range" id="vyska" min="0" max="100" value="0" aria-label="výška papil"></label>
+      <label class="sl">rozteč papil <b><span id="vRozt">0</span> µm</b>
+        <input type="range" id="rozt" min="0" max="100" value="50" aria-label="rozteč papil"></label>
+      <label class="sl">voskový povlak <b><span id="vVosk">0</span> %</b>
+        <input type="range" id="vosk" min="0" max="100" value="30" aria-label="voskový povlak"></label>
+      <div class="volby" style="margin-top:.75rem">
+        <button data-pre="zeli">zelí</button>
+        <button data-pre="brectan">břečťan</button>
+      </div>
+      <div class="volby" style="margin-top:.45rem">
+        <button data-pre="ibisek">ibišek</button>
+        <button data-pre="lotos">lotos</button>
+      </div>
+    </div>
+
+    <div class="box">
+      <h2>Chování kapky</h2>
+      <p class="stav" id="stav"></p>
+      <div class="cisla">
+        <span>kontaktní úhel</span><span id="cUhel">—</span>
+        <span>úhel skápnutí</span><span id="cSkap">—</span>
+      </div>
+      <div class="volby" style="margin-top:.7rem">
+        <button id="bNaklon">Naklonit</button>
+        <button id="bZnovu">Zpět do vodorovna</button>
+      </div>
+      <p class="pozn" id="naklonText">Naklápěním zjistíš, při jakém úhlu se kapka rozjede.</p>
+    </div>
+
+    <div class="box">
+      <h2>Co se v řezu děje</h2>
+      <p class="pozn" id="popis" style="margin-top:0"></p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================ PANEL B ============================ -->
+<div id="panB" role="tabpanel" class="skryto">
+<div class="grid">
+  <div class="stage"><canvas id="otisk" width="760" height="760"></canvas></div>
+
+  <div class="side">
+    <div class="box">
+      <h2>Vzorek</h2>
+      <div class="volby">
+        <button data-vz="zeli">zelí</button>
+        <button data-vz="ibisek">ibišek</button>
+      </div>
+      <div class="volby" style="margin-top:.45rem">
+        <button data-vz="brSp">břečťan — spodní</button>
+        <button data-vz="brHo">břečťan — horní</button>
+      </div>
+      <div class="volby" style="margin-top:.45rem">
+        <button id="bNovePole">Nové zorné pole</button>
+      </div>
+      <p class="pozn">Výřez 250 × 250 µm z otisku, zvětšení odpovídá 400×.</p>
+    </div>
+
+    <div class="box">
+      <h2>Počítání</h2>
+      <div class="volby">
+        <button id="bModP" aria-pressed="true"><span class="swatch" style="background:var(--znP)"></span>průduchy</button>
+        <button id="bModB" aria-pressed="false"><span class="swatch" style="background:var(--znB)"></span>pokožkové buňky</button>
+      </div>
+      <p class="vzorec">PI = <span id="pP">0</span> / (<span id="pP2">0</span> + <span id="pB">0</span>) × 100
+        = <span class="velke" id="pPI">—</span></p>
+      <div class="volby" style="margin-top:.5rem">
+        <button id="bKontrola">Zkontrolovat</button>
+        <button id="bSmazat">Smazat značky</button>
+      </div>
+      <div class="vysl" id="vysledek"></div>
+      <p class="pozn">Klikáním označ, co počítáš. Druhým kliknutím značku zrušíš.</p>
+    </div>
+
+    <div class="box">
+      <h2>Pravidla</h2>
+      <table>
+        <tr><td>průduch = dvě svěrací buňky</td><td class="c">1× do P</td></tr>
+        <tr><td>svěrací buňky jako pokožkové</td><td class="c">nepočítat</td></tr>
+        <tr><td>buňka na okraji pole</td><td class="c">víc než polovinou</td></tr>
+      </table>
+      <p class="pozn">Index nepotřebuje znát plochu zorného pole — je to poměr, ne hustota.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>
+Model je zjednodušený: ukazuje trend, ne přesné hodnoty. Kontaktní úhel se počítá z podílu
+dosedlé plochy a ze smáčivosti vosku, úhel skápnutí z rozdílu mezi nabíhajícím a odtékajícím okrajem kapky.
+Voskové krystalky velké desítky nanometrů tu nejsou — v optickém mikroskopu ani v otisku je neuvidíš.
+</footer>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const clamp = (x,a,b) => x<a?a:(x>b?b:x);
+const fmt = (x,n=0) => x.toFixed(n).replace(".",",");
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ============================ PANEL A ============================ */
+const rez = $("#rez"), R = rez.getContext("2d");
+const PXUM = 2.2;                 // px na µm
+const DPAP = 16;                  // šířka papily v µm (pevná)
+const BASEY = 400;                // úroveň kutikuly v px
+const VOL = 4.134 * 95**3;        // objem kapky, kalibrovaný tak, aby R(150°) ≈ 95 px
+
+let vyska = 0, rozt = 50, vosk = 30;
+let tilt = 0, tiltCil = 0, rolling = false, rollS = 0, animId = null, skapAt = null;
+
+function papilyParam(){
+  const h  = (vyska/100)*26;                  // µm
+  const s  = 14 + (rozt/100)*62;              // µm, rozteč
+  const g  = Math.max(0, s - DPAP);           // mezera
+  const th0 = 50 + 0.55*vosk;                 // ° na hladkém povrchu
+  const c0 = Math.cos(th0*Math.PI/180);
+  const f  = Math.min(1, (0.22*DPAP)/s);      // podíl dosedlé plochy
+  const r  = 1 + 2*h/s;                       // zvětšení povrchu reliéfem
+  let stav, c;
+  if(h < 0.8){ stav="hladky"; c = c0; }
+  else if(th0 <= 90){ stav="smacivy"; c = clamp(r*c0,-1,1); }
+  else if(h >= 0.35*g){ stav="lotos"; c = f*c0 - (1-f); }
+  else { stav="prilnavy"; c = clamp(r*c0,-1,1); }
+  const th = Math.acos(clamp(c,-1,1))*180/Math.PI;
+  const hyst = (stav==="lotos")
+      ? 2 + 30*f
+      : 28 + 45*Math.max(0,(95-th)/95) + 35*(1-1/r);
+  const skap = (th < 22) ? null : clamp(0.9*hyst, 1, 90);
+  return {h, s, g, th0, f, r, stav, th, skap};
+}
+
+function kapkaGeom(thDeg){
+  const th = clamp(thDeg,8,179)*Math.PI/180, c = Math.cos(th);
+  const k = (2 - 3*c + c*c*c)/3;
+  const rad = Math.cbrt(VOL/(Math.PI*k));
+  return {rad, th, c, a: rad*Math.sin(th)};
+}
+
+function kresliRez(){
+  const P = papilyParam();
+  const W = rez.width, H = rez.height;
+  R.setTransform(1,0,0,1,0,0);
+  R.clearRect(0,0,W,H);
+  R.fillStyle = css("--vzduch"); R.fillRect(0,0,W,H);
+
+  // naklonění celé scény kolem středu podložky
+  const piv = {x:W/2, y:BASEY};
+  R.save();
+  R.translate(piv.x,piv.y); R.rotate(-tilt*Math.PI/180); R.translate(-piv.x,-piv.y);
+
+  const hPx = P.h*PXUM, sPx = P.s*PXUM, dPx = DPAP*PXUM;
+  const x0 = -600, x1 = W+600;
+
+  // --- obrys kutikuly s papilami ---
+  function obrys(){
+    R.beginPath();
+    R.moveTo(x0, BASEY);
+    if(hPx < 1.8){ R.lineTo(x1, BASEY); }
+    else {
+      const n0 = Math.floor((x0 - W/2)/sPx) - 1, n1 = Math.ceil((x1 - W/2)/sPx) + 1;
+      for(let i=n0;i<=n1;i++){
+        const cx = W/2 + i*sPx;
+        R.lineTo(cx - dPx/2, BASEY);
+        R.bezierCurveTo(cx - dPx/2, BASEY - hPx*1.32,
+                        cx + dPx/2, BASEY - hPx*1.32,
+                        cx + dPx/2, BASEY);
+      }
+      R.lineTo(x1, BASEY);
+    }
+    R.lineTo(x1, BASEY+260); R.lineTo(x0, BASEY+260); R.closePath();
+  }
+
+  // --- kapka ---
+  const G = kapkaGeom(P.th);
+  const yC = (P.stav==="lotos") ? BASEY - hPx : BASEY;          // na hrotech, nebo až na kutikule
+  const cx = W/2 + rollS;
+  const cy = yC + G.rad*G.c;
+
+  if(P.stav !== "lotos" && hPx >= 1.8){
+    // Wenzel: voda zateče mezi papily — vyplň pás pod kapkou
+    R.save();
+    R.beginPath(); R.rect(cx-G.a, BASEY-hPx*1.4, 2*G.a, hPx*1.4+2); R.clip();
+    R.fillStyle = css("--vodaVypln");
+    R.fillRect(cx-G.a, BASEY-hPx*1.4, 2*G.a, hPx*1.4+2);
+    R.restore();
+  }
+
+  // list pod kutikulou
+  obrys();
+  R.fillStyle = css("--list"); R.fill();
+  R.save(); obrys(); R.clip();
+  R.fillStyle = css("--kutik"); R.fillRect(x0, BASEY-hPx*1.45, x1-x0, hPx*1.45+18);
+  R.restore();
+  obrys();
+  R.strokeStyle = css("--list-tm"); R.lineWidth = 2.4; R.stroke();
+
+  // kapka: kruhová úseč nad dosedací rovinou
+  R.save();
+  R.beginPath(); R.rect(x0, -400, x1-x0, yC+400); R.clip();
+  R.beginPath(); R.arc(cx, cy, G.rad, 0, Math.PI*2);
+  const gr = R.createRadialGradient(cx-G.rad*.35, cy-G.rad*.45, G.rad*.1, cx, cy, G.rad*1.05);
+  gr.addColorStop(0, "rgba(255,255,255,.80)"); gr.addColorStop(.38, css("--voda")); gr.addColorStop(1, css("--voda-tm"));
+  R.fillStyle = gr; R.globalAlpha = .9; R.fill(); R.globalAlpha = 1;
+  R.strokeStyle = css("--voda-tm"); R.lineWidth = 2.2; R.stroke();
+  R.restore();
+
+  // vyznačení kontaktního úhlu — tečna, vodorovná osa a oblouk mezi nimi
+  if(G.a > 5){
+    const th = P.th*Math.PI/180;
+    const rr = clamp(G.rad*0.55, 34, 76);
+    R.save(); R.translate(cx - G.a, yC);
+    R.strokeStyle = css("--znacka"); R.lineWidth = 2;
+    R.setLineDash([6,4]);
+    R.beginPath(); R.moveTo(0,0); R.lineTo(rr*1.25, 0); R.stroke();                     // povrch
+    R.beginPath(); R.moveTo(0,0); R.lineTo(Math.cos(-th)*rr*1.25, Math.sin(-th)*rr*1.25); R.stroke(); // tečna
+    R.setLineDash([]);
+    R.lineWidth = 2.4;
+    R.beginPath(); R.arc(0,0, rr*0.62, -th, 0); R.stroke();
+    const la = -th/2;
+    R.fillStyle = css("--znacka"); R.font = '700 19px "Atkinson Hyperlegible", sans-serif';
+    R.textAlign = "center"; R.textBaseline = "middle";
+    R.fillText(fmt(P.th)+"°", Math.cos(la)*rr*0.92, Math.sin(la)*rr*0.92);
+    R.restore();
+  }
+  R.restore();
+
+  kresliVyrez(P, W, H);
+
+  // měřítko a úhel naklonění (nenaklopené)
+  R.fillStyle = css("--muted"); R.font = '600 16px "Atkinson Hyperlegible", sans-serif';
+  R.textAlign = "left"; R.textBaseline = "alphabetic";
+  const l50 = 50*PXUM;
+  R.strokeStyle = css("--muted"); R.lineWidth = 2;
+  R.beginPath(); R.moveTo(26, H-26); R.lineTo(26+l50, H-26);
+  R.moveTo(26, H-32); R.lineTo(26, H-20); R.moveTo(26+l50, H-32); R.lineTo(26+l50, H-20); R.stroke();
+  R.fillText("50 µm", 26+l50+12, H-20);
+  if(tilt > 0.5){
+    R.textAlign = "right";
+    R.fillText("naklonění "+fmt(tilt)+"°", W-26, H-20);
+  }
+}
+
+/* zvětšený detail dotyku kapky s povrchem */
+function kresliVyrez(P, W, H){
+  const bx = W-336, by = 34, bw = 312, bh = 182;
+  const pad = 14, ix0 = bx+pad, ix1 = bx+bw-pad, iy1 = by+bh-pad, iw = ix1-ix0;
+
+  R.save();
+  R.beginPath(); R.roundRect(bx, by, bw, bh, 12);
+  R.fillStyle = css("--panel"); R.fill();
+  R.strokeStyle = css("--line"); R.lineWidth = 1.6; R.stroke();
+  R.clip();
+
+  const sIn = iw/3.6;
+  const dIn = P.h<0.8 ? 0 : sIn*(DPAP/P.s);
+  const hIn = P.h<0.8 ? 0 : Math.min(sIn*(P.h/P.s), bh*0.40);
+  const baseIn = iy1 - 10;
+  const x0 = ix0 + sIn*0.3;
+
+  const stred = x => Math.round((x-x0)/sIn)*sIn + x0;
+  const profil = x => {
+    if(hIn <= 0) return baseIn;
+    const dx = x - stred(x);
+    return Math.abs(dx) <= dIn/2
+      ? baseIn - hIn*0.5*(1+Math.cos(2*Math.PI*dx/dIn))
+      : baseIn;
+  };
+  const sag = Math.min(0.32*Math.max(0,(sIn-dIn)), hIn*0.55);
+  const hladina = x => {
+    const t = Math.min(1, Math.abs(x-stred(x))/(sIn/2));
+    return baseIn - hIn + sag*t*t;
+  };
+
+  const cassie = (P.stav==="lotos" && hIn > 4);
+  const spodek = cassie ? hladina : profil;
+
+  // voda shora až po spodní hranici
+  R.beginPath();
+  R.moveTo(ix0-20, by-10); R.lineTo(ix1+20, by-10);
+  for(let x = ix1+20; x >= ix0-20; x -= 2) R.lineTo(x, spodek(x));
+  R.closePath();
+  R.fillStyle = css("--voda"); R.globalAlpha = .62; R.fill(); R.globalAlpha = 1;
+  R.strokeStyle = css("--voda-tm"); R.lineWidth = 2.2;
+  R.beginPath();
+  for(let x = ix0-20; x <= ix1+20; x += 2){ x===ix0-20 ? R.moveTo(x, spodek(x)) : R.lineTo(x, spodek(x)); }
+  R.stroke();
+
+  // kutikula s papilami
+  R.beginPath();
+  R.moveTo(ix0-20, profil(ix0-20));
+  for(let x = ix0-20; x <= ix1+20; x += 2) R.lineTo(x, profil(x));
+  R.lineTo(ix1+20, iy1+30); R.lineTo(ix0-20, iy1+30); R.closePath();
+  R.fillStyle = css("--list"); R.fill();
+  R.strokeStyle = css("--list-tm"); R.lineWidth = 2.2; R.stroke();
+
+  R.font = '700 15px "Atkinson Hyperlegible", sans-serif';
+  R.textBaseline = "middle"; R.textAlign = "center";
+  if(cassie && sag > 7){
+    R.fillStyle = css("--muted");
+    const xm = stred(ix0 + iw*0.5) + sIn/2;
+    R.fillText("vzduch", xm, baseIn - hIn*0.42);
+  }
+  R.fillStyle = css("--voda-tm");
+  R.fillText("voda", ix0 + iw*0.5, by + 26);
+
+  R.restore();
+  R.fillStyle = css("--muted"); R.font = '600 14px "Atkinson Hyperlegible", sans-serif';
+  R.textAlign = "left"; R.textBaseline = "bottom";
+  R.fillText("detail dotyku", bx+2, by-5);
+}
+
+function popisStavu(P){
+  if(P.stav==="hladky")
+    return "Povrch je hladký, kapka na něm leží tak, jak jí dovolí vosk. Reliéf se neuplatní.";
+  if(P.stav==="smacivy")
+    return "Vosku je málo. Voda zateče mezi papily a reliéf ji drží — kapka se rozlije víc, než by se rozlila na hladkém povrchu. Hrbolatý a zároveň smáčivý povrch je ten nejhorší případ.";
+  if(P.stav==="lotos")
+    return "Kapka stojí na hrotech papil a pod ní zůstává vzduch. Dotýká se jen malého zlomku povrchu, takže se stáhne téměř do kuličky a skutálí se při nepatrném naklonění. Tohle je lotosový efekt.";
+  return "Vosku je dost, ale papily jsou na svoji rozteč nízké. Kapka propadne mezi ně a zachytí se. Je sice kulatá, ale drží — nakloněním ji nedostaneš dolů.";
+}
+
+function prekresliA(){
+  $("#vVyska").textContent = fmt((vyska/100)*26, 1);
+  $("#vRozt").textContent  = fmt(14 + (rozt/100)*62);
+  $("#vVosk").textContent  = vosk;
+  const P = papilyParam();
+  const el = $("#stav");
+  el.className = "stav " + (P.stav==="lotos"?"lotos":P.stav==="prilnavy"?"prilnavy":P.stav==="smacivy"?"chyba smacivy":"");
+  el.textContent = {hladky:"hladký povrch", smacivy:"smáčivý", lotos:"lotosový", prilnavy:"přilnavý"}[P.stav];
+  $("#cUhel").textContent = fmt(P.th)+"°";
+  $("#cSkap").textContent = P.skap===null ? "rozlije se" : (P.skap>=89 ? "nerozjede se" : fmt(P.skap)+"°");
+  $("#popis").textContent = popisStavu(P);
+  kresliRez();
+}
+
+["vyska","rozt","vosk"].forEach(id=>{
+  $("#"+id).addEventListener("input", e=>{
+    if(id==="vyska") vyska = +e.target.value;
+    if(id==="rozt")  rozt  = +e.target.value;
+    if(id==="vosk")  vosk  = +e.target.value;
+    zastavNaklon(); prekresliA();
+  });
+});
+
+const PRESETY = {
+  zeli:     {vyska:70, rozt:35, vosk:95},
+  brectan:  {vyska:2,  rozt:55, vosk:75},
+  ibisek:   {vyska:4,  rozt:55, vosk:25},
+  lotos:    {vyska:95, rozt:45, vosk:100}
+};
+document.querySelectorAll("[data-pre]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    const p = PRESETY[b.dataset.pre];
+    vyska=p.vyska; rozt=p.rozt; vosk=p.vosk;
+    $("#vyska").value=vyska; $("#rozt").value=rozt; $("#vosk").value=vosk;
+    document.querySelectorAll("[data-pre]").forEach(x=>x.setAttribute("aria-pressed", x===b));
+    zastavNaklon(); prekresliA();
+  });
+});
+
+function zastavNaklon(){
+  if(animId){ cancelAnimationFrame(animId); animId=null; }
+  tilt=0; tiltCil=0; rolling=false; rollS=0; skapAt=null;
+  $("#naklonText").textContent = "Naklápěním zjistíš, při jakém úhlu se kapka rozjede.";
+  $("#bNaklon").disabled = false;
+}
+$("#bZnovu").addEventListener("click", ()=>{ zastavNaklon(); prekresliA(); });
+
+$("#bNaklon").addEventListener("click", ()=>{
+  if(animId) return;
+  const P = papilyParam();
+  tilt = 0; rolling = false; rollS = 0; skapAt = null;
+  $("#bNaklon").disabled = true;
+  let t0 = null;
+  function krok(ts){
+    if(t0===null) t0 = ts;
+    const dt = (ts - t0)/1000; t0 = ts;
+    if(!rolling){
+      tilt = Math.min(90, tilt + dt*17);
+      const prah = P.skap===null ? 0 : P.skap;
+      if(P.skap===null && tilt > 3){
+        rolling = true; skapAt = null;
+        $("#naklonText").innerHTML = "Kapka je rozlitá do placky — <b>nestáhne se a nesjede</b>, jen se po povrchu rozteče.";
+      } else if(P.skap!==null && P.skap < 89 && tilt >= prah){
+        rolling = true; skapAt = tilt;
+        $("#naklonText").innerHTML = "Kapka se rozjela při <b>"+fmt(tilt)+"°</b>.";
+      } else if(tilt >= 90){
+        $("#naklonText").innerHTML = "Ani při <b>90°</b> se kapka nerozjela — drží na povrchu.";
+        animId = null; $("#bNaklon").disabled = false; kresliRez(); return;
+      }
+    } else {
+      rollS += dt * (skapAt===null ? 60 : 300);
+    }
+    kresliRez();
+    if(rolling && rollS > 700){ animId=null; $("#bNaklon").disabled=false; return; }
+    animId = requestAnimationFrame(krok);
+  }
+  animId = requestAnimationFrame(krok);
+});
+
+/* ============================ PANEL B ============================ */
+const oc = $("#otisk"), O = oc.getContext("2d");
+const FIELD = 250;                       // µm na stranu výřezu
+let vzorek = "zeli", bunky = [], mod = "P", znacky = new Map(), rngState = 12345;
+
+function rnd(){ rngState = (rngState*1664525 + 1013904223) & 0x7fffffff; return rngState/0x7fffffff; }
+
+const VZORKY = {
+  zeli:   {krok:150, prud:4, jitter:.46, popis:"zelí — spodní strana"},
+  ibisek: {krok:138, prud:4, jitter:.42, popis:"ibišek — spodní strana"},
+  brSp:   {krok:144, prud:3, jitter:.38, popis:"břečťan — spodní strana"},
+  brHo:   {krok:150, prud:0, jitter:.34, popis:"břečťan — horní strana"}
+};
+function inradius(poly, c){
+  let m = 1e9;
+  for(let i=0;i<poly.length;i++){
+    const a = poly[i], b = poly[(i+1)%poly.length];
+    const dx = b[0]-a[0], dy = b[1]-a[1], L = Math.hypot(dx,dy)||1;
+    m = Math.min(m, Math.abs((c[0]-a[0])*dy - (c[1]-a[1])*dx)/L);
+  }
+  return m;
+}
+
+function orez(poly, nx, ny, c){
+  const out = [];
+  for(let i=0;i<poly.length;i++){
+    const a = poly[i], b = poly[(i+1)%poly.length];
+    const da = nx*a[0]+ny*a[1]-c, db = nx*b[0]+ny*b[1]-c;
+    if(da <= 0) out.push(a);
+    if((da < 0 && db > 0) || (da > 0 && db < 0)){
+      const t = da/(da-db);
+      out.push([a[0]+t*(b[0]-a[0]), a[1]+t*(b[1]-a[1])]);
+    }
+  }
+  return out;
+}
+
+function centroid(p){
+  let x=0,y=0; for(const q of p){ x+=q[0]; y+=q[1]; } return [x/p.length, y/p.length];
+}
+function zmensi(p, d){
+  const c = centroid(p);
+  return p.map(q=>{
+    const dx=q[0]-c[0], dy=q[1]-c[1], L=Math.hypot(dx,dy)||1;
+    const k = Math.max(0, (L-d))/L;
+    return [c[0]+dx*k, c[1]+dy*k];
+  });
+}
+function vPoly(p, x, y){
+  let inside = false;
+  for(let i=0,j=p.length-1;i<p.length;j=i++){
+    if(((p[i][1]>y)!==(p[j][1]>y)) &&
+       (x < (p[j][0]-p[i][0])*(y-p[i][1])/(p[j][1]-p[i][1])+p[i][0])) inside = !inside;
+  }
+  return inside;
+}
+
+function generujPole(seed){
+  rngState = seed;
+  const V = VZORKY[vzorek], W = oc.width, krok = V.krok;
+  // jitterovaná mřížka přes okraje (buňky u hrany jsou nedokončené, jako ve skutečnosti)
+  let seeds = [];
+  const n = Math.ceil(W/krok) + 3;
+  for(let j=-1;j<n;j++) for(let i=-1;i<n;i++){
+    const ox = (j%2)*krok*0.5;
+    seeds.push([ i*krok + ox + (rnd()-.5)*krok*V.jitter*2,
+                 j*krok*0.88 + (rnd()-.5)*krok*V.jitter*2 ]);
+  }
+  // jedna relaxace: odstraní nejhorší úzké klíny, ale nechá buňky nepravidelné
+  {
+    const cs = voronoi(seeds, W);
+    seeds = seeds.map((s,i)=> cs[i].length ? centroid(cs[i]).map((v,k)=>0.55*v+0.45*s[k]) : s);
+  }
+  const polys = voronoi(seeds, W);
+
+  // ponech jen buňky, které leží aspoň polovinou v poli
+  let cells = [];
+  for(let i=0;i<polys.length;i++){
+    const p = polys[i]; if(p.length < 3) continue;
+    const c = centroid(p);
+    if(c[0] < 0 || c[0] > W || c[1] < 0 || c[1] > W) continue;
+    cells.push({poly:p, c, prud:false});
+  }
+  // rozmísti průduchy co nejdál od sebe (greedy)
+  const vnitr = cells.filter(b => b.c[0]>W*.1 && b.c[0]<W*.9 && b.c[1]>W*.1 && b.c[1]<W*.9);
+  const vybr = [];
+  for(let k=0;k<V.prud && vnitr.length;k++){
+    let best = null, bd = -1;
+    for(const b of vnitr){
+      if(b.prud) continue;
+      const d = vybr.length ? Math.min(...vybr.map(v=>Math.hypot(v.c[0]-b.c[0], v.c[1]-b.c[1]))) : (rnd()*W);
+      if(d > bd){ bd = d; best = b; }
+    }
+    if(!best) break;
+    best.prud = true; vybr.push(best);
+  }
+  bunky = cells;
+  znacky = new Map();
+  kresliOtisk();
+  aktualizujPI();
+  $("#vysledek").innerHTML = "";
+}
+
+function voronoi(seeds, W){
+  return seeds.map((p,i)=>{
+    let poly = [[-W*.6,-W*.6],[W*1.6,-W*.6],[W*1.6,W*1.6],[-W*.6,W*1.6]];
+    const near = seeds.map((q,j)=>({q,j,d:(q[0]-p[0])**2+(q[1]-p[1])**2}))
+                      .filter(o=>o.j!==i).sort((a,b)=>a.d-b.d).slice(0,16);
+    for(const {q} of near){
+      const nx = q[0]-p[0], ny = q[1]-p[1];
+      const mx = (p[0]+q[0])/2, my = (p[1]+q[1])/2;
+      poly = orez(poly, nx, ny, nx*mx+ny*my);
+      if(poly.length < 3) break;
+    }
+    return poly;
+  });
+}
+
+function kresliOtisk(){
+  const W = oc.width;
+  O.setTransform(1,0,0,1,0,0);
+  O.fillStyle = css("--otisk"); O.fillRect(0,0,W,W);
+
+  for(const b of bunky){
+    const p = zmensi(b.poly, 3.5);
+    if(p.length < 3) continue;
+    O.beginPath(); O.moveTo(p[0][0],p[0][1]);
+    for(let i=1;i<p.length;i++) O.lineTo(p[i][0],p[i][1]);
+    O.closePath();
+    O.fillStyle = css("--bunka"); O.fill();
+    O.strokeStyle = css("--stena"); O.lineWidth = 2.6; O.stroke();
+  }
+
+  // průduchy: dvojice svěracích buněk se štěrbinou, vepsaná do buňky
+  for(const b of bunky){
+    if(!b.prud) continue;
+    const p = zmensi(b.poly, 3.5); if(p.length<3) continue;
+    const c = centroid(p);
+    const ri = inradius(p, c) * 0.88;
+    if(ri < 9) continue;
+    const ang = (b.c[0]*0.017 + b.c[1]*0.011) % Math.PI;
+    O.save(); O.translate(c[0], c[1]); O.rotate(ang);
+    // obrys celého průduchu
+    O.beginPath(); O.ellipse(0, 0, ri*0.62, ri*0.98, 0, 0, Math.PI*2);
+    O.fillStyle = css("--bunka"); O.fill();
+    O.strokeStyle = css("--prudTm"); O.lineWidth = 3; O.stroke();
+    // hranice mezi svěracími buňkami
+    O.strokeStyle = css("--prudTm"); O.lineWidth = 2;
+    O.beginPath(); O.moveTo(0, -ri*0.98); O.lineTo(0, ri*0.98); O.stroke();
+    // štěrbina
+    O.beginPath(); O.ellipse(0, 0, ri*0.17, ri*0.56, 0, 0, Math.PI*2);
+    O.fillStyle = css("--prud"); O.fill();
+    O.strokeStyle = css("--prudTm"); O.lineWidth = 2; O.stroke();
+    O.restore();
+  }
+
+  // značky
+  for(const [i,typ] of znacky){
+    const b = bunky[i]; if(!b) continue;
+    O.beginPath(); O.arc(b.c[0], b.c[1], 13, 0, Math.PI*2);
+    O.fillStyle = typ==="P" ? css("--znP") : css("--znB");
+    O.globalAlpha = .9; O.fill(); O.globalAlpha = 1;
+    O.strokeStyle = css("--otisk"); O.lineWidth = 2.5; O.stroke();
+  }
+
+  // měřítko
+  const l = (50/FIELD)*W;
+  O.strokeStyle = css("--muted"); O.lineWidth = 3; O.lineCap="butt";
+  O.beginPath(); O.moveTo(24, W-24); O.lineTo(24+l, W-24);
+  O.moveTo(24, W-31); O.lineTo(24, W-17); O.moveTo(24+l, W-31); O.lineTo(24+l, W-17); O.stroke();
+  O.fillStyle = css("--muted"); O.font = '700 19px "Atkinson Hyperlegible", sans-serif';
+  O.textAlign="left"; O.textBaseline="bottom";
+  O.fillText("50 µm", 24+l+12, W-16);
+  O.textAlign="right";
+  O.fillText(VZORKY[vzorek].popis, W-24, W-16);
+}
+
+function pocty(){
+  let P=0,B=0;
+  for(const t of znacky.values()){ if(t==="P") P++; else B++; }
+  return {P,B};
+}
+function aktualizujPI(){
+  const {P,B} = pocty();
+  $("#pP").textContent = P; $("#pP2").textContent = P; $("#pB").textContent = B;
+  $("#pPI").textContent = (P+B) ? fmt(P/(P+B)*100,1)+" %" : "—";
+}
+
+oc.addEventListener("click", ev=>{
+  const r = oc.getBoundingClientRect();
+  const x = (ev.clientX-r.left)*oc.width/r.width, y = (ev.clientY-r.top)*oc.height/r.height;
+  for(let i=0;i<bunky.length;i++){
+    if(vPoly(zmensi(bunky[i].poly,3.5), x, y)){
+      if(znacky.get(i) === mod) znacky.delete(i); else znacky.set(i, mod);
+      kresliOtisk(); aktualizujPI(); break;
+    }
+  }
+});
+
+$("#bModP").addEventListener("click", ()=>{ mod="P";
+  $("#bModP").setAttribute("aria-pressed","true"); $("#bModB").setAttribute("aria-pressed","false"); });
+$("#bModB").addEventListener("click", ()=>{ mod="B";
+  $("#bModB").setAttribute("aria-pressed","true"); $("#bModP").setAttribute("aria-pressed","false"); });
+$("#bSmazat").addEventListener("click", ()=>{ znacky=new Map(); kresliOtisk(); aktualizujPI(); $("#vysledek").innerHTML=""; });
+$("#bNovePole").addEventListener("click", ()=> generujPole((Math.random()*1e9)|0));
+
+document.querySelectorAll("[data-vz]").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    vzorek = b.dataset.vz;
+    document.querySelectorAll("[data-vz]").forEach(x=>x.setAttribute("aria-pressed", x===b));
+    generujPole((Math.random()*1e9)|0);
+  });
+});
+
+$("#bKontrola").addEventListener("click", ()=>{
+  const spravP = bunky.filter(b=>b.prud).length;
+  const spravB = bunky.length - spravP;
+  const {P,B} = pocty();
+  const piTvuj = (P+B) ? P/(P+B)*100 : null;
+  const piSpr  = spravP/(spravP+spravB)*100;
+
+  // chyby
+  let chybne = 0, prudJakoB = 0;
+  for(const [i,t] of znacky){
+    const b = bunky[i];
+    if(t==="P" && !b.prud) chybne++;
+    if(t==="B" && b.prud)  prudJakoB++;
+  }
+  const chybi = spravP - bunky.filter((b,i)=>b.prud && znacky.get(i)==="P").length;
+
+  const ok = (P===spravP && B===spravB);
+  let h = "<p><b class='"+(ok?"ok":"chyba")+"'>"+(ok?"Přesně tak.":"Ještě ne.")+"</b></p>";
+  h += "<table><tr><th></th><th class='c'>ty</th><th class='c'>správně</th></tr>";
+  h += "<tr><td>průduchy P</td><td class='c'>"+P+"</td><td class='c'>"+spravP+"</td></tr>";
+  h += "<tr><td>pokožkové buňky B</td><td class='c'>"+B+"</td><td class='c'>"+spravB+"</td></tr>";
+  h += "<tr><td>index PI</td><td class='c'>"+(piTvuj===null?"—":fmt(piTvuj,1)+" %")+"</td><td class='c'>"+fmt(piSpr,1)+" %</td></tr>";
+  h += "</table>";
+  const pozn = [];
+  if(chybi > 0)      pozn.push("Neoznačil jsi "+chybi+"× průduch.");
+  if(chybne > 0)     pozn.push("Označil jsi jako průduch "+chybne+"× obyčejnou buňku.");
+  if(prudJakoB > 0)  pozn.push("<b>Svěrací buňky nepočítej jako pokožkové</b> — "+prudJakoB+"× ses spletl.");
+  if(B < spravB - chybi && B > 0) pozn.push("Chybí ti "+(spravB-B)+" pokožkových buněk. Nezapomeň na ty u okraje, které do pole zasahují víc než polovinou.");
+  if(pozn.length) h += "<p class='pozn'>"+pozn.join(" ")+"</p>";
+  $("#vysledek").innerHTML = h;
+});
+
+/* ============================ TABY ============================ */
+function prepni(na){
+  const a = na==="A";
+  $("#tabA").setAttribute("aria-selected", a); $("#tabB").setAttribute("aria-selected", !a);
+  $("#panA").classList.toggle("skryto", !a); $("#panB").classList.toggle("skryto", a);
+  if(a) prekresliA(); else kresliOtisk();
+}
+$("#tabA").addEventListener("click", ()=>prepni("A"));
+$("#tabB").addEventListener("click", ()=>prepni("B"));
+
+/* start */
+document.querySelector('[data-pre="brectan"]').click();
+document.querySelector('[data-vz="zeli"]').setAttribute("aria-pressed","true");
+generujPole(20261125);
+prekresliA();
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ()=>{ prekresliA(); kresliOtisk(); });
+</script>
+</body>
+</html>
